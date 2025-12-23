@@ -1,0 +1,22 @@
+{
+  "common": {
+    "appName": "TIC Summit Portal",
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "dashboard": "Dashboard",
+    "studentDashboard": "Student Dashboard",
+    "mentorDashboard": "Mentor Dashboard",
+    "judgeDashboard": "Judge Dashboard",
+    "adminDashboard": "Admin Dashboard",
+    "superAdminDashboard": "Super Admin Dashboard",
+    "language": "Language",
+    "english": "English",
+    "french": "French",
+    "logout": "Logout"
+  }
+}
+
+

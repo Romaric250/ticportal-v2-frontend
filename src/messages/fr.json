@@ -1,0 +1,22 @@
+{
+  "common": {
+    "appName": "Portail TIC Summit",
+    "login": "Connexion",
+    "register": "Inscription",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "dashboard": "Tableau de bord",
+    "studentDashboard": "Tableau de bord étudiant",
+    "mentorDashboard": "Tableau de bord mentor",
+    "judgeDashboard": "Tableau de bord juge",
+    "adminDashboard": "Tableau de bord admin",
+    "superAdminDashboard": "Tableau de bord super admin",
+    "language": "Langue",
+    "english": "Anglais",
+    "french": "Français",
+    "logout": "Déconnexion"
+  }
+}
+
+
