@@ -64,7 +64,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-center">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold text-slate-900">
           {t("login")}
@@ -74,31 +74,7 @@ export default function LoginPage() {
         </p>
       </header>
 
-      {/* Language suggestion */}
-      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
-        <span>
-          Prefer{" "}
-          <span className="font-semibold">
-            {locale === "en" ? "Français" : "English"}
-          </span>
-          ?
-        </span>
-        <button
-          type="button"
-          className="rounded-full border border-slate-300 px-2 py-1 font-medium text-[#111827] hover:border-[#111827] hover:bg-slate-100"
-          onClick={() => {
-            const other = locale === "en" ? "fr" : "en";
-            if (typeof window !== "undefined") {
-              window.localStorage.setItem("tp_locale", other);
-            }
-            router.push(`/${other}/login`);
-          }}
-        >
-          Switch to {locale === "en" ? "French" : "English"}
-        </button>
-      </div>
-
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4 text-left">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-800">
             {t("email")}
@@ -110,6 +86,20 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none ring-0 ring-offset-0 placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
             placeholder="you@example.com"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-slate-800">
+            {t("password")}
+          </label>
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none ring-0 ring-offset-0 placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
+            placeholder="••••••••"
           />
         </div>
 
@@ -129,20 +119,6 @@ export default function LoginPage() {
           >
             Forgot password?
           </Link>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-800">
-            {t("password")}
-          </label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none ring-0 ring-offset-0 placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
-            placeholder="••••••••"
-          />
         </div>
 
         <button

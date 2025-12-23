@@ -2,13 +2,14 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 
 export default function RegisterPage() {
   const t = useTranslations("common");
   const router = useRouter();
+  const locale = useLocale();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +39,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-center">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold text-slate-900">
           {t("register")}
@@ -48,7 +49,7 @@ export default function RegisterPage() {
         </p>
       </header>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4 text-left">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-800">
             {t("email")}
@@ -98,6 +99,16 @@ export default function RegisterPage() {
         >
           {submitting ? "Creating account..." : t("register")}
         </button>
+
+        <p className="pt-2 text-center text-xs text-slate-600">
+          Already have an account?{" "}
+          <a
+            href={`/${locale}/login`}
+            className="font-semibold text-[#111827] hover:underline"
+          >
+            Login
+          </a>
+        </p>
       </form>
     </div>
   );

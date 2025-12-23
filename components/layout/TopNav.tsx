@@ -2,7 +2,6 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
-import { ConnectionStatus } from "../realtime/ConnectionStatus";
 import { useAuthStore } from "../../src/state/auth-store";
 
 export function TopNav() {
@@ -18,7 +17,15 @@ export function TopNav() {
     if (typeof window !== "undefined") {
       window.localStorage.setItem("tp_locale", otherLocale);
     }
-    const localizedPath = `/${otherLocale}${pathname.slice(3)}`;
+
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length === 0) {
+      router.push(`/${otherLocale}`);
+      return;
+    }
+    segments[0] = otherLocale;
+    const localizedPath = `/${segments.join("/")}`;
+
     router.push(localizedPath);
   };
 
@@ -28,7 +35,6 @@ export function TopNav() {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           {t("dashboard")}
         </span>
-        <ConnectionStatus />
       </div>
 
       <div className="flex items-center gap-3">
@@ -54,4 +60,3 @@ export function TopNav() {
     </header>
   );
 }
-
