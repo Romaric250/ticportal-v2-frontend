@@ -32,7 +32,7 @@ export function Sidebar({ role }: Props) {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-slate-200 bg-slate-50 transition-all",
+        "flex h-screen flex-col border-r border-slate-200 bg-slate-50 transition-all overflow-hidden",
         collapsed ? "w-16" : "w-64"
       )}
     >
@@ -50,32 +50,51 @@ export function Sidebar({ role }: Props) {
           {collapsed ? "›" : "‹"}
         </button>
       </div>
-      <nav className="flex-1 space-y-1 px-2 py-1 text-xs">
-        {links.map((link) => {
-          const active = pathname.startsWith(link.href);
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900",
-                active && "bg-white text-[#111827] shadow-sm"
-              )}
-            >
-              {collapsed ? (
-                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-slate-700 shadow-sm">
-                  {link.icon}
-                </span>
-              ) : (
-                <>
-                  <span className="text-slate-500">{link.icon}</span>
-                  <span>{link.label}</span>
-                </>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="flex-1 px-2 py-1 text-xs">
+        <nav className="space-y-1">
+          {links.map((link) => {
+            const active = pathname.startsWith(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900",
+                  active && "bg-white text-[#111827] shadow-sm"
+                )}
+              >
+                {collapsed ? (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-slate-700 shadow-sm">
+                    {link.icon}
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-slate-500">{link.icon}</span>
+                    <span>{link.label}</span>
+                  </>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="border-t border-slate-200 px-2 py-3 text-xs">
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"
+        >
+          <span className="text-slate-500">⚙️</span>
+          {!collapsed && <span>Settings</span>}
+        </button>
+        <button
+          type="button"
+          className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"
+        >
+          <span className="text-slate-500">⏻</span>
+          {!collapsed && <span>Sign out</span>}
+        </button>
+      </div>
     </aside>
   );
 }

@@ -20,9 +20,9 @@ export default function DashboardLayout({ children }: Props) {
     | "super-admin";
 
   return (
-    <div className="flex min-h-screen bg-white text-slate-900">
+    <div className="flex h-screen overflow-hidden bg-white text-slate-900">
       <Sidebar role={role} />
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex h-screen flex-1 flex-col">
         <TopNav />
         <main className="flex-1 overflow-y-auto px-8 py-6">{children}</main>
       </div>

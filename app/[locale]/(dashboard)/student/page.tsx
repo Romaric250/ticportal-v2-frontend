@@ -7,17 +7,17 @@ import { ConnectionStatus } from "../../../../components/realtime/ConnectionStat
 export default function StudentDashboardPage() {
   return (
     <div className="space-y-6 text-slate-900">
-      {/* Greeting */}
-      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-md md:flex-row md:items-center">
+      {/* Top header */}
+      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-sm md:flex-row md:items-center">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
             Student Portal
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-            Welcome back, <span className="text-[#111827]">Alex</span>
+          <h1 className="mt-2 text-2xl font-semibold">
+            Welcome back, <span className="text-[#111827]">Alex</span> 👋
           </h1>
           <p className="mt-1 text-xs text-slate-500">
-            Let&apos;s continue your innovation journey. You&apos;re doing great.
+            You&apos;re on a 12‑day streak. Keep pushing towards your next badge!
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -28,203 +28,191 @@ export default function StudentDashboardPage() {
         </div>
       </div>
 
-      {/* Top stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Total XP
-          </p>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-slate-900">1,240</span>
-            <span className="text-[11px] text-[#111827]">+120 this week</span>
-          </div>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Current level
-          </p>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-slate-900">Level 5</span>
-            <span className="text-[11px] text-slate-500">Top 15%</span>
-          </div>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Next badge
-          </p>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">Innovator</span>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-500">200 XP to go</p>
-        </div>
+      {/* Top stat cards (4) */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard
+          title="TIC Points (TP)"
+          primary="2,450"
+          secondary="+150 today"
+        />
+        <StatCard title="Current level" primary="Level 4" secondary="Scholar" />
+        <StatCard title="Day streak" primary="12" secondary="Days" />
+        <LevelProgressCard />
       </div>
 
-      {/* Main content grid */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
-        {/* Left column */}
-        <div className="space-y-5">
-          {/* Current phase card */}
-          <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Current phase
-                </p>
-                <h2 className="mt-1 text-sm font-semibold">
-                  Market Research
+      {/* Middle row: Learning Path + My Team */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
+        {/* Left: Next Up For You / Learning Path */}
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+            <span>Next up in your learning path</span>
+            <button className="text-[11px] font-medium text-slate-500 hover:text-[#111827]">
+              View all modules
+            </button>
+          </div>
+
+          <div className="mt-2 grid gap-4 md:grid-cols-[220px,minmax(0,1fr)]">
+            <div className="h-40 rounded-xl bg-slate-100" />
+            <div className="flex flex-col justify-between gap-3 text-xs">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-[10px] text-slate-700">
+                    In progress
+                  </span>
+                  <span>Last accessed 2h ago</span>
+                </div>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Module 3: Design thinking &amp; ideation
                 </h2>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Module 3 of 8 · Due Oct 24th
+                <p className="text-[11px] text-slate-600 line-clamp-2">
+                  Learn how to empathise with users, define problems, and
+                  iterate creative solutions for your TIC project.
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-[11px] text-slate-500">Progress</p>
-                <p className="text-xl font-semibold text-[#111827]">75%</p>
+              <div className="flex items-center justify-between gap-3">
+                <button className="rounded-full bg-[#111827] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#1f2937]">
+                  Resume learning
+                </button>
+                <div className="flex flex-1 flex-col gap-1">
+                  <div className="flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Progress</span>
+                    <span>65%</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-full w-2/3 rounded-full bg-[#111827]" />
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full w-3/4 rounded-full bg-[#111827]" />
+        {/* Right: My Team */}
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+            <span>My team</span>
+            <button className="text-[11px] font-medium text-slate-500 hover:text-[#111827]">
+              View all
+            </button>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-xs">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#111827] text-sm font-semibold text-white">
+              CW
             </div>
-
-            <div className="mt-3 flex items-center justify-between text-[10px] text-slate-500">
-              <span>Start</span>
-              <span>Research</span>
-              <span className="text-[#111827]">Validation</span>
-              <span>Prototype</span>
-              <span>Pitch</span>
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold text-slate-900">
+                Code Warriors
+              </p>
+              <p className="text-[10px] text-slate-500">Ideation phase</p>
             </div>
+            <div className="flex flex-col gap-1 text-[10px]">
+              <button className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-[#111827] hover:border-[#111827]">
+                Chat
+              </button>
+              <button className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-[#111827] hover:border-[#111827]">
+                Board
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+      {/* Bottom row: three cards */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Upcoming deadlines */}
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm text-xs">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Upcoming deadlines
+          </h2>
+          <ul className="space-y-3">
+            <li className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-[11px] text-slate-500">Up next</p>
-                <p className="text-sm font-semibold">
-                  Competitor analysis · 15 mins
+                <p className="text-[11px] font-semibold text-slate-900">
+                  Hackathon registration
                 </p>
+                <p className="text-[10px] text-rose-500">Due tomorrow</p>
               </div>
-              <button className="rounded-full border border-slate-300 px-3 py-1 text-[11px] font-semibold text-[#111827] hover:border-[#111827]">
-                Continue
-              </button>
-            </div>
-          </div>
-
-          {/* Team activity */}
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Team activity
-              </h2>
-              <button className="text-[11px] font-medium text-slate-500 hover:text-[#111827]">
-                View all
-              </button>
-            </div>
-            <div className="space-y-3 text-xs">
-              <ActivityItem
-                name="Sarah J."
-                action="uploaded a file"
-                timeAgo="2h ago"
-                detail="financial_model_v1.xlsx"
-              />
-              <ActivityItem
-                name="Mike T."
-                action="commented on Ideation Board"
-                timeAgo="4h ago"
-                detail="“I think we should pivot to the mobile‑first approach...”"
-              />
-              <ActivityItem
-                name="You"
-                action="posted an update to your team"
-                timeAgo="6h ago"
-              />
-            </div>
-          </div>
+              <span className="text-[10px] text-slate-400">Oct 24</span>
+            </li>
+            <li className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-semibold text-slate-900">
+                  Idea submission
+                </p>
+                <p className="text-[10px] text-slate-500">Due next week</p>
+              </div>
+              <span className="text-[10px] text-slate-400">Oct 30</span>
+            </li>
+            <li className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-semibold text-slate-900">
+                  Mentor check‑in
+                </p>
+                <p className="text-[10px] text-slate-500">Scheduled</p>
+              </div>
+              <span className="text-[10px] text-slate-400">Nov 02</span>
+            </li>
+          </ul>
         </div>
 
-        {/* Right column */}
-        <div className="space-y-5">
-          {/* Upcoming */}
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-300">
-              Upcoming
-            </h2>
-            <div className="space-y-3 text-xs">
-              <UpcomingItem
-                day="24"
-                month="OCT"
-                title="Market research"
-                subtitle="Due in 2 days"
-              />
-              <UpcomingItem
-                day="30"
-                month="OCT"
-                title="User personas"
-                subtitle="Upcoming"
-              />
-              <UpcomingItem
-                day="05"
-                month="NOV"
-                title="Initial pitch"
-                subtitle="Upcoming"
-              />
-            </div>
-          </div>
-
-          {/* Leaderboard + points */}
-          <div className="space-y-3 rounded-2xl bg-[#111827] p-5 shadow-lg shadow-black/40">
-            <BadgePoints badgesCount={3} points={1240} />
-            <Leaderboard title="Leaderboard (sample)" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type ActivityProps = {
-  name: string;
-  action: string;
-  timeAgo: string;
-  detail?: string;
-};
-
-function ActivityItem({ name, action, timeAgo, detail }: ActivityProps) {
-  return (
-    <div className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2">
-      <div>
-        <p className="text-[11px]">
-          <span className="font-semibold text-slate-900">{name}</span>{" "}
-          <span className="text-slate-600">{action}</span>
-        </p>
-        {detail && (
-          <p className="mt-1 text-[11px] text-slate-500 line-clamp-2">
-            {detail}
+        {/* Recent badges */}
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm text-xs">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Recent badges
+          </h2>
+          <BadgePoints badgesCount={3} points={1240} />
+          <p className="text-[11px] text-slate-500">
+            Complete &quot;Prototype Basics&quot; to unlock your next badge.
           </p>
-        )}
+        </div>
+
+        {/* Quick access */}
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm text-xs">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Quick access
+          </h2>
+          <Leaderboard title="Quick links (sample)" />
+        </div>
       </div>
-      <span className="text-[10px] text-slate-400">{timeAgo}</span>
     </div>
   );
 }
 
-type UpcomingProps = {
-  day: string;
-  month: string;
+type StatCardProps = {
   title: string;
-  subtitle: string;
+  primary: string;
+  secondary: string;
 };
 
-function UpcomingItem({ day, month, title, subtitle }: UpcomingProps) {
+function StatCard({ title, primary, secondary }: StatCardProps) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
-      <div className="flex flex-col items-center justify-center rounded-lg bg-[#111827] px-2 py-1 text-[10px] font-semibold text-white">
-        <span>{month}</span>
-        <span className="text-base">{day}</span>
-      </div>
-      <div className="flex-1">
-        <p className="text-[11px] font-semibold text-slate-900">{title}</p>
-        <p className="text-[10px] text-slate-500">{subtitle}</p>
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-xs shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        {title}
+      </p>
+      <div className="mt-3 flex flex-col gap-1">
+        <span className="text-2xl font-bold text-slate-900">{primary}</span>
+        <span className="text-[11px] text-slate-500">{secondary}</span>
       </div>
     </div>
   );
 }
 
+function LevelProgressCard() {
+  return (
+    <div className="rounded-xl bg-[#111827] px-4 py-4 text-xs text-slate-50 shadow-md">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+        Level 5 progress
+      </p>
+      <div className="mt-3 flex items-baseline justify-between">
+        <span className="text-2xl font-bold text-white">85%</span>
+        <span className="text-[10px] text-slate-300">
+          Only 50 TP more to reach Level 5 and unlock your next badge.
+        </span>
+      </div>
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-700">
+        <div className="h-full w-11/12 rounded-full bg-white" />
+      </div>
+    </div>
+  );
+}
