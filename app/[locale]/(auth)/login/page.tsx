@@ -1,16 +1,17 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useAuthStore } from "../../../../src/state/auth-store";
-import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 
 export default function LoginPage() {
   const t = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const locale = useLocale();
   const { setUser, setLoading } = useAuthStore();
 
   const [email, setEmail] = useState("");
@@ -18,17 +19,41 @@ export default function LoginPage() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Respect stored language preference, or store the current one
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem("tp_locale");
+    if (saved && saved !== locale) {
+      router.replace(`/${saved}/login`);
+    } else if (!saved) {
+      window.localStorage.setItem("tp_locale", locale);
+    }
+  }, [locale, router]);
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setLoading(true);
 
     try {
+      // TEMP: Mock login until backend auth is ready.
       const redirectTo = searchParams.get("redirect") ?? "/student";
-      const user = await authService.login({ email, password });
+      const user = {
+        id: "mock-user",
+        name: email.split("@")[0] || "Student",
+        email,
+        role: "student" as const,
+      };
+
       setUser(user);
-      toast.success("Logged in");
-      router.push(redirectTo);
+
+      if (typeof document !== "undefined") {
+        // Non-httpOnly cookie so the proxy can treat this as "authenticated" during development.
+        document.cookie = "tp_auth=1; path=/";
+      }
+
+      toast.success("Logged in (mock)");
+      router.push(`/${locale}${redirectTo}`);
     } catch (error) {
       console.error(error);
       toast.error("Login failed. Please check your credentials.");
@@ -49,6 +74,30 @@ export default function LoginPage() {
         </p>
       </header>
 
+      {/* Language suggestion */}
+      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
+        <span>
+          Prefer{" "}
+          <span className="font-semibold">
+            {locale === "en" ? "Français" : "English"}
+          </span>
+          ?
+        </span>
+        <button
+          type="button"
+          className="rounded-full border border-slate-300 px-2 py-1 font-medium text-[#111827] hover:border-[#111827] hover:bg-slate-100"
+          onClick={() => {
+            const other = locale === "en" ? "fr" : "en";
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem("tp_locale", other);
+            }
+            router.push(`/${other}/login`);
+          }}
+        >
+          Switch to {locale === "en" ? "French" : "English"}
+        </button>
+      </div>
+
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-800">
@@ -62,6 +111,24 @@ export default function LoginPage() {
             className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none ring-0 ring-offset-0 placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
             placeholder="you@example.com"
           />
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-slate-600">
+          <span>
+            Don&apos;t have an account?{" "}
+            <Link
+              href={`/${locale}/register`}
+              className="font-semibold text-[#111827] hover:underline"
+            >
+              Sign up
+            </Link>
+          </span>
+          <Link
+            href={`/${locale}/forgot-password`}
+            className="font-semibold text-[#111827] hover:underline"
+          >
+            Forgot password?
+          </Link>
         </div>
 
         <div className="space-y-1.5">
