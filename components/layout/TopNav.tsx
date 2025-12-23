@@ -30,9 +30,9 @@ export function TopNav() {
   };
 
   return (
-    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 text-xs text-slate-700">
+    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 text-sm text-slate-700">
       <div className="flex items-center gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {t("dashboard")}
         </span>
       </div>
@@ -41,17 +41,17 @@ export function TopNav() {
         <button
           type="button"
           onClick={handleLocaleSwitch}
-          className="rounded-full border border-slate-300 px-2 py-1 text-[11px] text-slate-600 hover:border-[#111827] hover:text-[#111827]"
+          className="rounded-full border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:border-[#111827] hover:text-[#111827]"
         >
           {otherLocale === "en" ? t("english") : t("french")}
         </button>
         <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
           <span className="h-6 w-6 rounded-full bg-slate-200" />
           <div className="flex flex-col">
-            <span className="text-[11px] font-semibold">
+            <span className="text-xs font-semibold">
               {user?.name ?? "User"}
             </span>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-xs text-slate-400">
               {user?.role ?? "guest"}
             </span>
           </div>

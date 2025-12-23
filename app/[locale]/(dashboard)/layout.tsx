@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: Props) {
     | "super-admin";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white text-slate-900">
+    <div className="flex h-screen overflow-hidden bg-[#f9fafb] text-slate-900">
       <Sidebar role={role} />
       <div className="flex h-screen flex-1 flex-col">
         <TopNav />

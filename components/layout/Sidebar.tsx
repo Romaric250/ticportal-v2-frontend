@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiHome, FiActivity, FiCheckSquare, FiFlag } from "react-icons/fi";
+import { FiHome, FiActivity, FiCheckSquare, FiFlag, FiUser } from "react-icons/fi";
 import { cn } from "../../src/utils/cn";
 
 type SidebarLink = {
@@ -25,6 +25,9 @@ export function Sidebar({ role }: Props) {
   const links: SidebarLink[] = [
     { href: `${basePath}`, label: "Overview", icon: <FiHome size={16} /> },
     { href: `${basePath}/scroll`, label: "Scroll", icon: <FiActivity size={16} /> },
+    ...(role === "student"
+      ? [{ href: `${basePath}/portfolio`, label: "Portfolio", icon: <FiUser size={16} /> }]
+      : []),
     { href: `${basePath}/tasks`, label: "Tasks", icon: <FiCheckSquare size={16} /> },
     { href: `${basePath}/hackathons`, label: "Hackathons", icon: <FiFlag size={16} /> },
   ];
@@ -38,19 +41,19 @@ export function Sidebar({ role }: Props) {
     >
       <div className="flex items-center justify-between px-3 py-4">
         {!collapsed && (
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {role.toUpperCase()}
           </span>
         )}
         <button
           type="button"
-          className="rounded-md p-1 text-xs text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+          className="rounded-md p-1 text-sm text-slate-500 hover:bg-slate-200 hover:text-slate-900"
           onClick={() => setCollapsed((c) => !c)}
         >
           {collapsed ? "›" : "‹"}
         </button>
       </div>
-      <div className="flex-1 px-2 py-1 text-xs">
+      <div className="flex-1 px-2 py-1 text-sm">
         <nav className="space-y-1">
           {links.map((link) => {
             const active = pathname.startsWith(link.href);
@@ -79,7 +82,7 @@ export function Sidebar({ role }: Props) {
         </nav>
       </div>
 
-      <div className="border-t border-slate-200 px-2 py-3 text-xs">
+      <div className="border-t border-slate-200 px-2 py-3 text-sm">
         <button
           type="button"
           className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"

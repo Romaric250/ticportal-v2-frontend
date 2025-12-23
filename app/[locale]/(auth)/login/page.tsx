@@ -103,7 +103,7 @@ export default function LoginPage() {
           />
         </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-600">
+        <div className="flex items-center justify-between text-sm text-slate-600">
           <span>
             Don&apos;t have an account?{" "}
             <Link

@@ -8,15 +8,15 @@ type StatCardProps = {
 
 function StatCard({ title, primary, secondary }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs shadow-sm sm:py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm sm:py-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {title}
       </p>
       <div className="mt-3 flex flex-col gap-1">
         <span className="text-xl font-bold text-slate-900 sm:text-2xl">
           {primary}
         </span>
-        <span className="text-[11px] text-slate-500">{secondary}</span>
+        <span className="text-xs text-slate-500">{secondary}</span>
       </div>
     </div>
   );
@@ -24,13 +24,13 @@ function StatCard({ title, primary, secondary }: StatCardProps) {
 
 function LevelProgressCard() {
   return (
-    <div className="rounded-xl bg-[#111827] px-4 py-3 text-xs text-slate-50 shadow-md sm:py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+    <div className="rounded-xl bg-[#111827] px-4 py-3 text-sm text-slate-50 shadow-md sm:py-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">
         Level 5 progress
       </p>
       <div className="mt-3 flex items-baseline justify-between gap-3">
         <span className="text-xl font-bold text-white sm:text-2xl">85%</span>
-        <span className="hidden text-[10px] text-slate-300 sm:block">
+        <span className="hidden text-xs text-slate-300 sm:block">
           Only 50 TP more to reach Level 5 and unlock your next badge.
         </span>
       </div>
