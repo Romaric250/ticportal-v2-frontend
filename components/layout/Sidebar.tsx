@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Activity, CheckSquare, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Activity, CheckSquare, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { cn } from "../../src/utils/cn";
 
 type SidebarLink = {
@@ -29,6 +29,7 @@ export function Sidebar({ role }: Props) {
       ? [
           { href: `${basePath}/learning-path`, label: "Learning Path", icon: <BookOpen size={16} /> },
           { href: `${basePath}/portfolio`, label: "Portfolio", icon: <User size={16} /> },
+          { href: `${basePath}/team`, label: "My Team", icon: <Users size={16} /> },
         ]
       : []),
     { href: `${basePath}/tasks`, label: "Tasks", icon: <CheckSquare size={16} /> },
