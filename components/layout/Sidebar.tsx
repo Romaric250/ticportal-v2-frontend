@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Activity, CheckSquare, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Home, Activity, CheckSquare, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare } from "lucide-react";
 import { cn } from "../../src/utils/cn";
 
 type SidebarLink = {
@@ -20,16 +20,25 @@ export function Sidebar({ role }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
+  // Auto-collapse on mobile (only on initial load)
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      // lg breakpoint - auto-collapse on mobile
+      setCollapsed(true);
+    }
+  }, []);
+
   const basePath = `/${pathname.split("/")[1]}/${role}`;
 
   const links: SidebarLink[] = [
     { href: `${basePath}`, label: "Overview", icon: <Home size={16} /> },
-    { href: `${basePath}/scroll`, label: "Scroll", icon: <Activity size={16} /> },
+    { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
     ...(role === "student"
       ? [
           { href: `${basePath}/learning-path`, label: "Learning Path", icon: <BookOpen size={16} /> },
           { href: `${basePath}/portfolio`, label: "Portfolio", icon: <User size={16} /> },
           { href: `${basePath}/team`, label: "My Team", icon: <Users size={16} /> },
+          { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
         ]
       : []),
     { href: `${basePath}/tasks`, label: "Tasks", icon: <CheckSquare size={16} /> },

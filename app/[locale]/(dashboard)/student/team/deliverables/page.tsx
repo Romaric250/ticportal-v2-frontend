@@ -1,10 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Clock, Star, AlertTriangle, Eye, Info, Lock, ChevronDown, Filter } from "lucide-react";
+import {
+  Check,
+  Clock,
+  Star,
+  AlertTriangle,
+  Eye,
+  Info,
+  Lock,
+  Filter,
+  GraduationCap,
+  Settings,
+  BarChart,
+  Code,
+  Users,
+  AlertCircle,
+  ChevronDown,
+} from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function DeliverablesPage() {
+  const pathname = usePathname();
+  const locale = pathname.split("/")[1] || "en";
   const [activeFilter, setActiveFilter] = useState("all");
   const [sortBy, setSortBy] = useState("due-date");
 
@@ -15,15 +34,116 @@ export default function DeliverablesPage() {
     { id: "overdue", label: "Overdue", icon: <AlertTriangle size={14} /> },
   ];
 
+  // All deliverables data
+  const allDeliverables = [
+    {
+      id: "1",
+      status: "graded" as const,
+      title: "Project Proposal",
+      submittedDate: "Oct 12",
+      description: "Initial draft of the team solution outlining the problem statement...",
+      actionLabel: "View Feedback",
+      actionIcon: <Eye size={14} />,
+      icon: <GraduationCap size={24} />,
+      iconColor: "text-[#111827]",
+    },
+    {
+      id: "2",
+      status: "needs-attention" as const,
+      title: "Prototype Demo",
+      dueDate: "2 days",
+      isUrgent: true,
+      description: "A 3-minute video walkthrough of the MVP demonstrating core features...",
+      actionLabel: "Submit Work",
+      actionIcon: <Info size={14} />,
+      icon: <Settings size={24} />,
+      iconColor: "text-slate-400",
+    },
+    {
+      id: "3",
+      status: "overdue" as const,
+      title: "Market Research",
+      dueDate: "yesterday",
+      isOverdue: true,
+      description: "Detailed survey results and competitor analysis matrix. Require...",
+      actionLabel: "Late Submission",
+      actionIcon: <AlertCircle size={14} />,
+      icon: <BarChart size={24} />,
+      iconColor: "text-slate-400",
+    },
+    {
+      id: "4",
+      status: "upcoming" as const,
+      title: "Final Codebase",
+      dueDate: "Nov 15",
+      description: "Complete source code repository link with README documentation...",
+      actionLabel: "Locked",
+      actionIcon: <Lock size={14} />,
+      isLocked: true,
+      icon: <Code size={24} />,
+      iconColor: "text-slate-400",
+    },
+    {
+      id: "5",
+      status: "graded" as const,
+      title: "Team Formation",
+      submittedDate: "Sep 20",
+      description: "Registration of all team members, roles assignment, and mentor...",
+      actionLabel: "View Details",
+      actionIcon: <Eye size={14} />,
+      icon: <Users size={24} />,
+      iconColor: "text-slate-400",
+    },
+    {
+      id: "6",
+      status: "pending" as const,
+      title: "Pitch Deck",
+      dueDate: "Nov 05",
+      description: "The visual presentation slides used during the final pitch to judges.",
+      actionLabel: "Start Draft",
+      actionIcon: <Info size={14} />,
+      icon: <BarChart size={24} />,
+      iconColor: "text-slate-400",
+    },
+  ];
+
+  // Filter deliverables based on active filter
+  const filteredDeliverables = allDeliverables.filter((deliverable) => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "graded") return deliverable.status === "graded";
+    if (activeFilter === "pending") 
+      return deliverable.status === "pending" || deliverable.status === "needs-attention";
+    if (activeFilter === "overdue") return deliverable.status === "overdue";
+    return true;
+  });
+
+  // Sort deliverables
+  const sortedDeliverables = [...filteredDeliverables].sort((a, b) => {
+    if (sortBy === "due-date") {
+      // Simple date comparison (you might want to improve this)
+      if (a.dueDate && b.dueDate) {
+        return a.dueDate.localeCompare(b.dueDate);
+      }
+      return 0;
+    }
+    if (sortBy === "status") {
+      return a.status.localeCompare(b.status);
+    }
+    if (sortBy === "title") {
+      return a.title.localeCompare(b.title);
+    }
+    return 0;
+  });
+
   return (
     <div className="space-y-6 text-slate-900">
       {/* Breadcrumbs */}
       <nav className="text-xs text-slate-500">
-        <Link href="/student" className="hover:text-slate-700">
+        <Link href={`/${locale}/student`} className="hover:text-slate-700">
           Home
         </Link>
         {" / "}
-        <Link href="/student/team" className="hover:text-slate-700">
+        <Link href={`/${locale}/student/team`} className="hover:text-slate-700">
           My Team
         </Link>
         {" / "}
@@ -31,27 +151,29 @@ export default function DeliverablesPage() {
       </nav>
 
       {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-slate-900">My Deliverables</h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-base text-slate-600">
             Track your team&apos;s submission progress. Keep up the momentum to reach the finals!
           </p>
         </div>
 
         {/* Overall Progress Card */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 lg:w-64">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm lg:w-72">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             OVERALL PROGRESS
           </p>
           <div className="mt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-2xl font-bold text-slate-900">65%</span>
+            <div className="mb-3">
+              <span className="text-3xl font-bold text-slate-900">65%</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
               <div className="h-full w-[65%] rounded-full bg-[#111827]" />
             </div>
-            <p className="mt-2 text-xs text-[#111827]">Next Deadline: 2 days</p>
+            <p className="mt-3 text-sm font-medium text-[#111827]">
+              Next Deadline: 2 days
+            </p>
           </div>
         </div>
       </div>
@@ -63,10 +185,10 @@ export default function DeliverablesPage() {
             <button
               key={filter.id}
               onClick={() => setActiveFilter(filter.id)}
-              className={`cursor-pointer inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              className={`cursor-pointer inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition ${
                 activeFilter === filter.id
-                  ? "bg-[#111827] text-white"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  ? "bg-[#111827] text-white shadow-sm"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
               }`}
             >
               {filter.icon}
@@ -76,91 +198,54 @@ export default function DeliverablesPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter size={14} className="text-slate-500" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-[#111827]"
-          >
-            <option value="due-date">Sort by: Due Date</option>
-            <option value="status">Sort by: Status</option>
-            <option value="title">Sort by: Title</option>
-          </select>
+          <Filter size={16} className="text-slate-500" />
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white px-4 py-2 pr-8 text-xs font-medium text-slate-700 outline-none focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
+            >
+              <option value="due-date">Sort by: Due Date</option>
+              <option value="status">Sort by: Status</option>
+              <option value="title">Sort by: Title</option>
+            </select>
+            <ChevronDown
+              size={14}
+              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500"
+            />
+          </div>
         </div>
       </div>
 
       {/* Deliverables Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <DeliverableCard
-          status="graded"
-          title="Project Proposal"
-          submittedDate="Oct 12"
-          description="Initial draft of the team solution outlining the problem statement..."
-          actionLabel="View Feedback"
-          actionIcon={<Eye size={14} />}
-          icon={<GraduationCap size={20} />}
-        />
-        <DeliverableCard
-          status="needs-attention"
-          title="Prototype Demo"
-          dueDate="2 days"
-          isUrgent
-          description="A 3-minute video walkthrough of the MVP demonstrating core features..."
-          actionLabel="Submit Work"
-          actionIcon={<Info size={14} />}
-          icon={<Settings size={20} />}
-        />
-        <DeliverableCard
-          status="overdue"
-          title="Market Research"
-          dueDate="yesterday"
-          isOverdue
-          description="Detailed survey results and competitor analysis matrix. Require..."
-          actionLabel="Late Submission"
-          actionIcon={<AlertCircle size={14} />}
-          icon={<BarChart size={20} />}
-        />
-        <DeliverableCard
-          status="upcoming"
-          title="Final Codebase"
-          dueDate="Nov 15"
-          description="Complete source code repository link with README documentation..."
-          actionLabel="Locked"
-          actionIcon={<Lock size={14} />}
-          isLocked
-          icon={<Code size={20} />}
-        />
-        <DeliverableCard
-          status="graded"
-          title="Team Formation"
-          submittedDate="Sep 20"
-          description="Registration of all team members, roles assignment, and mentor..."
-          actionLabel="View Details"
-          actionIcon={<Eye size={14} />}
-          icon={<Users size={20} />}
-        />
-        <DeliverableCard
-          status="pending"
-          title="Pitch Deck"
-          dueDate="Nov 05"
-          description="The visual presentation slides used during the final pitch to judges."
-          actionLabel="Start Draft"
-          actionIcon={<Info size={14} />}
-          icon={<BarChart size={20} />}
-        />
-      </div>
+      {sortedDeliverables.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+          <p className="text-sm text-slate-500">No deliverables found for this filter.</p>
+        </div>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {sortedDeliverables.map((deliverable) => (
+            <DeliverableCard
+              key={deliverable.id}
+              status={deliverable.status}
+              title={deliverable.title}
+              submittedDate={deliverable.submittedDate}
+              dueDate={deliverable.dueDate}
+              isUrgent={deliverable.isUrgent}
+              isOverdue={deliverable.isOverdue}
+              description={deliverable.description}
+              actionLabel={deliverable.actionLabel}
+              actionIcon={deliverable.actionIcon}
+              icon={deliverable.icon}
+              iconColor={deliverable.iconColor}
+              isLocked={deliverable.isLocked}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
-import {
-  GraduationCap,
-  Settings,
-  BarChart,
-  Code,
-  Users,
-  AlertCircle,
-} from "lucide-react";
 
 type DeliverableCardProps = {
   status: "graded" | "needs-attention" | "overdue" | "upcoming" | "pending";
@@ -173,6 +258,7 @@ type DeliverableCardProps = {
   actionLabel: string;
   actionIcon: React.ReactNode;
   icon: React.ReactNode;
+  iconColor?: string;
   isLocked?: boolean;
 };
 
@@ -187,6 +273,7 @@ function DeliverableCard({
   actionLabel,
   actionIcon,
   icon,
+  iconColor = "text-slate-300",
   isLocked,
 }: DeliverableCardProps) {
   const statusConfig = {
@@ -221,58 +308,66 @@ function DeliverableCard({
 
   return (
     <div
-      className={`relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm border-l-4 ${config.borderColor}`}
+      className={`group relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md border-l-4 ${config.borderColor}`}
     >
       {/* Status Badge */}
-      <div className="mb-3">
+      <div className="mb-4">
         <span
-          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${config.className}`}
+          className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${config.className}`}
         >
           {config.label}
         </span>
       </div>
 
       {/* Icon */}
-      <div className="absolute right-4 top-4 text-slate-300">{icon}</div>
+      <div className={`absolute right-5 top-5 ${iconColor} opacity-60 group-hover:opacity-80 transition-opacity`}>
+        {icon}
+      </div>
 
       {/* Title */}
-      <h3 className="mb-2 pr-12 text-base font-semibold text-slate-900">
+      <h3 className="mb-3 pr-16 text-lg font-bold text-slate-900">
         {title}
       </h3>
 
       {/* Date Info */}
-      <div className="mb-3">
+      <div className="mb-4">
         {submittedDate ? (
-          <p className="text-xs text-slate-500">Submitted on {submittedDate}</p>
+          <p className="text-sm text-slate-500">Submitted on {submittedDate}</p>
         ) : (
           <p
-            className={`text-xs ${
-              isOverdue ? "text-red-600" : isUrgent ? "text-red-600" : "text-slate-500"
+            className={`inline-flex items-center gap-1.5 text-sm font-medium ${
+              isOverdue
+                ? "text-red-600"
+                : isUrgent
+                ? "text-red-600"
+                : "text-slate-500"
             }`}
           >
-            {isOverdue && <AlertTriangle size={12} className="mr-1 inline" />}
+            {isOverdue && <AlertTriangle size={14} />}
             Due {dueDate}
           </p>
         )}
       </div>
 
       {/* Description */}
-      <p className="mb-4 line-clamp-2 text-xs text-slate-600">{description}</p>
+      <p className="mb-6 line-clamp-2 text-sm leading-relaxed text-slate-600">
+        {description}
+      </p>
 
       {/* Action Button */}
       <button
         disabled={isLocked}
-        className={`w-full rounded-lg px-4 py-2 text-xs font-semibold transition ${
+        className={`w-full rounded-lg px-4 py-2.5 text-xs font-semibold transition ${
           isLocked
             ? "cursor-not-allowed bg-slate-100 text-slate-400"
             : status === "overdue"
             ? "cursor-pointer bg-red-500 text-white hover:bg-red-600"
             : status === "needs-attention" || status === "pending"
             ? "cursor-pointer bg-[#111827] text-white hover:bg-[#1f2937]"
-            : "cursor-pointer border border-slate-200 bg-white text-[#111827] hover:bg-slate-50"
+            : "cursor-pointer border-2 border-slate-200 bg-white text-[#111827] hover:border-[#111827] hover:bg-slate-50"
         }`}
       >
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex items-center justify-center gap-2">
           {actionIcon}
           <span>{actionLabel}</span>
         </span>
@@ -280,4 +375,3 @@ function DeliverableCard({
     </div>
   );
 }
-

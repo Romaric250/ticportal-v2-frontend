@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Check, Play, Lock, BookOpen, Lightbulb, Users, Trophy, ArrowRight, Bookmark } from "lucide-react";
 
 export default function LearningPathPage() {
@@ -105,9 +106,12 @@ export default function LearningPathPage() {
             <p className="mt-2 text-xs text-slate-600">
               Learn how to articulate why a customer would choose your product over a competitor.
             </p>
-            <button className="cursor-pointer mt-4 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-[#111827] hover:border-[#111827]">
+            <Link
+              href="/student/course/value-propositions-101"
+              className="cursor-pointer mt-4 block w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-xs font-semibold text-[#111827] hover:border-[#111827]"
+            >
               Start Lesson
-            </button>
+            </Link>
           </div>
 
           {/* Recent Badges */}
@@ -298,9 +302,12 @@ function StageCard({
 
           {/* Continue Learning Button */}
           {hasContinueButton && (
-            <button className="cursor-pointer mt-4 inline-flex items-center gap-1 rounded-lg bg-[#111827] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#1f2937]">
+            <Link
+              href="/student/course/stage-3"
+              className="cursor-pointer mt-4 inline-flex items-center gap-1 rounded-lg bg-[#111827] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#1f2937]"
+            >
               Continue Learning <ArrowRight size={14} />
-            </button>
+            </Link>
           )}
         </div>
       </div>
@@ -356,7 +363,10 @@ function CourseCard({
   instructor,
 }: CourseCardProps) {
   return (
-    <div className="group relative rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <Link
+      href="/student/course/coding-basics"
+      className="group relative block rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+    >
       <div className="relative h-40 overflow-hidden rounded-t-2xl bg-slate-100">
         <div className="absolute right-3 top-3 rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 shadow-sm">
           {duration}
@@ -376,7 +386,7 @@ function CourseCard({
       <button className="cursor-pointer absolute bottom-4 right-4 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
         <Bookmark size={16} />
       </button>
-    </div>
+    </Link>
   );
 }
 
