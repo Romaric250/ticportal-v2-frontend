@@ -1,15 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuthStore } from "../../src/state/auth-store";
+import { Bell } from "lucide-react";
+import { UserProfileMenu } from "./UserProfileMenu";
+import { NotificationsModal } from "./NotificationsModal";
 
 export function TopNav() {
   const t = useTranslations("common");
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuthStore();
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const otherLocale = locale === "en" ? "fr" : "en";
 
@@ -30,33 +33,41 @@ export function TopNav() {
   };
 
   return (
-    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 text-sm text-slate-700">
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {t("dashboard")}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleLocaleSwitch}
-          className="rounded-full border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:border-[#111827] hover:text-[#111827]"
-        >
-          {otherLocale === "en" ? t("english") : t("french")}
-        </button>
-        <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          <span className="h-6 w-6 rounded-full bg-slate-200" />
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold">
-              {user?.name ?? "User"}
-            </span>
-            <span className="text-xs text-slate-400">
-              {user?.role ?? "guest"}
-            </span>
-          </div>
+    <>
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 text-sm text-slate-700">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {t("dashboard")}
+          </span>
         </div>
-      </div>
-    </header>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleLocaleSwitch}
+            className="cursor-pointer rounded-full border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:border-[#111827] hover:text-[#111827]"
+          >
+            {otherLocale === "en" ? t("english") : t("french")}
+          </button>
+
+          {/* Notifications Button */}
+          <button
+            onClick={() => setShowNotifications(true)}
+            className="cursor-pointer relative rounded-full p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          >
+            <Bell size={18} />
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
+          </button>
+
+          {/* User Profile Menu */}
+          <UserProfileMenu />
+        </div>
+      </header>
+
+      {/* Notifications Modal */}
+      {showNotifications && (
+        <NotificationsModal onClose={() => setShowNotifications(false)} />
+      )}
+    </>
   );
 }
