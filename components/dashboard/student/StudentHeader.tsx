@@ -15,7 +15,7 @@ export function StudentHeader() {
         </p>
       </div>
       <div className="flex items-center justify-end gap-3">
-        <button className="rounded-full bg-[#111827] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1f2937]">
+        <button className="cursor-pointer rounded-full bg-[#111827] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1f2937]">
           Resume learning
         </button>
       </div>

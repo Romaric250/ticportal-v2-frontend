@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiHome, FiActivity, FiCheckSquare, FiFlag, FiUser } from "react-icons/fi";
+import { Home, Activity, CheckSquare, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../src/utils/cn";
 
 type SidebarLink = {
@@ -23,13 +23,16 @@ export function Sidebar({ role }: Props) {
   const basePath = `/${pathname.split("/")[1]}/${role}`;
 
   const links: SidebarLink[] = [
-    { href: `${basePath}`, label: "Overview", icon: <FiHome size={16} /> },
-    { href: `${basePath}/scroll`, label: "Scroll", icon: <FiActivity size={16} /> },
+    { href: `${basePath}`, label: "Overview", icon: <Home size={16} /> },
+    { href: `${basePath}/scroll`, label: "Scroll", icon: <Activity size={16} /> },
     ...(role === "student"
-      ? [{ href: `${basePath}/portfolio`, label: "Portfolio", icon: <FiUser size={16} /> }]
+      ? [
+          { href: `${basePath}/learning-path`, label: "Learning Path", icon: <BookOpen size={16} /> },
+          { href: `${basePath}/portfolio`, label: "Portfolio", icon: <User size={16} /> },
+        ]
       : []),
-    { href: `${basePath}/tasks`, label: "Tasks", icon: <FiCheckSquare size={16} /> },
-    { href: `${basePath}/hackathons`, label: "Hackathons", icon: <FiFlag size={16} /> },
+    { href: `${basePath}/tasks`, label: "Tasks", icon: <CheckSquare size={16} /> },
+    { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
   ];
 
   return (
@@ -47,10 +50,10 @@ export function Sidebar({ role }: Props) {
         )}
         <button
           type="button"
-          className="rounded-md p-1 text-sm text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+          className="cursor-pointer rounded-md p-1 text-sm text-slate-500 hover:bg-slate-200 hover:text-slate-900"
           onClick={() => setCollapsed((c) => !c)}
         >
-          {collapsed ? "›" : "‹"}
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
       <div className="flex-1 px-2 py-1 text-sm">
@@ -85,16 +88,16 @@ export function Sidebar({ role }: Props) {
       <div className="border-t border-slate-200 px-2 py-3 text-sm">
         <button
           type="button"
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"
+          className="cursor-pointer flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"
         >
-          <span className="text-slate-500">⚙️</span>
+          <Settings size={16} className="text-slate-500" />
           {!collapsed && <span>Settings</span>}
         </button>
         <button
           type="button"
-          className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"
+          className="cursor-pointer mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"
         >
-          <span className="text-slate-500">⏻</span>
+          <LogOut size={16} className="text-slate-500" />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>

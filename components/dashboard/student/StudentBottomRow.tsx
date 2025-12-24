@@ -44,7 +44,7 @@ export function StudentBottomRow() {
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
             Recent badges
           </h2>
-          <button className="text-xs font-medium text-[#111827] hover:underline">
+          <button className="cursor-pointer text-xs font-medium text-[#111827] hover:underline">
             View all
           </button>
         </div>

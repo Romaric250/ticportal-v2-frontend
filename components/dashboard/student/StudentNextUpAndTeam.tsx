@@ -5,7 +5,7 @@ export function StudentNextUpAndTeam() {
     <>
       <div className="flex flex-col gap-2 text-sm font-semibold text-slate-800 sm:flex-row sm:items-center sm:justify-between">
         <span>Next up for you</span>
-        <button className="text-left text-xs font-medium text-[#111827] hover:underline sm:text-center">
+        <button className="cursor-pointer text-left text-xs font-medium text-[#111827] hover:underline sm:text-center">
           View all modules
         </button>
         <span className="hidden text-slate-800 sm:inline">My team</span>
@@ -37,7 +37,7 @@ export function StudentNextUpAndTeam() {
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <button className="rounded-full bg-[#111827] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937]">
+                <button className="cursor-pointer rounded-full bg-[#111827] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937]">
                   Resume learning
                 </button>
                 <div className="flex flex-1 flex-col gap-1">
@@ -86,10 +86,10 @@ export function StudentNextUpAndTeam() {
                 </span>
               </div>
               <div className="flex flex-row gap-2 text-xs sm:flex-col">
-                <button className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-[#111827] hover:border-[#111827]">
+                <button className="cursor-pointer rounded-full border border-slate-300 px-3 py-1 font-semibold text-[#111827] hover:border-[#111827]">
                   Chat
                 </button>
-                <button className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-[#111827] hover:border-[#111827]">
+                <button className="cursor-pointer rounded-full border border-slate-300 px-3 py-1 font-semibold text-[#111827] hover:border-[#111827]">
                   Board
                 </button>
               </div>
