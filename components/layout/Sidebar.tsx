@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Activity, CheckSquare, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare } from "lucide-react";
@@ -48,9 +48,10 @@ export function Sidebar({ role }: Props) {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-slate-200 bg-slate-50 transition-all overflow-hidden",
+        "relative flex h-screen flex-col border-r border-slate-200 bg-slate-50 transition-all",
         collapsed ? "w-16" : "w-64"
       )}
+      style={collapsed ? { overflow: 'visible', overflowY: 'auto', zIndex: 50 } : { overflow: 'hidden', zIndex: 10 }}
     >
       <div className="flex items-center justify-between px-3 py-4">
         {!collapsed && (
@@ -66,50 +67,88 @@ export function Sidebar({ role }: Props) {
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
-      <div className="flex-1 px-2 py-1 text-sm">
+      <div 
+        className="flex-1 px-2 py-1 text-sm"
+        style={collapsed ? { overflowY: 'auto', overflowX: 'visible' } : { overflow: 'hidden' }}
+      >
         <nav className="space-y-1">
           {links.map((link) => {
-            const active = pathname.startsWith(link.href);
+            // For Overview (basePath), check exact match or no additional segments
+            // For other links, check if pathname starts with link.href followed by / or end of string
+            const isOverview = link.href === basePath;
+            const active = isOverview
+              ? pathname === basePath || pathname === `${basePath}/`
+              : pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900",
-                  active && "bg-white text-[#111827] shadow-sm"
+              <div key={link.href} className="relative group">
+                <Link
+                  href={link.href}
+                  className={cn(
+                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors w-full relative",
+                    active && "bg-[#111827] text-white shadow-sm hover:bg-[#1f2937]"
+                  )}
+                >
+                  {collapsed ? (
+                    <span className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md shadow-sm transition-colors",
+                      active 
+                        ? "bg-[#1f2937] text-white" 
+                        : "bg-white text-slate-700"
+                    )}>
+                      {link.icon}
+                    </span>
+                  ) : (
+                    <>
+                      <span className={cn(
+                        active ? "text-white" : "text-slate-500"
+                      )}>{link.icon}</span>
+                      <span>{link.label}</span>
+                    </>
+                  )}
+                </Link>
+                {collapsed && (
+                  <div className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-[#111827] text-white text-xs font-semibold whitespace-nowrap opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-[99999] pointer-events-none shadow-xl">
+                    {link.label}
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-[#111827]" />
+                  </div>
                 )}
-              >
-                {collapsed ? (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-slate-700 shadow-sm">
-                    {link.icon}
-                  </span>
-                ) : (
-                  <>
-                    <span className="text-slate-500">{link.icon}</span>
-                    <span>{link.label}</span>
-                  </>
-                )}
-              </Link>
+              </div>
             );
           })}
         </nav>
       </div>
 
       <div className="border-t border-slate-200 px-2 py-3 text-sm">
-        <button
-          type="button"
-          className="cursor-pointer flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"
-        >
-          <Settings size={16} className="text-slate-500" />
-          {!collapsed && <span>Settings</span>}
-        </button>
-        <button
-          type="button"
-          className="cursor-pointer mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-white hover:text-slate-900"
-        >
-          <LogOut size={16} className="text-slate-500" />
-          {!collapsed && <span>Sign out</span>}
-        </button>
+        <div className="relative group">
+          <button
+            type="button"
+            className="cursor-pointer flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+          >
+            <Settings size={16} className="text-slate-500" />
+            {!collapsed && <span>Settings</span>}
+          </button>
+          {collapsed && (
+            <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-[#111827] text-white text-xs font-semibold whitespace-nowrap opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-[99999] pointer-events-none shadow-xl">
+              Settings
+              <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-[#111827]" />
+            </div>
+          )}
+        </div>
+        <div className="relative group">
+          <button
+            type="button"
+            className="cursor-pointer mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+          >
+            <LogOut size={16} className="text-slate-500" />
+            {!collapsed && <span>Sign out</span>}
+          </button>
+          {collapsed && (
+            <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-[#111827] text-white text-xs font-semibold whitespace-nowrap opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-[99999] pointer-events-none shadow-xl">
+              Sign out
+              <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-[#111827]" />
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
