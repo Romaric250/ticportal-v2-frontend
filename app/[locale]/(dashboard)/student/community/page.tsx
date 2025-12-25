@@ -7,7 +7,6 @@ import {
   Plus,
   Circle,
   UserPlus,
-  MessageSquare,
 } from "lucide-react";
 
 export default function CommunityPage() {
@@ -22,21 +21,6 @@ export default function CommunityPage() {
     <div className="grid h-[calc(100vh-60px)] lg:grid-cols-[minmax(0,1fr)_320px] -mx-8 -my-6 px-8 gap-6">
       {/* Main Chat Area */}
       <div className="flex flex-col h-full bg-white border-r border-slate-200 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 flex-shrink-0 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <MessageSquare size={20} className="text-[#111827]" />
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">TIC Community</h2>
-              <p className="text-xs text-slate-500">Live discussions and updates</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Circle size={8} className="fill-emerald-500 text-emerald-500" />
-            <span className="text-xs font-semibold text-slate-600">42 online</span>
-          </div>
-        </div>
-
         {/* Messages Container - Scrollable */}
         <div className="flex-1 space-y-4 overflow-y-auto p-4 min-h-0 pb-4">
           {/* Date Separator */}

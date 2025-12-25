@@ -3,9 +3,16 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, MessageSquare, Activity, Home, BookOpen, User, Users, CheckSquare, Flag, Circle } from "lucide-react";
 import { UserProfileMenu } from "./UserProfileMenu";
 import { NotificationsModal } from "./NotificationsModal";
+
+type PageInfo = {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  showOnlineCount?: boolean;
+};
 
 export function TopNav() {
   const t = useTranslations("common");
@@ -32,13 +39,81 @@ export function TopNav() {
     router.push(localizedPath);
   };
 
+  // Get page info based on current route
+  const getPageInfo = (): PageInfo => {
+    const segments = pathname.split("/").filter(Boolean);
+    const route = segments.slice(2).join("/") || "overview";
+
+    const pageMap: Record<string, PageInfo> = {
+      overview: {
+        title: "Overview",
+        subtitle: "Welcome to your dashboard",
+        icon: <Home size={20} className="text-[#111827]" />,
+      },
+      "tic-feed": {
+        title: "TIC Feed",
+        subtitle: "Stay updated with summit news, official posts, and mentorship announcements",
+        icon: <Activity size={20} className="text-[#111827]" />,
+      },
+      community: {
+        title: "TIC Community",
+        subtitle: "Live discussions and updates",
+        icon: <MessageSquare size={20} className="text-[#111827]" />,
+        showOnlineCount: true,
+      },
+      "learning-path": {
+        title: "Learning Path",
+        subtitle: "Track your progress and complete courses",
+        icon: <BookOpen size={20} className="text-[#111827]" />,
+      },
+      portfolio: {
+        title: "Portfolio",
+        subtitle: "Showcase your projects and achievements",
+        icon: <User size={20} className="text-[#111827]" />,
+      },
+      team: {
+        title: "My Team",
+        subtitle: "Collaborate with your team members",
+        icon: <Users size={20} className="text-[#111827]" />,
+      },
+      tasks: {
+        title: "Tasks",
+        subtitle: "Manage your assignments and deadlines",
+        icon: <CheckSquare size={20} className="text-[#111827]" />,
+      },
+      hackathons: {
+        title: "Hackathons",
+        subtitle: "Participate in coding challenges",
+        icon: <Flag size={20} className="text-[#111827]" />,
+      },
+    };
+
+    return pageMap[route] || {
+      title: "Dashboard",
+      subtitle: t("dashboard"),
+      icon: <Home size={20} className="text-[#111827]" />,
+    };
+  };
+
+  const pageInfo = getPageInfo();
+
   return (
     <>
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 text-sm text-slate-700">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {t("dashboard")}
-          </span>
+          {pageInfo.icon}
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">{pageInfo.title}</h2>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-slate-500">{pageInfo.subtitle}</p>
+              {pageInfo.showOnlineCount && (
+                <>
+                  <Circle size={8} className="fill-emerald-500 text-emerald-500" />
+                  <span className="text-xs font-semibold text-slate-600">42 online</span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
