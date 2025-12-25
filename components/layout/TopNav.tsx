@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, MessageSquare, Activity, Home, BookOpen, User, Users, CheckSquare, Flag, Circle } from "lucide-react";
+import { Bell, MessageSquare, Activity, Home, BookOpen, User, Users, Trophy, Flag, Circle, Settings } from "lucide-react";
 import { UserProfileMenu } from "./UserProfileMenu";
 import { NotificationsModal } from "./NotificationsModal";
 
@@ -76,15 +76,20 @@ export function TopNav() {
         subtitle: "Collaborate with your team members",
         icon: <Users size={20} className="text-[#111827]" />,
       },
-      tasks: {
-        title: "Tasks",
-        subtitle: "Manage your assignments and deadlines",
-        icon: <CheckSquare size={20} className="text-[#111827]" />,
+      leaderboard: {
+        title: "Leaderboard",
+        subtitle: "Rankings based on Total TIC Points (TP)",
+        icon: <Trophy size={20} className="text-[#111827]" />,
       },
       hackathons: {
         title: "Hackathons",
         subtitle: "Participate in coding challenges",
         icon: <Flag size={20} className="text-[#111827]" />,
+      },
+      settings: {
+        title: "Profile Settings",
+        subtitle: "Manage your personal information, school details, and notification preferences",
+        icon: <Settings size={20} className="text-[#111827]" />,
       },
     };
 
@@ -104,7 +109,7 @@ export function TopNav() {
           {pageInfo.icon}
           <div>
             <h2 className="text-lg font-bold text-slate-900">{pageInfo.title}</h2>
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <p className="text-xs text-slate-500">{pageInfo.subtitle}</p>
               {pageInfo.showOnlineCount && (
                 <>
@@ -113,6 +118,12 @@ export function TopNav() {
                 </>
               )}
             </div>
+            {pageInfo.showOnlineCount && (
+              <div className="flex md:hidden items-center gap-2 mt-1">
+                <Circle size={8} className="fill-emerald-500 text-emerald-500" />
+                <span className="text-xs font-semibold text-slate-600">42 online</span>
+              </div>
+            )}
           </div>
         </div>
 

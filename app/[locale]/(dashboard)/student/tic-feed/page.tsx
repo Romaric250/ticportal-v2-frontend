@@ -32,41 +32,41 @@ export default function TICFeedPage() {
   ];
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* Main Content */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">TIC Feed</h1>
-          <p className="mt-2 text-base text-slate-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">TIC Feed</h1>
+          <p className="mt-2 text-sm sm:text-base text-slate-600">
             Stay updated with summit news, official posts, and mentorship announcements.
           </p>
         </div>
 
       {/* Post Creation */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
         <textarea
           value={postContent}
           onChange={(e) => setPostContent(e.target.value)}
-          placeholder="Share an update, ask a question, or post a finding..."
+          placeholder="Share an update, ask a question..."
           rows={3}
-          className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
+          className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 sm:px-4 py-2 sm:py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
         />
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button className="cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
-              <Image size={18} />
+        <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button className="cursor-pointer rounded-lg p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+              <Image size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
-            <button className="cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
-              <Link2 size={18} />
+            <button className="cursor-pointer rounded-lg p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+              <Link2 size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
-            <button className="cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
-              <Hash size={18} />
+            <button className="cursor-pointer rounded-lg p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+              <Hash size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
           </div>
           <button
             disabled={!postContent.trim()}
-            className="cursor-pointer rounded-lg bg-[#111827] px-6 py-2 text-sm font-semibold text-white hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-50"
+            className="cursor-pointer rounded-lg bg-[#111827] px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Post
           </button>
@@ -74,12 +74,12 @@ export default function TICFeedPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200">
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-200 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`cursor-pointer px-4 py-2 text-sm font-semibold transition ${
+            className={`cursor-pointer whitespace-nowrap px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition ${
               activeTab === tab.id
                 ? "border-b-2 border-[#111827] text-[#111827]"
                 : "text-slate-500 hover:text-slate-700"
@@ -131,9 +131,9 @@ export default function TICFeedPage() {
       </div>
 
       {/* Right Sidebar */}
-      <div className="sticky top-6 h-fit space-y-6">
+      <div className="sticky top-4 sm:top-6 h-fit space-y-4 sm:space-y-6 order-first lg:order-last">
         {/* Pinned Section */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Pin size={18} className="text-[#111827]" />
             <h3 className="text-sm font-semibold text-slate-900">Pinned</h3>
@@ -155,7 +155,7 @@ export default function TICFeedPage() {
         </div>
 
         {/* Upcoming Section */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Calendar size={18} className="text-[#111827]" />
             <h3 className="text-sm font-semibold text-slate-900">Upcoming</h3>
@@ -220,18 +220,18 @@ function PostCard({
   hasComments,
 }: PostCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       {/* Author Header */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-slate-200" />
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-slate-900">{author}</p>
-            <span className="rounded-full bg-[#111827] px-2 py-0.5 text-[10px] font-semibold text-white">
+      <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-slate-200 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{author}</p>
+            <span className="rounded-full bg-[#111827] px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold text-white flex-shrink-0">
               {role}
             </span>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-[10px] sm:text-xs text-slate-500 truncate">
             {time} • {category}
           </p>
         </div>
@@ -239,27 +239,27 @@ function PostCard({
 
       {/* Title */}
       {title && (
-        <div className="mb-3 flex items-center gap-2">
-          {titleIcon && <div className="text-[#111827]">{titleIcon}</div>}
-          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+        <div className="mb-2 sm:mb-3 flex items-center gap-2">
+          {titleIcon && <div className="text-[#111827] flex-shrink-0">{titleIcon}</div>}
+          <h3 className="text-base sm:text-lg font-bold text-slate-900">{title}</h3>
         </div>
       )}
 
       {/* Content */}
-      <p className="mb-4 text-sm leading-relaxed text-slate-700">{content}</p>
+      <p className="mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed text-slate-700">{content}</p>
 
       {/* Image */}
       {hasImage && (
-        <div className="mb-4 h-64 rounded-xl bg-gradient-to-br from-[#111827] to-slate-600" />
+        <div className="mb-3 sm:mb-4 h-48 sm:h-64 rounded-xl bg-gradient-to-br from-[#111827] to-slate-600" />
       )}
 
       {/* Attachment */}
       {attachment && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <FileText size={20} className="text-red-500" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-slate-900">{attachment.name}</p>
-            <p className="text-xs text-slate-500">
+        <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:p-3">
+          <FileText size={18} className="sm:w-5 sm:h-5 text-red-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{attachment.name}</p>
+            <p className="text-[10px] sm:text-xs text-slate-500">
               {attachment.size} • {attachment.type}
             </p>
           </div>
@@ -267,42 +267,43 @@ function PostCard({
       )}
 
       {/* Engagement */}
-      <div className="mb-4 flex items-center gap-4 border-t border-slate-100 pt-4">
-        <button className="cursor-pointer inline-flex items-center gap-2 text-sm text-slate-600 hover:text-[#111827]">
-          <ThumbsUp size={16} />
+      <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2 sm:gap-4 border-t border-slate-100 pt-3 sm:pt-4">
+        <button className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 hover:text-[#111827]">
+          <ThumbsUp size={14} className="sm:w-4 sm:h-4" />
           <span>{likes}</span>
         </button>
-        <button className="cursor-pointer inline-flex items-center gap-2 text-sm text-slate-600 hover:text-[#111827]">
-          <MessageCircle size={16} />
-          <span>{comments} Comments</span>
+        <button className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 hover:text-[#111827]">
+          <MessageCircle size={14} className="sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">{comments} Comments</span>
+          <span className="sm:hidden">{comments}</span>
         </button>
-        <div className="inline-flex items-center gap-2 text-sm text-slate-600">
-          <Eye size={16} />
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
+          <Eye size={14} className="sm:w-4 sm:h-4" />
           <span>{views}</span>
         </div>
-        <button className="cursor-pointer inline-flex items-center gap-2 text-sm text-slate-600 hover:text-[#111827]">
-          <Share2 size={16} />
+        <button className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 hover:text-[#111827]">
+          <Share2 size={14} className="sm:w-4 sm:h-4" />
           <span>Share</span>
         </button>
       </div>
 
       {/* Comments Section */}
       {hasComments && (
-        <div className="space-y-3 border-t border-slate-100 pt-4">
+        <div className="space-y-3 border-t border-slate-100 pt-3 sm:pt-4">
           <Comment
             author="Michael Scott"
             content="Thanks Dr. Chen! We will review the accessibility section tonight."
             time="30m ago"
           />
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-slate-200" />
+            <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-slate-200 flex-shrink-0" />
             <input
               type="text"
               placeholder="Write a reply..."
-              className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
+              className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827] min-w-0"
             />
-            <button className="cursor-pointer rounded-lg bg-[#111827] p-2 text-white hover:bg-[#1f2937]">
-              <Send size={16} />
+            <button className="cursor-pointer rounded-lg bg-[#111827] p-1.5 sm:p-2 text-white hover:bg-[#1f2937] flex-shrink-0">
+              <Send size={14} className="sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
@@ -319,19 +320,19 @@ type CommentProps = {
 
 function Comment({ author, content, time }: CommentProps) {
   return (
-    <div className="flex gap-3">
-      <div className="h-8 w-8 flex-shrink-0 rounded-full bg-slate-200" />
-      <div className="flex-1">
-        <div className="mb-1 flex items-center gap-2">
-          <p className="text-sm font-semibold text-slate-900">{author}</p>
-          <p className="text-xs text-slate-500">{time}</p>
+    <div className="flex gap-2 sm:gap-3">
+      <div className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 rounded-full bg-slate-200" />
+      <div className="flex-1 min-w-0">
+        <div className="mb-1 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <p className="text-xs sm:text-sm font-semibold text-slate-900">{author}</p>
+          <p className="text-[10px] sm:text-xs text-slate-500">{time}</p>
         </div>
-        <p className="text-sm text-slate-700">{content}</p>
-        <div className="mt-2 flex items-center gap-3">
-          <button className="cursor-pointer text-xs text-slate-500 hover:text-[#111827]">
+        <p className="text-xs sm:text-sm text-slate-700">{content}</p>
+        <div className="mt-1.5 sm:mt-2 flex items-center gap-2 sm:gap-3">
+          <button className="cursor-pointer text-[10px] sm:text-xs text-slate-500 hover:text-[#111827]">
             Like
           </button>
-          <button className="cursor-pointer text-xs text-slate-500 hover:text-[#111827]">
+          <button className="cursor-pointer text-[10px] sm:text-xs text-slate-500 hover:text-[#111827]">
             Reply
           </button>
         </div>
@@ -349,10 +350,10 @@ type PinnedItemProps = {
 
 function PinnedItem({ label, labelColor, title, status }: PinnedItemProps) {
   return (
-    <div className="cursor-pointer rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:bg-slate-100">
-      <p className={`mb-1 text-xs font-semibold ${labelColor}`}>{label}</p>
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
-      <p className="mt-1 text-xs text-slate-500">{status}</p>
+    <div className="cursor-pointer rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:p-3 transition hover:bg-slate-100">
+      <p className={`mb-1 text-[10px] sm:text-xs font-semibold ${labelColor}`}>{label}</p>
+      <p className="text-xs sm:text-sm font-semibold text-slate-900">{title}</p>
+      <p className="mt-1 text-[10px] sm:text-xs text-slate-500">{status}</p>
     </div>
   );
 }
@@ -365,10 +366,10 @@ type UpcomingItemProps = {
 
 function UpcomingItem({ date, event, detail }: UpcomingItemProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs font-bold text-[#111827]">{date}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-900">{event}</p>
-      <p className="mt-0.5 text-xs text-slate-500">{detail}</p>
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
+      <p className="text-[10px] sm:text-xs font-bold text-[#111827]">{date}</p>
+      <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-900">{event}</p>
+      <p className="mt-0.5 text-[10px] sm:text-xs text-slate-500">{detail}</p>
     </div>
   );
 }

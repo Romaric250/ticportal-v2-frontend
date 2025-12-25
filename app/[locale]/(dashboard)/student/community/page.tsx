@@ -18,7 +18,7 @@ export default function CommunityPage() {
   }, []);
 
   return (
-    <div className="grid h-[calc(100vh-60px)] lg:grid-cols-[minmax(0,1fr)_320px] -mx-8 -my-6 px-8 gap-6">
+    <div className="grid h-[calc(100vh-60px)] lg:grid-cols-[minmax(0,1fr)_320px] -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 px-4 sm:px-6 lg:px-8 gap-4 sm:gap-6">
       {/* Main Chat Area */}
       <div className="flex flex-col h-full bg-white border-r border-slate-200 overflow-hidden">
         {/* Messages Container - Scrollable */}
@@ -233,17 +233,17 @@ export default function CommunityPage() {
         </div>
 
         {/* Message Input - Fixed at bottom */}
-        <div className="border-t border-slate-200 px-4 py-3 flex-shrink-0 bg-white z-20">
-          <div className="mb-1.5 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
-            <button className="cursor-pointer rounded-lg p-1.5 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition">
-              <Plus size={18} />
+        <div className="border-t border-slate-200 px-3 sm:px-4 py-2 sm:py-3 flex-shrink-0 bg-white z-20">
+          <div className="mb-1.5 flex items-center gap-1.5 sm:gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5 sm:p-2">
+            <button className="cursor-pointer rounded-lg p-1 sm:p-1.5 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition flex-shrink-0">
+              <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type a message to the community..."
-              className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              placeholder="Type a message..."
+              className="flex-1 bg-transparent text-xs sm:text-sm text-slate-900 outline-none placeholder:text-slate-400 min-w-0"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && message.trim()) {
                   e.preventDefault();
@@ -253,8 +253,8 @@ export default function CommunityPage() {
                 }
               }}
             />
-            <button className="cursor-pointer rounded-lg p-1.5 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition">
-              <Smile size={18} />
+            <button className="cursor-pointer rounded-lg p-1 sm:p-1.5 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition flex-shrink-0">
+              <Smile size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
             <button
               onClick={() => {
@@ -264,9 +264,9 @@ export default function CommunityPage() {
                   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
                 }
               }}
-              className="cursor-pointer rounded-lg bg-[#111827] p-1.5 text-white hover:bg-[#1f2937] transition"
+              className="cursor-pointer rounded-lg bg-[#111827] p-1 sm:p-1.5 text-white hover:bg-[#1f2937] transition flex-shrink-0"
             >
-              <Send size={18} />
+              <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
           </div>
           <p className="text-[10px] text-slate-400 text-center mt-1">
@@ -276,9 +276,9 @@ export default function CommunityPage() {
       </div>
 
       {/* Right Sidebar */}
-      <div className="h-full">
+      <div className="h-full order-first lg:order-last">
         {/* Online Members - Sticky */}
-        <div className="sticky top-0 h-[calc(100vh-60px)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="sticky top-0 h-auto lg:h-[calc(100vh-60px)] max-h-[400px] lg:max-h-none overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900">Online Members</h3>
             <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5">

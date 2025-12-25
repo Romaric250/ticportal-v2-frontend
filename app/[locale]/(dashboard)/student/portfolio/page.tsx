@@ -1,319 +1,366 @@
 "use client";
 
+import {
+  Rocket,
+  Users,
+  Trophy,
+  Lightbulb,
+  Award,
+  Eye,
+  Heart,
+  Share2,
+  Download,
+  CheckCircle,
+  Circle,
+  Lock,
+  Code,
+  Palette,
+  Leaf,
+} from "lucide-react";
+
 export default function StudentPortfolioPage() {
   return (
-    <div className="space-y-6 text-slate-900">
-      {/* Profile header */}
-      <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
-        <div className="flex items-center gap-4">
-          <div className="relative h-16 w-16 sm:h-20 sm:w-20">
-            <div className="h-full w-full rounded-full bg-slate-200" />
-            <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#111827] text-[10px] font-bold text-white">
-              Lvl 3
+    <div className="space-y-6">
+      {/* Profile Header - Dark Gradient */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#111827] to-slate-800 p-4 sm:p-6 text-white shadow-xl">
+        <div className="relative z-10 flex flex-col gap-4 sm:gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="relative flex-shrink-0">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-slate-200 to-slate-300" />
+                <div className="absolute -bottom-1 -right-1 rounded-full bg-white px-2 py-0.5">
+                  <span className="text-[10px] font-bold text-[#111827]">Level 3 Finalist</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold truncate">Jane Doe</h1>
+                <p className="mt-1 text-xs sm:text-sm text-slate-300">Grade 11, Lincoln High School</p>
+                <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-2 sm:gap-4">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-amber-500/20 flex-shrink-0">
+                      <Circle size={14} className="sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-xs text-slate-400">TOTAL XP</p>
+                      <p className="text-xs sm:text-sm font-bold">4,250</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-blue-500/20 flex-shrink-0">
+                      <Trophy size={14} className="sm:w-4 sm:h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-xs text-slate-400">GLOBAL RANK</p>
+                      <p className="text-xs sm:text-sm font-bold">#42</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-slate-500/20 flex-shrink-0">
+                      <Circle size={14} className="sm:w-4 sm:h-4 fill-slate-400 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-xs text-slate-400">HOURS</p>
+                      <p className="text-xs sm:text-sm font-bold">124h</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold sm:text-xl">Jane Doe</h1>
-            <p className="text-sm text-slate-500">
-              Grade 11, Lincoln High · Level 3 Scholar
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-[#111827]">
-                4,250 Points
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
-                Rank #42
-              </span>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+              <button className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-white/20 transition backdrop-blur-sm">
+                <Share2 size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Share Portfolio</span>
+                <span className="sm:hidden">Share</span>
+              </button>
+              <button className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-white/20 transition backdrop-blur-sm">
+                <Download size={14} className="sm:w-4 sm:h-4" />
+                <span>Resume</span>
+              </button>
             </div>
           </div>
         </div>
-        <button className="cursor-pointer self-start inline-flex items-center gap-2 rounded-full bg-[#111827] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1f2937]">
-          <span>🔗</span>
-          <span>Share Profile</span>
-        </button>
-      </section>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1fr)]">
-        {/* Left column */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* Left Column */}
         <div className="space-y-6">
-          {/* Learning journey */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm border-l-4 border-l-[#111827]">
-            <div className="flex items-center justify-between text-sm font-semibold text-slate-800">
-              <span>My learning journey</span>
-              <span className="text-xs text-slate-500">65% complete</span>
+          {/* Hackathon Journey */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-2">
+              <Rocket size={20} className="text-[#111827]" />
+              <h2 className="text-lg font-semibold text-slate-900">Hackathon Journey</h2>
             </div>
-            <div className="space-y-4 text-sm">
-              <JourneyStep
-                level="Level 1: Bootcamp"
-                status="Completed Oct 12"
-                description="Mastered the fundamentals of design thinking and problem identification."
-              />
-              <JourneyStep
-                level="Level 2: Team formation"
-                status="Completed Nov 05"
-                description="Teamed up with 3 peers to brainstorm solutions for local sustainability."
-              />
-              <JourneyStep
-                level="Level 3: Summit finalist"
-                status="In progress"
-                description="Developing the MVP and preparing the final pitch deck for judges."
-                highlight
-              />
-            </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full w-2/3 rounded-full bg-[#111827]" />
-            </div>
-          </section>
+            <div className="space-y-6">
+              {/* Bootcamp Phase */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#111827]">
+                    <CheckCircle size={20} className="text-white" />
+                  </div>
+                  <div className="mt-2 h-16 w-px bg-slate-200" />
+                </div>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-900">Bootcamp Phase</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-[#111827]">
+                      Completed - Oct 22
+                    </span>
+                  </div>
+                  <p className="mb-2 text-sm text-slate-600">
+                    Completed 5 core modules on Design Thinking and Problem Identification.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                      Design Thinking
+                    </span>
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                      Ideation
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-          {/* Project spotlight */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm border-l-4 border-l-[#111827]">
-            <div className="flex items-center justify-between text-sm font-semibold text-slate-800">
-              <span>Project spotlight</span>
-              <button className="cursor-pointer text-xs font-medium text-[#111827] hover:underline">
-                View all
-              </button>
+              {/* Team Formation */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#111827]">
+                    <Users size={20} className="text-white" />
+                  </div>
+                  <div className="mt-2 h-16 w-px bg-slate-200" />
+                </div>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-900">Team Formation</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-[#111827]">
+                      Completed - Nov 05
+                    </span>
+                  </div>
+                  <p className="mb-2 text-sm text-slate-600">
+                    Formed &apos;Team Hydro&apos; with 3 peers. Defined roles and project roadmap.
+                  </p>
+                  <div className="flex gap-2">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="h-8 w-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Summit Finalist */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#111827] bg-white">
+                    <Rocket size={20} className="text-[#111827]" />
+                  </div>
+                  <div className="mt-2 h-16 w-px bg-slate-200" />
+                </div>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-900">Summit Finalist</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-[#111827]">
+                      In Progress
+                    </span>
+                  </div>
+                  <p className="mb-3 text-sm text-slate-600">
+                    Developing MVP and Pitch Deck. Preparing for final presentation to judges.
+                  </p>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-full w-[65%] rounded-full bg-[#111827]" />
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">65% complete</p>
+                </div>
+              </div>
+
+              {/* Final Awards */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-300 bg-white">
+                    <Trophy size={20} className="text-slate-400" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-900">Final Awards</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+                      Pending
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600">The big day. Presentation and scoring.</p>
+                </div>
+              </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-[220px,minmax(0,1fr)]">
-              <div className="relative h-40 rounded-xl bg-slate-100">
-                <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700 shadow-sm">
+          </div>
+
+          {/* Featured Project */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="mb-4 sm:mb-6 flex items-center gap-2">
+              <Lightbulb size={20} className="text-[#111827]" />
+              <h2 className="text-lg font-semibold text-slate-900">Featured Project</h2>
+            </div>
+            <div className="grid gap-6 md:grid-cols-[240px_minmax(0,1fr)]">
+              <div className="relative h-48 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-32 w-24 rounded-lg border-2 border-blue-300 bg-white/80 p-2">
+                    <div className="h-full w-full rounded bg-gradient-to-b from-blue-200 via-blue-100 to-emerald-100" />
+                  </div>
+                </div>
+                <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm">
                   Environment
                 </span>
               </div>
-              <div className="flex flex-col justify-between gap-3 text-sm">
-                <div className="space-y-1">
-                  <h2 className="text-base font-semibold text-slate-900">
-                    Eco‑Water filter system
-                  </h2>
-                  <p className="text-xs text-slate-600 line-clamp-3">
-                    A low‑cost, biodegradable filtration system designed for
-                    rural communities to access clean drinking water using
-                    locally available materials.
-                  </p>
-                  <p className="flex items-center gap-1 text-xs text-slate-500">
-                    <span>👥</span>
-                    <span>+1 <span className="font-semibold">Team Hydro</span></span>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Eco-Water Filter System</h3>
+                  <p className="mt-2 text-sm text-slate-600">
+                    A low-cost, biodegradable filtration system designed for rural communities. Uses
+                    locally sourced materials like coconut charcoal and sand to filter 99.9% of
+                    pathogens.
                   </p>
                 </div>
-                <button className="cursor-pointer self-start inline-flex items-center gap-1 rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-[#111827] hover:border-[#111827]">
-                  <span>View project details</span>
-                  <span>→</span>
+                <div className="flex items-center gap-4 text-sm text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <Eye size={16} />
+                    <span className="font-semibold">1.2K Views</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Heart size={16} />
+                    <span className="font-semibold">234 Likes</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1f2937] transition">
+                    View Case Study
+                  </button>
+                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                    Environment
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                    Hardware
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Certifications */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="mb-4 sm:mb-6 flex items-center gap-2">
+              <Award size={20} className="text-[#111827]" />
+              <h2 className="text-lg font-semibold text-slate-900">Certifications</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                  <CheckCircle size={20} className="sm:w-6 sm:h-6 text-[#111827] flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-slate-900">Entrepreneurship 101</h3>
+                    <p className="mt-0.5 text-xs text-slate-500">ISSUED BY TIC SUMMIT</p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Fundamental concepts of business modeling and value proposition design.
+                    </p>
+                  </div>
+                </div>
+                <button className="cursor-pointer w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-[#111827] hover:bg-slate-50 transition whitespace-nowrap">
+                  View Certificate
+                </button>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                  <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-purple-100 flex-shrink-0">
+                    <Trophy size={16} className="sm:w-5 sm:h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-slate-900">Top Finalist 2024</h3>
+                    <p className="mt-0.5 text-xs text-slate-500">ISSUED BY TIC SUMMIT</p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Awarded for reaching the final round among top 5% of global participants.
+                    </p>
+                  </div>
+                </div>
+                <button className="cursor-pointer w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-[#111827] hover:bg-slate-50 transition whitespace-nowrap">
+                  View Certificate
                 </button>
               </div>
             </div>
-          </section>
-
-          {/* Certificates */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm text-sm border-l-4 border-l-[#111827]">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-              Certificates
-            </h2>
-            <div className="grid gap-3 md:grid-cols-2">
-              <CertificateCard
-                title="Intro to entrepreneurship"
-                issued="Issued Oct 2023"
-              />
-              <CertificateCard
-                title="TIC Summit 2024 finalist"
-                issued="Issued Jan 2024"
-              />
-            </div>
-          </section>
-
+          </div>
         </div>
 
-        {/* Right column */}
+        {/* Right Sidebar */}
         <div className="space-y-6">
-          {/* Current stats */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-              Current Stats
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <StatBlock label="Hackathon lvl" value="Summit" />
-              <StatBlock label="Learning hrs" value="124h" />
-              <StatBlock label="Global rank" value="Top 5%" />
-              <StatBlock label="Total XP" value="4.2k" />
+          {/* Trophy Case */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Trophy Case</h2>
+              <button className="cursor-pointer text-xs font-semibold text-[#111827] hover:underline">
+                VIEW ALL
+              </button>
             </div>
-          </section>
-
-          {/* Trophy case */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm border-l-4 border-l-[#111827]">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Trophy case
-              </h2>
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
-                12 earned
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <TrophyPill label="Innovator" />
-              <TrophyPill label="Top coder" />
-              <TrophyPill label="Team player" />
-              <TrophyPill label="Strategist" />
-              <TrophyPill label="Designer" />
-              <TrophyPill label="Next" muted />
-            </div>
-          </section>
-
-          {/* Mentor feedback */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-              Mentor feedback
-            </h2>
-            <p className="text-xs text-slate-600">
-              "Jane showed incredible leadership during the sprint phase. Her
-              ability to synthesize complex data into actionable insights was
-              key to the team&apos;s success."
-            </p>
-            <div className="mt-3 flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-slate-200" />
-              <div>
-                <p className="text-xs font-semibold text-slate-900">
-                  Alex Thompson
-                </p>
-                <p className="text-xs text-slate-500">
-                  Lead mentor, TechStar
-                </p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="flex flex-col items-center gap-2 rounded-full bg-amber-50 p-4">
+                <Lightbulb size={24} className="text-amber-500" />
+                <span className="text-[10px] font-semibold text-slate-700">Innovator</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 rounded-full bg-blue-50 p-4">
+                <Code size={24} className="text-blue-500" />
+                <span className="text-[10px] font-semibold text-slate-700">Top Coder</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 rounded-full bg-purple-50 p-4">
+                <Users size={24} className="text-purple-500" />
+                <span className="text-[10px] font-semibold text-slate-700">Team Lead</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 rounded-full bg-emerald-50 p-4">
+                <Leaf size={24} className="text-emerald-500" />
+                <span className="text-[10px] font-semibold text-slate-700">Eco Warrior</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 rounded-full bg-pink-50 p-4">
+                <Palette size={24} className="text-pink-500" />
+                <span className="text-[10px] font-semibold text-slate-700">Creative</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 rounded-full bg-slate-100 p-4">
+                <Lock size={24} className="text-slate-400" />
+                <span className="text-[10px] font-semibold text-slate-500">Locked</span>
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Download resume */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm text-sm">
-            <button className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-xs font-semibold text-[#111827] hover:border-[#111827]">
-              <span>⬇</span>
-              <span>Download Full Resume</span>
-            </button>
-          </section>
+          {/* Mentor Feedback */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">Mentor Feedback</h2>
+            <p className="mb-4 text-sm leading-relaxed text-slate-600">
+              &quot;Jane showed incredible leadership during the sprint phase. Her ability to
+              synthesize complex data into actionable insights was key to the team&apos;s
+              success.&quot;
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300" />
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Alex Thompson</p>
+                <p className="text-xs text-slate-500">Lead Mentor, TechStar</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Core Skills */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">Core Skills</h2>
+            <div className="flex flex-wrap gap-2">
+              {["User Research", "Prototyping", "Public Speaking", "Python", "Team Management"].map(
+                (skill) => (
+                  <span
+                    key={skill}
+                    className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700"
+                  >
+                    {skill}
+                  </span>
+                )
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-type JourneyStepProps = {
-  level: string;
-  status: string;
-  description: string;
-  highlight?: boolean;
-};
-
-function JourneyStep({ level, status, description, highlight }: JourneyStepProps) {
-  const isCompleted = status.toLowerCase().includes("completed");
-  
-  return (
-    <div className="flex items-start gap-3 text-sm">
-      <div className="mt-1 flex flex-col items-center">
-        {isCompleted ? (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#111827] text-white">
-            <span className="text-xs">✓</span>
-          </span>
-        ) : highlight ? (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#111827] bg-white">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#111827]" />
-          </span>
-        ) : (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-300 bg-white" />
-        )}
-        <span className="mt-1 h-8 w-px bg-slate-200" />
-      </div>
-      <div className="flex-1 space-y-0.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-semibold text-slate-900">{level}</p>
-          <span className={`rounded-full px-2 py-0.5 text-xs ${
-            isCompleted 
-              ? "bg-slate-100 text-[#111827]" 
-              : highlight 
-              ? "bg-slate-100 text-[#111827]"
-              : "bg-slate-100 text-slate-500"
-          }`}>
-            {status}
-          </span>
-        </div>
-        <p className="text-xs text-slate-600">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-type CertificateCardProps = {
-  title: string;
-  issued: string;
-};
-
-function CertificateCard({ title, issued }: CertificateCardProps) {
-  const isFirst = title.toLowerCase().includes("intro");
-  const icon = isFirst ? "✓" : "🏆";
-  const iconColor = "text-[#111827]";
-  
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-      <div className="flex items-center gap-3">
-        <span className={`text-xl ${iconColor}`}>{icon}</span>
-        <div>
-          <p className="text-xs font-semibold text-slate-900">{title}</p>
-          <p className="text-xs text-slate-500">{issued}</p>
-        </div>
-      </div>
-      <span className="text-lg text-slate-400 hover:text-slate-600 cursor-pointer">⬇</span>
-    </div>
-  );
-}
-
-type StatBlockProps = {
-  label: string;
-  value: string;
-};
-
-function StatBlock({ label, value }: StatBlockProps) {
-  return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-      <p className="text-xs uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-base font-semibold text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-type TrophyPillProps = {
-  label: string;
-  muted?: boolean;
-};
-
-function TrophyPill({ label, muted }: TrophyPillProps) {
-  const getIcon = () => {
-    if (muted) return "🔒";
-    const icons: Record<string, string> = {
-      "Innovator": "💡",
-      "Top coder": "💻",
-      "Team player": "👥",
-      "Strategist": "🎯",
-      "Designer": "🎨",
-    };
-    return icons[label] || "🏅";
-  };
-
-  const getBgColor = () => {
-    if (muted) return "bg-slate-50";
-    // All trophies use light slate background to match theme
-    return "bg-slate-50";
-  };
-
-  const base =
-    "flex flex-col items-center justify-center gap-1 rounded-full px-3 py-3 text-xs";
-
-  return (
-    <div
-      className={`${base} ${getBgColor()} ${
-        muted ? "text-slate-400" : "text-slate-700"
-      }`}
-    >
-      <span className="text-lg">{getIcon()}</span>
-      <span className="text-[10px]">{label}</span>
-    </div>
-  );
-}
-
-

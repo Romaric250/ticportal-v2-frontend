@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Activity, CheckSquare, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare } from "lucide-react";
+import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare } from "lucide-react";
 import { cn } from "../../src/utils/cn";
 
 type SidebarLink = {
@@ -41,7 +41,7 @@ export function Sidebar({ role }: Props) {
           { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
         ]
       : []),
-    { href: `${basePath}/tasks`, label: "Tasks", icon: <CheckSquare size={16} /> },
+    { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
     { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
   ];
 
@@ -120,15 +120,18 @@ export function Sidebar({ role }: Props) {
 
       <div className="border-t border-slate-200 px-2 py-3 text-sm">
         <div className="relative group">
-          <button
-            type="button"
-            className="cursor-pointer flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+          <Link
+            href={`${basePath}/settings`}
+            className={cn(
+              "cursor-pointer flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors",
+              pathname === `${basePath}/settings` && "bg-[#111827] text-white hover:bg-[#1f2937]"
+            )}
           >
-            <Settings size={16} className="text-slate-500" />
+            <Settings size={16} className={pathname === `${basePath}/settings` ? "text-white" : "text-slate-500"} />
             {!collapsed && <span>Settings</span>}
-          </button>
+          </Link>
           {collapsed && (
-            <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-[#111827] text-white text-xs font-semibold whitespace-nowrap opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-[99999] pointer-events-none shadow-xl">
+            <div className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-[#111827] text-white text-xs font-semibold whitespace-nowrap opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-[99999] pointer-events-none shadow-xl">
               Settings
               <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-[#111827]" />
             </div>
