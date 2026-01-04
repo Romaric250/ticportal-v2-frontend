@@ -56,6 +56,7 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
   const [schoolSuggestions, setSchoolSuggestions] = useState<Array<{ id: string; name: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSchoolFieldFocused, setIsSchoolFieldFocused] = useState(false);
   const schoolInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -69,8 +70,13 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
     }
   }, [initialData]);
 
-  // Search schools when query changes
+  // Search schools when query changes (only if field is focused)
   useEffect(() => {
+    // Don't search on initial load or if field is not focused
+    if (!isSchoolFieldFocused) {
+      return;
+    }
+
     const searchSchools = async () => {
       if (schoolQuery.trim().length < 2) {
         setSchoolSuggestions([]);
@@ -95,7 +101,7 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
 
     const debounceTimer = setTimeout(searchSchools, 300);
     return () => clearTimeout(debounceTimer);
-  }, [schoolQuery]);
+  }, [schoolQuery, isSchoolFieldFocused]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -239,9 +245,17 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
                   setShowSuggestions(true);
                 }}
                 onFocus={() => {
+                  setIsSchoolFieldFocused(true);
                   if (schoolSuggestions.length > 0) {
                     setShowSuggestions(true);
                   }
+                }}
+                onBlur={() => {
+                  // Delay to allow clicking on suggestions
+                  setTimeout(() => {
+                    setIsSchoolFieldFocused(false);
+                    setShowSuggestions(false);
+                  }, 200);
                 }}
                 placeholder="Search for your school..."
                 className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#111827] focus:outline-none focus:ring-2 focus:ring-[#111827]/20"
