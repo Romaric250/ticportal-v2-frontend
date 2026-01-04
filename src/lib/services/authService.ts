@@ -9,6 +9,8 @@ type LoginPayload = {
 type RegisterPayload = {
   email: string;
   password: string;
+  fullName?: string;
+  role?: "student" | "mentor";
 };
 
 export const authService = {
