@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { User, GraduationCap, Mail, Bell, Check, Upload, Globe } from "lucide-react";
+import { User, GraduationCap, Mail, Bell, Check, Upload, Globe, Search, X } from "lucide-react";
 import { useAuthStore } from "../../../../../src/state/auth-store";
 import { userService } from "../../../../../src/lib/services/userService";
+import { defaultsService } from "../../../../../src/lib/services/defaultsService";
 import { toast } from "sonner";
 
 const COUNTRIES = [
@@ -57,6 +58,14 @@ export default function SettingsPage() {
     profilePhoto: null,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // School search state
+  const [schoolQuery, setSchoolQuery] = useState("");
+  const [schoolSuggestions, setSchoolSuggestions] = useState<Array<{ id: string; name: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const schoolInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Load profile data
   useEffect(() => {
@@ -74,6 +83,7 @@ export default function SettingsPage() {
           gradDate: profile.gradDate ? new Date(profile.gradDate).toISOString().split("T")[0] : "",
           profilePhoto: profile.profilePhoto || null,
         });
+        setSchoolQuery(profile.school || "");
       } catch (error: any) {
         console.error("Error loading profile:", error);
         toast.error("Failed to load profile data");
@@ -83,6 +93,51 @@ export default function SettingsPage() {
     };
 
     loadProfile();
+  }, []);
+
+  // Search schools when query changes
+  useEffect(() => {
+    const searchSchools = async () => {
+      if (schoolQuery.trim().length < 2) {
+        setSchoolSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const results = await defaultsService.searchSchools(schoolQuery);
+        console.log("School search results:", results); // Debug log
+        setSchoolSuggestions(results);
+        setShowSuggestions(true); // Show dropdown even if empty to show "not found" message
+      } catch (error) {
+        console.error("Error searching schools:", error);
+        setSchoolSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchSchools, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [schoolQuery]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        schoolInputRef.current &&
+        !schoolInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const tabs = [
@@ -393,16 +448,86 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
+              <div className="relative">
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   School Name
                 </label>
-                <input
-                  type="text"
-                  value={formData.school}
-                  onChange={(e) => handleInputChange("school", e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-[#111827] focus:outline-none focus:ring-1 focus:ring-[#111827]"
-                />
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Search size={16} />
+                  </div>
+                  <input
+                    ref={schoolInputRef}
+                    type="text"
+                    value={schoolQuery}
+                    onChange={(e) => {
+                      setSchoolQuery(e.target.value);
+                      handleInputChange("school", e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      if (schoolSuggestions.length > 0) {
+                        setShowSuggestions(true);
+                      }
+                    }}
+                    placeholder="Search for your school..."
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-10 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#111827] focus:outline-none focus:ring-1 focus:ring-[#111827]"
+                  />
+                  {schoolQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSchoolQuery("");
+                        handleInputChange("school", "");
+                        setSchoolSuggestions([]);
+                        setShowSuggestions(false);
+                        schoolInputRef.current?.focus();
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                  
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions && (schoolSuggestions.length > 0 || isSearching) && (
+                    <div
+                      ref={suggestionsRef}
+                      className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+                    >
+                      {isSearching ? (
+                        <div className="px-4 py-3 text-sm text-slate-500">Searching...</div>
+                      ) : (
+                        <>
+                          {schoolSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion.id}
+                              type="button"
+                              onClick={() => {
+                                handleInputChange("school", suggestion.name);
+                                setSchoolQuery(suggestion.name);
+                                setShowSuggestions(false);
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-slate-900 hover:bg-slate-50 transition-colors"
+                            >
+                              {suggestion.name}
+                            </button>
+                          ))}
+                          {schoolQuery.trim().length >= 2 && schoolSuggestions.length === 0 && (
+                            <div className="px-4 py-3 text-sm text-slate-500">
+                              No schools found. You can add "{schoolQuery}" as your school.
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {schoolQuery.trim().length >= 2 && schoolSuggestions.length === 0 && !isSearching && (
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    School not found? You can use "{schoolQuery}" as your school name.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
