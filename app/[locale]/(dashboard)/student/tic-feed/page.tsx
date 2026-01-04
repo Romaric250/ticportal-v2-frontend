@@ -58,7 +58,7 @@ export default function TICFeedPage() {
               <Image size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
             <button className="cursor-pointer rounded-lg p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
-              <LocalizedLink2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <Link2 size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
             <button className="cursor-pointer rounded-lg p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
               <Hash size={16} className="sm:w-[18px] sm:h-[18px]" />
@@ -177,7 +177,7 @@ export default function TICFeedPage() {
             className="cursor-pointer mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#111827] hover:underline"
           >
             View Full Calendar <ArrowRight size={14} />
-          </Link>
+          </LocalizedLink>
         </div>
       </div>
     </div>

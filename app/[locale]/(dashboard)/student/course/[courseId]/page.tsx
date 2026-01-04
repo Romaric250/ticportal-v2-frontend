@@ -183,7 +183,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
           className="cursor-pointer rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
         >
           <ArrowLeft size={20} />
-        </Link>
+        </LocalizedLink>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-slate-900">{course.title}</h1>
           <p className="mt-1 text-sm text-slate-600">{course.description}</p>
@@ -421,7 +421,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     ) : (
                       "Back to Learning Path"
                     )}
-                  </Link>
+                  </LocalizedLink>
                 </div>
               </div>
             </div>
