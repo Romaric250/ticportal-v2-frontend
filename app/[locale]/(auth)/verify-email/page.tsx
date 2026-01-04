@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { authService } from "../../../../src/lib/services/authService";
+import { useAuthStore } from "../../../../src/state/auth-store";
 import { toast } from "sonner";
 import { Mail, ArrowLeft, HelpCircle } from "lucide-react";
 
@@ -12,6 +13,8 @@ export default function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
+  // Note: setUser and setTokens are not used in this page since verification redirects to login
+  // But keeping the hook call to avoid errors if needed in the future
   const { setUser, setTokens } = useAuthStore();
   const email = searchParams.get("email") || "";
 
