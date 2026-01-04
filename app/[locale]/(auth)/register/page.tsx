@@ -94,13 +94,14 @@ export default function RegisterPage() {
         password,
         firstName,
         lastName,
+        role: role.toUpperCase() as "STUDENT" | "MENTOR",
       });
       
       toast.success("Registration successful! Please check your email for the verification code.");
       router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
     } catch (error: any) {
       console.error(error);
-      const errorMessage = error?.response?.data?.error?.message || error?.message || "Registration failed. Please try again.";
+      const errorMessage = error?.message || "Registration failed. Please try again.";
       toast.error(errorMessage);
       setSubmitting(false);
     }

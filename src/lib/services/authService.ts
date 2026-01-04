@@ -11,11 +11,13 @@ type RegisterPayload = {
   password: string;
   firstName: string;
   lastName: string;
+  role: "STUDENT" | "MENTOR" | "JUDGE" | "SQUAD_LEAD" | "ADMIN" | "SUPER_ADMIN";
 };
 
-type VerifyEmailPayload = {
+type VerifyOTPPayload = {
   email: string;
-  otp: string;
+  code: string;
+  type: "EMAIL_VERIFICATION" | "PASSWORD_RESET";
 };
 
 type ForgotPasswordPayload = {
@@ -24,7 +26,7 @@ type ForgotPasswordPayload = {
 
 type ResetPasswordPayload = {
   email: string;
-  otp: string;
+  code: string;
   newPassword: string;
 };
 
@@ -57,12 +59,25 @@ export const authService = {
   },
 
   /**
-   * Verify email with OTP
+   * Verify OTP for email verification or password reset
+   * Returns user data and tokens on success (for EMAIL_VERIFICATION)
+   */
+  async verifyOTP(payload: VerifyOTPPayload): Promise<AuthResponse | void> {
+    const { data } = await apiClient.post<AuthResponse | void>("/auth/verify-otp", payload);
+    return data;
+  },
+
+  /**
+   * Verify email with OTP (convenience method)
    * Returns user data and tokens on success
    */
-  async verifyEmail(payload: VerifyEmailPayload): Promise<AuthResponse> {
-    const { data } = await apiClient.post<AuthResponse>("/auth/verify-email", payload);
-    return data;
+  async verifyEmail(email: string, code: string): Promise<AuthResponse> {
+    const response = await this.verifyOTP({
+      email,
+      code,
+      type: "EMAIL_VERIFICATION",
+    });
+    return response as AuthResponse;
   },
 
   /**
@@ -70,8 +85,15 @@ export const authService = {
    * Returns user data and tokens
    */
   async login(payload: LoginPayload): Promise<AuthResponse> {
-    const { data } = await apiClient.post<AuthResponse>("/auth/login", payload);
-    return data;
+    try {
+      const response = await apiClient.post<AuthResponse>("/auth/login", payload);
+      // The interceptor already extracts data from { success: true, data: {...} }
+      // So response.data should be the AuthResponse directly
+      return response.data;
+    } catch (error: any) {
+      // Re-throw with better error message
+      throw error;
+    }
   },
 
   /**
@@ -103,7 +125,7 @@ export const authService = {
   },
 
   /**
-   * Reset password with OTP
+   * Reset password with OTP code
    */
   async resetPassword(payload: ResetPasswordPayload): Promise<void> {
     await apiClient.post("/auth/reset-password", payload);

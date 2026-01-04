@@ -115,14 +115,14 @@ export default function ResetPasswordPage() {
     try {
       await authService.resetPassword({
         email,
-        otp,
+        code: otp,
         newPassword,
       });
       toast.success("Password reset successfully");
       router.push(`/${locale}/login`);
     } catch (error: any) {
       console.error(error);
-      const errorMessage = error?.response?.data?.error?.message || error?.message || "Failed to reset password. Please try again.";
+      const errorMessage = error?.message || "Failed to reset password. Please try again.";
       toast.error(errorMessage);
     } finally {
       setSubmitting(false);

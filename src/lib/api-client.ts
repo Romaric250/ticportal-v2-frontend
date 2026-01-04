@@ -78,10 +78,83 @@ apiClient.interceptors.response.use(
 
     // If error is not 401, reject immediately
     if (error.response?.status !== 401 || originalRequest._retry) {
-      // Handle API error format: { success: false, error: {...} }
-      if (error.response?.data && typeof error.response.data === "object" && "error" in error.response.data) {
-        const apiError = error.response.data as { error: { code: string; message: string } };
-        error.message = apiError.error.message || error.message;
+      // Handle API error format and validation errors
+      if (error.response?.data) {
+        let validationErrors: Array<{
+          code: string;
+          path: string[];
+          message: string;
+          values?: unknown[];
+        }> | null = null;
+
+        // Check if error data is an array (validation errors)
+        if (Array.isArray(error.response.data)) {
+          validationErrors = error.response.data;
+        }
+        // Check if error data has an error property that is an array
+        else if (
+          typeof error.response.data === "object" &&
+          "error" in error.response.data &&
+          Array.isArray((error.response.data as { error: unknown }).error)
+        ) {
+          validationErrors = (error.response.data as { error: unknown[] }).error as Array<{
+            code: string;
+            path: string[];
+            message: string;
+            values?: unknown[];
+          }>;
+        }
+        // Check if error data has a nested errors array
+        else if (
+          typeof error.response.data === "object" &&
+          "errors" in error.response.data &&
+          Array.isArray((error.response.data as { errors: unknown }).errors)
+        ) {
+          validationErrors = (error.response.data as { errors: unknown[] }).errors as Array<{
+            code: string;
+            path: string[];
+            message: string;
+            values?: unknown[];
+          }>;
+        }
+
+        // Process validation errors
+        if (validationErrors && validationErrors.length > 0) {
+          const errorMessages = validationErrors.map((err) => {
+            const field = err.path?.join(".") || "Field";
+            // Convert field names to user-friendly format
+            const friendlyField = field
+              .split(".")
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1).replace(/_/g, " "))
+              .join(" ");
+            
+            // For invalid_value errors, show a more user-friendly message
+            if (err.code === "invalid_value") {
+              // Special handling for role field
+              if (field.toLowerCase() === "role") {
+                return "Please select a valid role (Student or Mentor)";
+              }
+              if (err.values && Array.isArray(err.values) && err.values.length > 0) {
+                const validValues = err.values.map((v) => String(v)).join(", ");
+                return `${friendlyField} must be one of: ${validValues}`;
+              }
+              return `${friendlyField}: ${err.message}`;
+            }
+            return `${friendlyField}: ${err.message}`;
+          });
+          
+          error.message = errorMessages.join(". ");
+        }
+        // Handle standard API error format: { success: false, error: {...} }
+        else if (
+          typeof error.response.data === "object" &&
+          "error" in error.response.data &&
+          typeof (error.response.data as { error: unknown }).error === "object" &&
+          !Array.isArray((error.response.data as { error: unknown }).error)
+        ) {
+          const apiError = error.response.data as { error: { code: string; message: string } };
+          error.message = apiError.error.message || error.message;
+        }
       }
       return Promise.reject(error);
     }

@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
-import { useAuthStore } from "../../../../src/state/auth-store";
 import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import { Mail, ArrowLeft, HelpCircle } from "lucide-react";
@@ -83,31 +82,13 @@ export default function VerifyEmailPage() {
 
     setSubmitting(true);
     try {
-      const response = await authService.verifyEmail({
-        email,
-        otp: fullCode,
-      });
+      await authService.verifyEmail(email, fullCode);
 
-      // Store tokens
-      setTokens(response.accessToken, response.refreshToken);
-      
-      // Map API user to AuthUser type
-      const user = {
-        id: response.user.id || response.user._id || "",
-        name: response.user.name || `${response.user.firstName || ""} ${response.user.lastName || ""}`.trim() || email.split("@")[0],
-        email: response.user.email,
-        role: (response.user.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | null,
-        firstName: response.user.firstName,
-        lastName: response.user.lastName,
-      };
-
-      setUser(user);
-
-      toast.success("Email verified successfully!");
-      router.push(`/${locale}/student`);
+      toast.success("Email verified successfully! You can now log in.");
+      router.push(`/${locale}/login`);
     } catch (error: any) {
       console.error(error);
-      const errorMessage = error?.response?.data?.error?.message || error?.message || "Invalid verification code. Please try again.";
+      const errorMessage = error?.message || "Invalid verification code. Please try again.";
       toast.error(errorMessage);
     } finally {
       setSubmitting(false);
@@ -133,7 +114,7 @@ export default function VerifyEmailPage() {
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error?.message || error?.message || "Failed to resend code. Please try again.";
+      const errorMessage = error?.message || "Failed to resend code. Please try again.";
       toast.error(errorMessage);
     }
   };

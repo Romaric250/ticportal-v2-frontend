@@ -49,8 +49,38 @@ export default function LoginPage() {
       router.push(`/${locale}${redirectTo}`);
     } catch (error: any) {
       console.error(error);
-      const errorMessage = error?.response?.data?.error?.message || error?.message || "Login failed. Please check your credentials.";
-      toast.error(errorMessage);
+      
+      // Check if error is due to unverified email
+      const errorCode = error?.response?.data?.error?.code || error?.response?.data?.[0]?.code;
+      const errorMessage = error?.message || "Login failed. Please check your credentials.";
+      
+      // Common error codes for unverified email: UNVERIFIED_EMAIL, EMAIL_NOT_VERIFIED, etc.
+      if (
+        errorCode === "UNVERIFIED_EMAIL" ||
+        errorCode === "EMAIL_NOT_VERIFIED" ||
+        errorMessage.toLowerCase().includes("verify") ||
+        errorMessage.toLowerCase().includes("unverified")
+      ) {
+        // Resend OTP for email verification
+        try {
+          // Try to resend OTP by calling register (backend should handle existing users)
+          await authService.register({
+            email,
+            password: "", // Not needed for resending OTP, but required by type
+            firstName: "",
+            lastName: "",
+            role: "STUDENT", // Default, backend might ignore this for existing users
+          });
+          toast.info("Please verify your email. A verification code has been sent to your email.");
+          router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
+        } catch (resendError) {
+          // If resend fails, still redirect to verify-email page
+          toast.info("Please verify your email to continue.");
+          router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
+        }
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setSubmitting(false);
       setLoading(false);
