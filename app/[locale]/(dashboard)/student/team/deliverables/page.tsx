@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LocalizedLink } from "@/components/ui/LocalizedLink";
 import {
   Check,
   Clock,
@@ -18,12 +19,8 @@ import {
   AlertCircle,
   ChevronDown,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 export default function DeliverablesPage() {
-  const pathname = usePathname();
-  const locale = pathname.split("/")[1] || "en";
   const [activeFilter, setActiveFilter] = useState("all");
   const [sortBy, setSortBy] = useState("due-date");
 
@@ -139,13 +136,13 @@ export default function DeliverablesPage() {
     <div className="space-y-6 text-slate-900">
       {/* Breadcrumbs */}
       <nav className="text-xs text-slate-500">
-        <Link href={`/${locale}/student`} className="hover:text-slate-700">
+        <LocalizedLink href="/student" className="hover:text-slate-700">
           Home
-        </Link>
+        </LocalizedLink>
         {" / "}
-        <Link href={`/${locale}/student/team`} className="hover:text-slate-700">
+        <LocalizedLink href="/student/team" className="hover:text-slate-700">
           My Team
-        </Link>
+        </LocalizedLink>
         {" / "}
         <span className="text-slate-900">Deliverables</span>
       </nav>

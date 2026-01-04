@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { useLocale } from "next-intl";
+import { LocalizedLink } from "@/components/ui/LocalizedLink";
 import { Check, Play, Lock, BookOpen, Lightbulb, Users, Trophy, ArrowRight, Bookmark } from "lucide-react";
 
 export default function LearningPathPage() {
-  const locale = useLocale();
   return (
     <div className="space-y-8 text-slate-900">
       {/* Header Section */}
@@ -108,8 +106,8 @@ export default function LearningPathPage() {
             <p className="mt-2 text-xs text-slate-600">
               Learn how to articulate why a customer would choose your product over a competitor.
             </p>
-            <Link
-              href={`/${locale}/student/course/value-propositions-101`}
+            <LocalizedLink
+              href="/student/course/value-propositions-101"
               className="cursor-pointer mt-4 block w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-xs font-semibold text-[#111827] hover:border-[#111827]"
             >
               Start Lesson
@@ -304,8 +302,8 @@ function StageCard({
 
           {/* Continue Learning Button */}
           {hasContinueButton && (
-            <Link
-              href={`/${locale}/student/course/stage-3`}
+            <LocalizedLink
+              href="/student/course/stage-3"
               className="cursor-pointer mt-4 inline-flex items-center gap-1 rounded-lg bg-[#111827] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#1f2937]"
             >
               Continue Learning <ArrowRight size={14} />
@@ -365,8 +363,8 @@ function CourseCard({
   instructor,
 }: CourseCardProps) {
   return (
-    <Link
-      href={`/${locale}/student/course/coding-basics`}
+    <LocalizedLink
+      href="/student/course/coding-basics"
       className="group relative block rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="relative h-40 overflow-hidden rounded-t-2xl bg-slate-100">

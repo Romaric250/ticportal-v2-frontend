@@ -1,13 +1,9 @@
 "use client";
 
 import { Check, Code, Play, ArrowRight, FileText } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { LocalizedLink } from "@/components/ui/LocalizedLink";
 
 export function TeamDeliverables() {
-  const pathname = usePathname();
-  const locale = pathname.split("/")[1] || "en";
-  const deliverablesPath = `/${locale}/student/team/deliverables`;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -18,12 +14,12 @@ export function TeamDeliverables() {
             Team Deliverables
           </h2>
         </div>
-        <Link
-          href={deliverablesPath}
+        <LocalizedLink
+          href="/student/team/deliverables"
           className="cursor-pointer inline-flex items-center gap-1 text-xs font-medium text-[#111827] hover:underline"
         >
           View All <ArrowRight size={12} />
-        </Link>
+        </LocalizedLink>
       </div>
 
       <div className="overflow-x-auto">

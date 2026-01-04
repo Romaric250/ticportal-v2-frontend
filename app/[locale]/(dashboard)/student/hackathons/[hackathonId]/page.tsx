@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { LocalizedLink } from "@/components/ui/LocalizedLink";
 import {
   ArrowRight,
   Users,
@@ -36,9 +35,6 @@ type HackathonDetailPageProps = {
 
 export default function HackathonDetailPage({ params }: HackathonDetailPageProps) {
   const [activeTab, setActiveTab] = useState("overview");
-  const pathname = usePathname();
-  const locale = pathname.split("/")[1];
-  const basePath = `/${locale}/student/hackathons`;
 
   // Mock data - replace with actual data fetching
   const hackathon = {
@@ -129,13 +125,13 @@ export default function HackathonDetailPage({ params }: HackathonDetailPageProps
     <div className="space-y-6 text-slate-900">
       {/* Breadcrumbs */}
       <nav className="text-xs sm:text-sm text-slate-600">
-        <Link href={`${basePath}`} className="hover:text-[#111827]">
+        <LocalizedLink href="/student/hackathons" className="hover:text-[#111827]">
           Home
-        </Link>
+        </LocalizedLink>
         <span className="mx-2">/</span>
-        <Link href={`${basePath}`} className="hover:text-[#111827]">
+        <LocalizedLink href="/student/hackathons" className="hover:text-[#111827]">
           Hackathons
-        </Link>
+        </LocalizedLink>
         <span className="mx-2">/</span>
         <span className="text-slate-900">School Qualifiers</span>
       </nav>
@@ -161,12 +157,12 @@ export default function HackathonDetailPage({ params }: HackathonDetailPageProps
               </div>
               <h3 className="mb-2 text-sm sm:text-base font-bold text-slate-900">Form New Team</h3>
               <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-slate-600">Create a squad and invite your classmates.</p>
-              <Link
-                href={`/${locale}/student/team`}
+              <LocalizedLink
+                href="/student/team"
                 className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-blue-600 hover:underline"
               >
                 Start <ArrowRight size={12} className="sm:w-3.5 sm:h-3.5" />
-              </Link>
+              </LocalizedLink>
             </div>
 
             {/* Join Team */}

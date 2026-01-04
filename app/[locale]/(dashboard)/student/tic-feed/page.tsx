@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { LocalizedLink } from "@/components/ui/LocalizedLink";
 import {
   Image,
   Link2,
@@ -58,7 +58,7 @@ export default function TICFeedPage() {
               <Image size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
             <button className="cursor-pointer rounded-lg p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
-              <Link2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <LocalizedLink2 size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
             <button className="cursor-pointer rounded-lg p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
               <Hash size={16} className="sm:w-[18px] sm:h-[18px]" />
@@ -172,7 +172,7 @@ export default function TICFeedPage() {
               detail="Required for Phase 1"
             />
           </div>
-          <Link
+          <LocalizedLink
             href="#"
             className="cursor-pointer mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#111827] hover:underline"
           >

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { LocalizedLink } from "@/components/ui/LocalizedLink";
 import {
   ArrowRight,
   BookOpen,
@@ -23,9 +22,6 @@ import {
 
 export default function HackathonsPage() {
   const [activeEventTab, setActiveEventTab] = useState("upcoming");
-  const pathname = usePathname();
-  const locale = pathname.split("/")[1];
-  const basePath = `/${locale}/student`;
 
   return (
     <div className="space-y-6 text-slate-900">
@@ -46,13 +42,13 @@ export default function HackathonsPage() {
             'Sustainable Cities'. Prepare your pitch deck.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link
-              href={`${basePath}/hackathons/regional-finals-2024`}
+            <LocalizedLink
+              href="/student/hackathons/regional-finals-2024"
               className="inline-flex items-center gap-2 rounded-lg bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-[#111827] hover:bg-slate-100 transition-colors"
             >
               Go to Regional Dashboard
               <ArrowRight size={14} className="sm:w-4 sm:h-4" />
-            </Link>
+            </LocalizedLink>
             <button className="inline-flex items-center gap-2 rounded-lg border-2 border-white/30 bg-transparent px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-white/10 transition-colors">
               View Rulebook
             </button>
@@ -183,12 +179,12 @@ export default function HackathonsPage() {
               <p className="mb-4 text-xs sm:text-sm text-slate-600">
                 Access workshops and guides for the 'Sustainable Cities' theme.
               </p>
-              <Link
-                href={`${basePath}/learning-path`}
+              <LocalizedLink
+                href="/student/learning-path"
                 className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-blue-600 hover:underline"
               >
                 View Materials <ArrowRight size={12} className="sm:w-3.5 sm:h-3.5" />
-              </Link>
+              </LocalizedLink>
             </div>
 
             {/* Book Mentorship */}
@@ -302,12 +298,12 @@ export default function HackathonsPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-base sm:text-lg font-bold text-slate-900">My Team</h3>
-              <Link
-                href={`${basePath}/team`}
+              <LocalizedLink
+                href="/student/team"
                 className="text-xs sm:text-sm font-semibold text-[#111827] hover:underline"
               >
                 Manage
-              </Link>
+              </LocalizedLink>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex -space-x-2">
