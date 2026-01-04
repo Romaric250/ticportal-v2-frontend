@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { createPersistedStore } from "./store-config";
 
 export type UserRole = "student" | "mentor" | "judge" | "admin" | "super-admin" | null;
 
@@ -17,12 +17,23 @@ type AuthState = {
   logout: () => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  loading: false,
-  setUser: (user) => set({ user }),
-  setLoading: (loading) => set({ loading }),
-  logout: () => set({ user: null }),
-}));
+/**
+ * Authentication store with persistence
+ * User data persists across page refreshes
+ */
+export const useAuthStore = createPersistedStore<AuthState>(
+  "tic-auth",
+  (set) => ({
+    user: null,
+    loading: false,
+    setUser: (user) => set({ user }),
+    setLoading: (loading) => set({ loading }),
+    logout: () => set({ user: null, loading: false }),
+  }),
+  {
+    // Only persist user data, not loading state
+    partialize: (state) => ({ user: state.user }),
+  }
+);
 
 

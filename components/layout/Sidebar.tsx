@@ -10,7 +10,7 @@ import { cn } from "../../src/utils/cn";
 type SidebarLink = {
   href: string;
   label: string;
-  icon: JSX.Element;
+  icon: React.ReactNode;
 };
 
 type Props = {

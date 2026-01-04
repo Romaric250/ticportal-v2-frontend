@@ -3,9 +3,29 @@
 import { useState } from "react";
 import { User, GraduationCap, Mail, Bell, Check, Trash2 } from "lucide-react";
 
+type NotificationSettings = {
+  email: boolean;
+  sms: boolean;
+};
+
+type FormData = {
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  bio: string;
+  schoolName: string;
+  gradeLevel: string;
+  graduationYear: string;
+  email: string;
+  phone: string;
+  assignmentAlerts: NotificationSettings;
+  teamMessages: NotificationSettings;
+  announcements: NotificationSettings;
+};
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     firstName: "John",
     lastName: "Dee",
     displayName: "JohnD_Code",
@@ -30,13 +50,22 @@ export default function SettingsPage() {
   const handleInputChange = (field: string, value: string | boolean) => {
     if (field.includes(".")) {
       const [parent, child] = field.split(".");
-      setFormData((prev) => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof typeof prev],
-          [child]: value,
-        },
-      }));
+      setFormData((prev) => {
+        const parentKey = parent as keyof FormData;
+        const parentValue = prev[parentKey];
+        
+        // Type guard to ensure parentValue is an object
+        if (typeof parentValue === "object" && parentValue !== null && !Array.isArray(parentValue)) {
+          return {
+            ...prev,
+            [parentKey]: {
+              ...parentValue,
+              [child]: value,
+            },
+          };
+        }
+        return prev;
+      });
     } else {
       setFormData((prev) => ({
         ...prev,
