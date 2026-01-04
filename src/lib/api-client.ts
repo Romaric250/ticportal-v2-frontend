@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { getEncryptedItem, setEncryptedItem, removeEncryptedItem } from "../utils/encryption";
 
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
@@ -10,31 +11,31 @@ export const apiClient = axios.create({
   },
 });
 
-// Token storage helpers
+// Token storage helpers with encryption
 const TOKEN_KEY = "tp_access_token";
 const REFRESH_TOKEN_KEY = "tp_refresh_token";
 
 export const tokenStorage = {
   getAccessToken: (): string | null => {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem(TOKEN_KEY);
+    return getEncryptedItem(TOKEN_KEY);
   },
   setAccessToken: (token: string): void => {
     if (typeof window === "undefined") return;
-    localStorage.setItem(TOKEN_KEY, token);
+    setEncryptedItem(TOKEN_KEY, token);
   },
   getRefreshToken: (): string | null => {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    return getEncryptedItem(REFRESH_TOKEN_KEY);
   },
   setRefreshToken: (token: string): void => {
     if (typeof window === "undefined") return;
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    setEncryptedItem(REFRESH_TOKEN_KEY, token);
   },
   clearTokens: (): void => {
     if (typeof window === "undefined") return;
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    removeEncryptedItem(TOKEN_KEY);
+    removeEncryptedItem(REFRESH_TOKEN_KEY);
   },
 };
 
