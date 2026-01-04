@@ -1,12 +1,15 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
+import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Mail, ArrowLeft, ArrowRight, HelpCircle } from "lucide-react";
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const locale = useLocale();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -15,12 +18,16 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // TODO: call backend endpoint, e.g. /auth/forgot-password
-      toast.success("If this email exists, a reset link was sent.");
-      setEmail("");
-    } catch (error) {
+      await authService.forgotPassword({ email });
+      toast.success("If this email exists, a reset code has been sent to your email.");
+      // Redirect to reset password page with email
+      router.push(`/${locale}/reset-password?email=${encodeURIComponent(email)}`);
+    } catch (error: any) {
       console.error(error);
-      toast.error("Unable to send reset link. Please try again.");
+      // Don't reveal if email exists or not for security
+      toast.success("If this email exists, a reset code has been sent to your email.");
+      // Still redirect to reset password page
+      router.push(`/${locale}/reset-password?email=${encodeURIComponent(email)}`);
     } finally {
       setSubmitting(false);
     }

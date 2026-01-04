@@ -3,6 +3,7 @@
 import { FormEvent, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
+import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Eye, EyeOff, CheckCircle2, Circle, ArrowLeft } from "lucide-react";
@@ -13,7 +14,8 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
-  const token = searchParams.get("token");
+  const email = searchParams.get("email") || "";
+  const [otp, setOtp] = useState("");
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -99,19 +101,29 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (!token) {
-      toast.error("Invalid reset token");
+    if (!email) {
+      toast.error("Email is required");
+      return;
+    }
+
+    if (!otp || otp.length !== 6) {
+      toast.error("Please enter the 6-digit verification code");
       return;
     }
 
     setSubmitting(true);
     try {
-      // TODO: Call backend to reset password with token
+      await authService.resetPassword({
+        email,
+        otp,
+        newPassword,
+      });
       toast.success("Password reset successfully");
       router.push(`/${locale}/login`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to reset password. Please try again.");
+      const errorMessage = error?.response?.data?.error?.message || error?.message || "Failed to reset password. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -141,6 +153,27 @@ export default function ResetPasswordPage() {
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* OTP Input */}
+              {email && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    placeholder="Enter 6-digit code"
+                    maxLength={6}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Enter the 6-digit code sent to {email}
+                  </p>
+                </div>
+              )}
+
               {/* New Password */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">New Password</label>
@@ -283,7 +316,7 @@ export default function ResetPasswordPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={submitting || !requirements.passwordsMatch}
+                disabled={submitting || !requirements.passwordsMatch || !otp || otp.length !== 6}
                 className="w-full rounded-lg bg-[#111827] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? "Resetting..." : "Reset Password"}

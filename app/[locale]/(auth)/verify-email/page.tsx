@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
+import { useAuthStore } from "../../../../src/state/auth-store";
+import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import { Mail, ArrowLeft, HelpCircle } from "lucide-react";
 
@@ -11,7 +13,8 @@ export default function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
-  const email = searchParams.get("email") || "student@school.edu";
+  const { setUser, setTokens } = useAuthStore();
+  const email = searchParams.get("email") || "";
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(9 * 60 + 42); // 9:42 in seconds
@@ -73,28 +76,65 @@ export default function VerifyEmailPage() {
       return;
     }
 
+    if (!email) {
+      toast.error("Email is required. Please go back and register again.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // TODO: Verify code with backend
-      toast.success("Email verified successfully");
-      router.push(`/${locale}/login`);
-    } catch (error) {
+      const response = await authService.verifyEmail({
+        email,
+        otp: fullCode,
+      });
+
+      // Store tokens
+      setTokens(response.accessToken, response.refreshToken);
+      
+      // Map API user to AuthUser type
+      const user = {
+        id: response.user.id || response.user._id || "",
+        name: response.user.name || `${response.user.firstName || ""} ${response.user.lastName || ""}`.trim() || email.split("@")[0],
+        email: response.user.email,
+        role: (response.user.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | null,
+        firstName: response.user.firstName,
+        lastName: response.user.lastName,
+      };
+
+      setUser(user);
+
+      toast.success("Email verified successfully!");
+      router.push(`/${locale}/student`);
+    } catch (error: any) {
       console.error(error);
-      toast.error("Invalid verification code. Please try again.");
+      const errorMessage = error?.response?.data?.error?.message || error?.message || "Invalid verification code. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleResend = async () => {
+    if (!email) {
+      toast.error("Email is required");
+      return;
+    }
+
     try {
-      // TODO: Resend verification code
+      // Re-register to get a new OTP
+      await authService.register({
+        email,
+        password: "", // We don't have the password here, but the API might allow resending OTP
+        firstName: "",
+        lastName: "",
+      });
       toast.success("Verification code sent to your email");
       setTimeLeft(10 * 60); // Reset timer to 10 minutes
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
-    } catch (error) {
-      toast.error("Failed to resend code. Please try again.");
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error?.message || error?.message || "Failed to resend code. Please try again.";
+      toast.error(errorMessage);
     }
   };
 

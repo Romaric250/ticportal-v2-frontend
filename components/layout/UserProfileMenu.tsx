@@ -2,12 +2,18 @@
 
 import { User, Settings, LogOut, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useAuthStore } from "../../src/state/auth-store";
+import { authService } from "../../src/lib/services/authService";
+import { toast } from "sonner";
 
 export function UserProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const locale = useLocale();
+  const { user, refreshToken, logout } = useAuthStore();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -25,10 +31,20 @@ export function UserProfileMenu() {
     };
   }, [isOpen]);
 
-  const handleSignOut = () => {
-    // Handle sign out logic
-    console.log("Sign out");
+  const handleSignOut = async () => {
     setIsOpen(false);
+    try {
+      if (refreshToken) {
+        await authService.logout({ refreshToken });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Continue with logout even if API call fails
+    } finally {
+      logout();
+      toast.success("Logged out successfully");
+      router.push(`/${locale}/login`);
+    }
   };
 
   return (

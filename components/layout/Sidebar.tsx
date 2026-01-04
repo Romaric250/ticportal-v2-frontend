@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare } from "lucide-react";
+import { useAuthStore } from "../../src/state/auth-store";
+import { authService } from "../../src/lib/services/authService";
+import { toast } from "sonner";
 import { cn } from "../../src/utils/cn";
 
 type SidebarLink = {
@@ -21,6 +24,23 @@ export function Sidebar({ role }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const locale = useLocale();
+  const router = useRouter();
+  const { refreshToken, logout } = useAuthStore();
+
+  const handleSignOut = async () => {
+    try {
+      if (refreshToken) {
+        await authService.logout({ refreshToken });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Continue with logout even if API call fails
+    } finally {
+      logout();
+      toast.success("Logged out successfully");
+      router.push(`/${locale}/login`);
+    }
+  };
 
   // Auto-collapse on mobile (only on initial load)
   useEffect(() => {
@@ -142,6 +162,7 @@ export function Sidebar({ role }: Props) {
         <div className="relative group">
           <button
             type="button"
+            onClick={handleSignOut}
             className="cursor-pointer mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
           >
             <LogOut size={16} className="text-slate-500" />

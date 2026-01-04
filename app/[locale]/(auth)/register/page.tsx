@@ -76,18 +76,32 @@ export default function RegisterPage() {
       return;
     }
 
+    // Split full name into first and last name
+    const nameParts = fullName.trim().split(/\s+/);
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    if (!firstName) {
+      toast.error("Please enter your full name");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      // TODO: Uncomment when API is ready
-      // await authService.register({ email, password, fullName, role });
+      await authService.register({
+        email,
+        password,
+        firstName,
+        lastName,
+      });
       
-      // For now, just redirect to OTP page
-      toast.success("Registered! Please verify your email.");
+      toast.success("Registration successful! Please check your email for the verification code.");
       router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Registration failed. Please try again.");
+      const errorMessage = error?.response?.data?.error?.message || error?.message || "Registration failed. Please try again.";
+      toast.error(errorMessage);
       setSubmitting(false);
     }
   };

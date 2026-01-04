@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { useAuthStore } from "../../../../src/state/auth-store";
+import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, HelpCircle } from "lucide-react";
 
@@ -12,7 +13,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
-  const { setUser, setLoading } = useAuthStore();
+  const { setUser, setTokens, setLoading } = useAuthStore();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,29 +27,30 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // TEMP: Mock login until backend auth is ready.
-      const redirectTo = searchParams.get("redirect") ?? "/student";
+      const response = await authService.login({ email, password });
+      
+      // Store tokens
+      setTokens(response.accessToken, response.refreshToken);
+      
+      // Map API user to AuthUser type
       const user = {
-        id: "mock-user",
-        name: email.split("@")[0] || "Student",
-        email,
-        role: "student" as const,
+        id: response.user.id || response.user._id || "",
+        name: response.user.name || `${response.user.firstName || ""} ${response.user.lastName || ""}`.trim() || email.split("@")[0],
+        email: response.user.email,
+        role: (response.user.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | null,
+        firstName: response.user.firstName,
+        lastName: response.user.lastName,
       };
 
       setUser(user);
 
-      if (typeof document !== "undefined") {
-        document.cookie = "tp_auth=1; path=/";
-        if (rememberMe) {
-          document.cookie = `tp_remember=1; path=/; max-age=${30 * 24 * 60 * 60}`;
-        }
-      }
-
+      const redirectTo = searchParams.get("redirect") ?? "/student";
       toast.success("Logged in successfully");
       router.push(`/${locale}${redirectTo}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Login failed. Please check your credentials.");
+      const errorMessage = error?.response?.data?.error?.message || error?.message || "Login failed. Please check your credentials.";
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
       setLoading(false);
