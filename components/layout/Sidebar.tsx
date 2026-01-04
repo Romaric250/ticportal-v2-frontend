@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
 import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare } from "lucide-react";
 import { cn } from "../../src/utils/cn";
 
@@ -19,6 +20,7 @@ type Props = {
 export function Sidebar({ role }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const locale = useLocale();
 
   // Auto-collapse on mobile (only on initial load)
   useEffect(() => {
@@ -28,7 +30,7 @@ export function Sidebar({ role }: Props) {
     }
   }, []);
 
-  const basePath = `/${pathname.split("/")[1]}/${role}`;
+  const basePath = `/${locale}/${role}`;
 
   const links: SidebarLink[] = [
     { href: `${basePath}`, label: "Overview", icon: <Home size={16} /> },

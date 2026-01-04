@@ -2,6 +2,7 @@
 
 import { useState, use } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import {
   Play,
   Check,
@@ -18,6 +19,7 @@ import {
 
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = use(params);
+  const locale = useLocale();
   const [currentSection, setCurrentSection] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
   const [showQuizResults, setShowQuizResults] = useState(false);
@@ -179,7 +181,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href="/student/learning-path"
+          href={`/${locale}/student/learning-path`}
           className="cursor-pointer rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
         >
           <ArrowLeft size={20} />
@@ -410,7 +412,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     </button>
                   )}
                   <Link
-                    href="/student/learning-path"
+                    href={`/${locale}/student/learning-path`}
                     className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-[#111827] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#1f2937]"
                   >
                     {isPassing ? (

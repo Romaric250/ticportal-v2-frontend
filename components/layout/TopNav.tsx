@@ -29,10 +29,15 @@ export function TopNav() {
     }
 
     const segments = pathname.split("/").filter(Boolean);
+    
+    // If no segments, go to root with new locale
     if (segments.length === 0) {
       router.push(`/${otherLocale}`);
       return;
     }
+
+    // Replace the first segment (locale) with the new locale
+    // This handles all cases: /en/student, /en/student/team, /en/student/hackathons/regional-finals-2024, etc.
     segments[0] = otherLocale;
     const localizedPath = `/${segments.join("/")}`;
 
