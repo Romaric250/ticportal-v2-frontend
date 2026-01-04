@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { User, GraduationCap, Mail, Bell, Check, Upload } from "lucide-react";
+import { User, GraduationCap, Mail, Bell, Check, Upload, Globe } from "lucide-react";
 import { useAuthStore } from "../../../../../src/state/auth-store";
 import { userService } from "../../../../../src/lib/services/userService";
 import { toast } from "sonner";
@@ -20,6 +20,11 @@ const COUNTRIES = [
   "Other"
 ];
 
+const CAMEROON_REGIONS = [
+  "Adamawa", "Centre", "East", "Far North", "Littoral",
+  "North", "Northwest", "South", "Southwest", "West"
+];
+
 type NotificationSettings = {
   email: boolean;
   sms: boolean;
@@ -31,6 +36,7 @@ type FormData = {
   school: string;
   grade: string;
   country: string;
+  region: string;
   gradDate: string;
   profilePhoto: string | null;
 };
@@ -46,6 +52,7 @@ export default function SettingsPage() {
     school: "",
     grade: "",
     country: "",
+    region: "",
     gradDate: "",
     profilePhoto: null,
   });
@@ -63,6 +70,7 @@ export default function SettingsPage() {
           school: profile.school || "",
           grade: profile.grade || "",
           country: profile.country || "Cameroon",
+          region: profile.region || "",
           gradDate: profile.gradDate ? new Date(profile.gradDate).toISOString().split("T")[0] : "",
           profilePhoto: profile.profilePhoto || null,
         });
@@ -178,6 +186,7 @@ export default function SettingsPage() {
       if (formData.school) payload.school = formData.school;
       if (formData.grade) payload.grade = formData.grade;
       if (formData.country) payload.country = formData.country;
+      if (formData.region) payload.region = formData.region;
       if (formData.gradDate) payload.gradDate = new Date(formData.gradDate).toISOString();
 
       const updatedProfile = await userService.updateProfile(payload);
@@ -413,7 +422,12 @@ export default function SettingsPage() {
                 </label>
                 <select
                   value={formData.country}
-                  onChange={(e) => handleInputChange("country", e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange("country", e.target.value);
+                    if (e.target.value !== "Cameroon") {
+                      handleInputChange("region", ""); // Clear region if country changes away from Cameroon
+                    }
+                  }}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-[#111827] focus:outline-none focus:ring-1 focus:ring-[#111827]"
                 >
                   <option value="">Select your country</option>
@@ -424,6 +438,25 @@ export default function SettingsPage() {
                   ))}
                 </select>
               </div>
+              {formData.country === "Cameroon" && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                    Region
+                  </label>
+                  <select
+                    value={formData.region}
+                    onChange={(e) => handleInputChange("region", e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-[#111827] focus:outline-none focus:ring-1 focus:ring-[#111827]"
+                  >
+                    <option value="">Select your region</option>
+                    {CAMEROON_REGIONS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Graduation Date

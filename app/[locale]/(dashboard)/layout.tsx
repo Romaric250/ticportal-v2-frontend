@@ -27,6 +27,7 @@ export default function DashboardLayout({ children }: Props) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [profileData, setProfileData] = useState<{
     country?: string;
+    region?: string;
     school?: string;
     grade?: string;
   } | null>(null);
@@ -44,12 +45,17 @@ export default function DashboardLayout({ children }: Props) {
         const profile = await userService.getProfile();
         setProfileData({
           country: profile.country,
+          region: profile.region,
           school: profile.school,
           grade: profile.grade,
         });
 
         // Show modal if any required field is missing
-        if (!profile.country || !profile.school || !profile.grade) {
+        // Region is required only if country is Cameroon
+        const isRegionRequired = profile.country === "Cameroon";
+        const hasRegion = isRegionRequired ? profile.region : true;
+        
+        if (!profile.country || !profile.school || !profile.grade || !hasRegion) {
           setShowOnboarding(true);
         }
       } catch (error) {
@@ -65,16 +71,17 @@ export default function DashboardLayout({ children }: Props) {
 
   const handleOnboardingClose = () => {
     setShowOnboarding(false);
-    // Refresh profile data after update
-    if (user) {
-      userService.getProfile().then((profile) => {
-        setProfileData({
-          country: profile.country,
-          school: profile.school,
-          grade: profile.grade,
+      // Refresh profile data after update
+      if (user) {
+        userService.getProfile().then((profile) => {
+          setProfileData({
+            country: profile.country,
+            region: profile.region,
+            school: profile.school,
+            grade: profile.grade,
+          });
         });
-      });
-    }
+      }
   };
 
   return (

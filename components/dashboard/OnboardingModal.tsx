@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapPin, GraduationCap, BookOpen } from "lucide-react";
+import { MapPin, GraduationCap, BookOpen, Globe } from "lucide-react";
 import { userService } from "../../src/lib/services/userService";
 import { useAuthStore } from "../../src/state/auth-store";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ type OnboardingModalProps = {
   onClose: () => void;
   initialData?: {
     country?: string;
+    region?: string;
     school?: string;
     grade?: string;
   };
@@ -30,6 +31,11 @@ const COUNTRIES = [
   "Other"
 ];
 
+const CAMEROON_REGIONS = [
+  "Adamawa", "Centre", "East", "Far North", "Littoral",
+  "North", "Northwest", "South", "Southwest", "West"
+];
+
 const GRADES = [
   "Grade 9", "Grade 10", "Grade 11", "Grade 12",
   "Year 9", "Year 10", "Year 11", "Year 12",
@@ -40,6 +46,7 @@ const GRADES = [
 export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModalProps) {
   const { setUser, user } = useAuthStore();
   const [country, setCountry] = useState(initialData?.country || "Cameroon");
+  const [region, setRegion] = useState(initialData?.region || "");
   const [school, setSchool] = useState(initialData?.school || "");
   const [grade, setGrade] = useState(initialData?.grade || "");
   const [submitting, setSubmitting] = useState(false);
@@ -47,6 +54,7 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
   useEffect(() => {
     if (initialData) {
       setCountry(initialData.country || "Cameroon");
+      setRegion(initialData.region || "");
       setSchool(initialData.school || "");
       setGrade(initialData.grade || "");
     }
@@ -57,7 +65,7 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!country || !school || !grade) {
+    if (!country || !region || !school || !grade) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -66,6 +74,7 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
     try {
       const updatedProfile = await userService.updateProfile({
         country,
+        region,
         school,
         grade,
       });
@@ -113,7 +122,12 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
             <select
               required
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                if (e.target.value !== "Cameroon") {
+                  setRegion(""); // Clear region if country changes away from Cameroon
+                }
+              }}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-[#111827] focus:outline-none focus:ring-2 focus:ring-[#111827]/20"
             >
               <option value="">Select your country</option>
@@ -124,6 +138,29 @@ export function OnboardingModal({ isOpen, onClose, initialData }: OnboardingModa
               ))}
             </select>
           </div>
+
+          {/* Region - Only show if country is Cameroon */}
+          {country === "Cameroon" && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <Globe size={16} className="text-slate-500" />
+                Region
+              </label>
+              <select
+                required={country === "Cameroon"}
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-[#111827] focus:outline-none focus:ring-2 focus:ring-[#111827]/20"
+              >
+                <option value="">Select your region</option>
+                {CAMEROON_REGIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* School */}
           <div className="space-y-2">

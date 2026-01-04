@@ -11,6 +11,7 @@ export type UserProfile = {
   school?: string;
   grade?: string;
   country?: string;
+  region?: string;
   gradDate?: string;
 };
 
@@ -20,6 +21,7 @@ export type UpdateProfilePayload = {
   school?: string;
   grade?: string;
   country?: string;
+  region?: string;
   gradDate?: string;
 };
 
