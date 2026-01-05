@@ -2,8 +2,13 @@
 
 import { Check, Code, Play, ArrowRight, FileText } from "lucide-react";
 import { LocalizedLink } from "@/components/ui/LocalizedLink";
+import type { Team } from "../../../src/lib/services/teamService";
 
-export function TeamDeliverables() {
+type Props = {
+  team: Team;
+};
+
+export function TeamDeliverables({ team }: Props) {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

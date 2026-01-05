@@ -1,24 +1,53 @@
 "use client";
 
-import { X, Users, Link2, Copy, Check } from "lucide-react";
+import { X, Users, Link2, Copy, Check, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { teamService, type Team } from "../../../src/lib/services/teamService";
+import { toast } from "sonner";
 
 type Props = {
+  team: Team;
   onClose: () => void;
+  onMemberAdded: () => void;
 };
 
-type Tab = "search" | "invite";
+type Tab = "add" | "invite";
 
-export function AddMemberModal({ onClose }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>("search");
-  const [searchQuery, setSearchQuery] = useState("");
+export function AddMemberModal({ team, onClose, onMemberAdded }: Props) {
+  const [activeTab, setActiveTab] = useState<Tab>("add");
+  const [userId, setUserId] = useState("");
+  const [adding, setAdding] = useState(false);
   const [copied, setCopied] = useState(false);
-  const inviteUrl = "https://ticportal.com/team/alpha/invite/abc123xyz";
+  const inviteUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/team/${team.id}/invite`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleAddMember = async () => {
+    if (!userId.trim()) {
+      toast.error("Please enter a user ID");
+      return;
+    }
+
+    try {
+      setAdding(true);
+      await teamService.addMember(team.id, {
+        userId: userId.trim(),
+        role: "MEMBER",
+      });
+      toast.success("Member added successfully");
+      setUserId("");
+      onMemberAdded();
+      onClose();
+    } catch (error: any) {
+      console.error("Error adding member:", error);
+      toast.error(error?.message || "Failed to add member");
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
@@ -38,16 +67,16 @@ export function AddMemberModal({ onClose }: Props) {
         {/* Tabs */}
         <div className="flex border-b border-slate-200">
           <button
-            onClick={() => setActiveTab("search")}
+            onClick={() => setActiveTab("add")}
             className={`cursor-pointer flex-1 px-5 py-3 text-sm font-medium transition ${
-              activeTab === "search"
+              activeTab === "add"
                 ? "border-b-2 border-[#111827] text-[#111827]"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
             <div className="flex items-center justify-center gap-2">
               <Users size={16} />
-              <span>Search Members</span>
+              <span>Add by User ID</span>
             </div>
           </button>
           <button
@@ -67,39 +96,38 @@ export function AddMemberModal({ onClose }: Props) {
 
         {/* Content */}
         <div className="p-5">
-          {activeTab === "search" ? (
+          {activeTab === "add" ? (
             <div className="space-y-4">
               <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  User ID
+                </label>
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name or email..."
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="Enter user ID to add..."
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
                 />
+                <p className="mt-2 text-xs text-slate-500">
+                  Enter the user ID of the person you want to add to the team.
+                </p>
               </div>
 
-              <div className="max-h-64 space-y-2 overflow-y-auto">
-                {searchQuery ? (
-                  // Mock search results
+              <button
+                onClick={handleAddMember}
+                disabled={!userId.trim() || adding}
+                className="w-full rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {adding ? (
                   <>
-                    <MemberSearchResult
-                      name="John Doe"
-                      email="john.doe@example.com"
-                      role="Developer"
-                    />
-                    <MemberSearchResult
-                      name="Jane Smith"
-                      email="jane.smith@example.com"
-                      role="Designer"
-                    />
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Adding...</span>
                   </>
                 ) : (
-                  <div className="py-8 text-center text-sm text-slate-500">
-                    Start typing to search for members...
-                  </div>
+                  "Add Member"
                 )}
-              </div>
+              </button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -148,27 +176,4 @@ export function AddMemberModal({ onClose }: Props) {
   );
 }
 
-type MemberSearchResultProps = {
-  name: string;
-  email: string;
-  role: string;
-};
-
-function MemberSearchResult({ name, email, role }: MemberSearchResultProps) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 hover:bg-slate-50">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-slate-200" />
-        <div>
-          <p className="text-sm font-semibold text-slate-900">{name}</p>
-          <p className="text-xs text-slate-500">{email}</p>
-          <p className="mt-0.5 text-xs text-slate-400">{role}</p>
-        </div>
-      </div>
-      <button className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937]">
-        Invite
-      </button>
-    </div>
-  );
-}
 

@@ -1,6 +1,14 @@
-import { Calendar, Radio, Trophy, Video } from "lucide-react";
+"use client";
 
-export function TeamMetrics() {
+import { Calendar, Radio, Trophy, Video } from "lucide-react";
+import type { Team } from "../../../src/lib/services/teamService";
+
+type Props = {
+  team: Team;
+};
+
+export function TeamMetrics({ team }: Props) {
+  // TODO: Integrate with actual metrics API when available
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <MetricCard

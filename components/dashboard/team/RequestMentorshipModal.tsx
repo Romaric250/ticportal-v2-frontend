@@ -3,11 +3,14 @@
 import { X, GraduationCap } from "lucide-react";
 import { useState } from "react";
 
+import type { Team } from "../../../src/lib/services/teamService";
+
 type Props = {
+  team: Team;
   onClose: () => void;
 };
 
-export function RequestMentorshipModal({ onClose }: Props) {
+export function RequestMentorshipModal({ team, onClose }: Props) {
   const [selectedTopic, setSelectedTopic] = useState("");
   const [message, setMessage] = useState("");
 

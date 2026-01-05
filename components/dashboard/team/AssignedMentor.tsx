@@ -1,6 +1,13 @@
-import { GraduationCap, Mail, Calendar, MessageCircle } from "lucide-react";
+"use client";
 
-export function AssignedMentor() {
+import { GraduationCap, Mail, Calendar, MessageCircle } from "lucide-react";
+import type { Team } from "../../../src/lib/services/teamService";
+
+type Props = {
+  team: Team;
+};
+
+export function AssignedMentor({ team }: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2">

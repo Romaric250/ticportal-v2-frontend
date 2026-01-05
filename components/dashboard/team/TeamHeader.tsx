@@ -1,18 +1,26 @@
+"use client";
+
 import { GraduationCap, MessageCircle } from "lucide-react";
+import type { Team } from "../../../src/lib/services/teamService";
 
 type Props = {
+  team: Team;
   onRequestMentorship: () => void;
   onOpenChat: () => void;
+  onTeamUpdate: () => void;
 };
 
-export function TeamHeader({ onRequestMentorship, onOpenChat }: Props) {
+export function TeamHeader({ team, onRequestMentorship, onOpenChat }: Props) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">Team Alpha</h1>
+        <h1 className="text-3xl font-bold text-slate-900">{team.name}</h1>
         <p className="text-sm text-slate-600">
-          Building the future of education, one line of code at a time.
+          {team.description || team.projectTitle || "No description available"}
         </p>
+        {team.projectTitle && (
+          <p className="text-xs text-slate-500">Project: {team.projectTitle}</p>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <button
