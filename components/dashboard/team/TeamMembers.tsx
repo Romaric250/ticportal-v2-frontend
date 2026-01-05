@@ -1,11 +1,11 @@
 "use client";
 
-import { Users, Plus, Crown } from "lucide-react";
+import { Users, Plus, Crown, X } from "lucide-react";
 import { useState } from "react";
 import { teamService, type Team, type TeamMember } from "../../../src/lib/services/teamService";
 import { useAuthStore } from "../../../src/state/auth-store";
 import { toast } from "sonner";
-import { X } from "lucide-react";
+import { ConfirmModal } from "./ConfirmModal";
 
 type Props = {
   team: Team;
@@ -16,20 +16,49 @@ type Props = {
 export function TeamMembers({ team, onAddMember, onMemberUpdate }: Props) {
   const { user } = useAuthStore();
   const [removingMember, setRemovingMember] = useState<string | null>(null);
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<{
+    isOpen: boolean;
+    memberId: string;
+    memberName: string;
+    isLeaving: boolean;
+  }>({
+    isOpen: false,
+    memberId: "",
+    memberName: "",
+    isLeaving: false,
+  });
+  const [confirmRoleChange, setConfirmRoleChange] = useState<{
+    isOpen: boolean;
+    memberId: string;
+    memberName: string;
+    newRole: "MEMBER" | "LEAD";
+  }>({
+    isOpen: false,
+    memberId: "",
+    memberName: "",
+    newRole: "MEMBER",
+  });
   
   // Check if current user is team lead
   const currentUserMember = team.members?.find((m) => m.userId === user?.id);
   const isTeamLead = currentUserMember?.role === "LEAD";
 
-  const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!confirm(`Are you sure you want to remove ${memberName} from the team?`)) {
-      return;
-    }
+  const handleRemoveClick = (memberId: string, memberName: string, isLeaving: boolean) => {
+    setConfirmRemove({
+      isOpen: true,
+      memberId,
+      memberName,
+      isLeaving,
+    });
+  };
 
+  const handleRemoveConfirm = async () => {
     try {
-      setRemovingMember(memberId);
-      await teamService.removeMember(team.id, memberId);
-      toast.success("Member removed successfully");
+      setRemovingMember(confirmRemove.memberId);
+      await teamService.removeMember(team.id, confirmRemove.memberId);
+      toast.success(confirmRemove.isLeaving ? "You have left the team" : "Member removed successfully");
+      setConfirmRemove({ isOpen: false, memberId: "", memberName: "", isLeaving: false });
       onMemberUpdate();
     } catch (error: any) {
       console.error("Error removing member:", error);
@@ -39,14 +68,34 @@ export function TeamMembers({ team, onAddMember, onMemberUpdate }: Props) {
     }
   };
 
-  const handleUpdateRole = async (memberId: string, newRole: "MEMBER" | "LEAD") => {
+  const handleRoleChangeClick = (memberId: string, memberName: string, currentRole: "MEMBER" | "LEAD") => {
+    const newRole = currentRole === "MEMBER" ? "LEAD" : "MEMBER";
+    setConfirmRoleChange({
+      isOpen: true,
+      memberId,
+      memberName,
+      newRole,
+    });
+  };
+
+  const handleRoleChangeConfirm = async () => {
     try {
-      await teamService.updateMemberRole(team.id, memberId, { role: newRole });
-      toast.success("Member role updated successfully");
+      setUpdatingRole(confirmRoleChange.memberId);
+      await teamService.updateMemberRole(team.id, confirmRoleChange.memberId, {
+        role: confirmRoleChange.newRole,
+      });
+      toast.success(
+        confirmRoleChange.newRole === "LEAD"
+          ? "Member promoted to team lead"
+          : "Member demoted to regular member"
+      );
+      setConfirmRoleChange({ isOpen: false, memberId: "", memberName: "", newRole: "MEMBER" });
       onMemberUpdate();
     } catch (error: any) {
       console.error("Error updating role:", error);
       toast.error(error?.message || "Failed to update role");
+    } finally {
+      setUpdatingRole(null);
     }
   };
 
@@ -99,12 +148,47 @@ export function TeamMembers({ team, onAddMember, onMemberUpdate }: Props) {
             member={member}
             isTeamLead={isTeamLead}
             isCurrentUser={member.userId === user?.id}
-            onRemove={handleRemoveMember}
-            onUpdateRole={handleUpdateRole}
+            onRemove={handleRemoveClick}
+            onUpdateRole={handleRoleChangeClick}
             removing={removingMember === member.id}
           />
         ))}
       </div>
+
+      {/* Confirmation Modals */}
+      <ConfirmModal
+        isOpen={confirmRemove.isOpen}
+        onClose={() => setConfirmRemove({ isOpen: false, memberId: "", memberName: "", isLeaving: false })}
+        onConfirm={handleRemoveConfirm}
+        title={confirmRemove.isLeaving ? "Leave Team" : "Remove Member"}
+        message={
+          confirmRemove.isLeaving
+            ? "Are you sure you want to leave this team? You will need to be re-invited to rejoin."
+            : `Are you sure you want to remove ${confirmRemove.memberName} from the team? This action cannot be undone.`
+        }
+        confirmText={confirmRemove.isLeaving ? "Leave Team" : "Remove Member"}
+        variant="danger"
+        loading={removingMember === confirmRemove.memberId}
+      />
+
+      <ConfirmModal
+        isOpen={confirmRoleChange.isOpen}
+        onClose={() => {
+          if (!updatingRole) {
+            setConfirmRoleChange({ isOpen: false, memberId: "", memberName: "", newRole: "MEMBER" });
+          }
+        }}
+        onConfirm={handleRoleChangeConfirm}
+        title={confirmRoleChange.newRole === "LEAD" ? "Promote to Team Lead" : "Demote to Member"}
+        message={
+          confirmRoleChange.newRole === "LEAD"
+            ? `Are you sure you want to promote ${confirmRoleChange.memberName} to team lead? They will have full control over the team.`
+            : `Are you sure you want to demote ${confirmRoleChange.memberName} from team lead to regular member?`
+        }
+        confirmText={confirmRoleChange.newRole === "LEAD" ? "Promote" : "Demote"}
+        variant="default"
+        loading={updatingRole === confirmRoleChange.memberId}
+      />
     </div>
   );
 }
@@ -113,8 +197,8 @@ type MemberCardProps = {
   member: TeamMember;
   isTeamLead: boolean;
   isCurrentUser: boolean;
-  onRemove: (memberId: string, memberName: string) => void;
-  onUpdateRole: (memberId: string, newRole: "MEMBER" | "LEAD") => void;
+  onRemove: (memberId: string, memberName: string, isLeaving: boolean) => void;
+  onUpdateRole: (memberId: string, memberName: string, currentRole: "MEMBER" | "LEAD") => void;
   removing: boolean;
 };
 
@@ -149,15 +233,15 @@ function MemberCard({ member, isTeamLead, isCurrentUser, onRemove, onUpdateRole,
         <div className="flex items-center gap-2">
           {isTeamLead && !isCurrentUser && (
             <button
-              onClick={() => onUpdateRole(member.id, isLead ? "MEMBER" : "LEAD")}
-              className="cursor-pointer text-xs text-slate-600 hover:text-slate-900"
+              onClick={() => onUpdateRole(member.id, memberName, member.role)}
+              className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] transition"
               title={isLead ? "Remove lead role" : "Make team lead"}
             >
               {isLead ? "Demote" : "Promote"}
             </button>
           )}
           <button
-            onClick={() => onRemove(member.id, memberName)}
+            onClick={() => onRemove(member.id, memberName, false)}
             disabled={removing}
             className="cursor-pointer rounded-full p-1 text-red-500 hover:bg-red-50 disabled:opacity-50"
             title="Remove member"
@@ -168,7 +252,7 @@ function MemberCard({ member, isTeamLead, isCurrentUser, onRemove, onUpdateRole,
       )}
       {isCurrentUser && !isTeamLead && (
         <button
-          onClick={() => onRemove(member.id, memberName)}
+          onClick={() => onRemove(member.id, memberName, true)}
           disabled={removing}
           className="cursor-pointer text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
         >

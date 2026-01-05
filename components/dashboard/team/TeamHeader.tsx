@@ -1,6 +1,7 @@
 "use client";
 
-import { GraduationCap, MessageCircle } from "lucide-react";
+import { GraduationCap, MessageCircle, Settings, Users } from "lucide-react";
+import { useAuthStore } from "../../../src/state/auth-store";
 import type { Team } from "../../../src/lib/services/teamService";
 
 type Props = {
@@ -8,13 +9,47 @@ type Props = {
   onRequestMentorship: () => void;
   onOpenChat: () => void;
   onTeamUpdate: () => void;
+  onEditTeam: () => void;
 };
 
-export function TeamHeader({ team, onRequestMentorship, onOpenChat }: Props) {
+export function TeamHeader({ team, onRequestMentorship, onOpenChat, onEditTeam }: Props) {
+  const { user } = useAuthStore();
+  
+  // Check if current user is a team lead
+  const isTeamLead = team.members?.some(
+    (member) => member.userId === user?.id && member.role === "LEAD"
+  );
+
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">{team.name}</h1>
+        <div className="flex items-center gap-3">
+          {team.profileImage ? (
+            <img
+              src={team.profileImage}
+              alt={team.name}
+              className="h-12 w-12 rounded-full object-cover border-2 border-slate-200 flex-shrink-0"
+            />
+          ) : (
+            <div className="h-12 w-12 rounded-full bg-slate-200 border-2 border-slate-200 flex items-center justify-center flex-shrink-0">
+              <Users size={24} className="text-slate-400" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-slate-900 truncate">{team.name}</h1>
+              {isTeamLead && (
+                <button
+                  onClick={onEditTeam}
+                  className="cursor-pointer rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 flex-shrink-0"
+                  title="Edit Team Information"
+                >
+                  <Settings size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
         <p className="text-sm text-slate-600">
           {team.description || team.projectTitle || "No description available"}
         </p>

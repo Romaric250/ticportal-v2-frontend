@@ -10,6 +10,7 @@ import { AssignedMentor } from "../../../../../components/dashboard/team/Assigne
 import { TeamChatModal } from "../../../../../components/dashboard/team/TeamChatModal";
 import { RequestMentorshipModal } from "../../../../../components/dashboard/team/RequestMentorshipModal";
 import { AddMemberModal } from "../../../../../components/dashboard/team/AddMemberModal";
+import { EditTeamModal } from "../../../../../components/dashboard/team/EditTeamModal";
 import { teamService, type Team } from "../../../../../src/lib/services/teamService";
 import { useAuthStore } from "../../../../../src/state/auth-store";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ export default function TeamPage() {
   const [showMentorshipModal, setShowMentorshipModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showEditTeamModal, setShowEditTeamModal] = useState(false);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -80,6 +82,7 @@ export default function TeamPage() {
         onRequestMentorship={() => setShowMentorshipModal(true)}
         onOpenChat={() => setShowChatModal(true)}
         onTeamUpdate={handleTeamUpdate}
+        onEditTeam={() => setShowEditTeamModal(true)}
       />
       <TeamMetrics team={team} />
       
@@ -119,6 +122,13 @@ export default function TeamPage() {
         <TeamChatModal 
           team={team}
           onClose={() => setShowChatModal(false)} 
+        />
+      )}
+      {showEditTeamModal && team && (
+        <EditTeamModal 
+          team={team}
+          onClose={() => setShowEditTeamModal(false)}
+          onTeamUpdated={handleTeamUpdate}
         />
       )}
     </div>

@@ -6,6 +6,7 @@ export type Team = {
   squadId: string;
   projectTitle?: string;
   description?: string;
+  profileImage?: string;
   createdAt: string;
   members?: TeamMember[];
   squad?: {
@@ -41,6 +42,7 @@ export type UpdateTeamPayload = {
   name?: string;
   projectTitle?: string;
   description?: string;
+  profileImage?: string; // Base64 data URL
 };
 
 export type AddMemberPayload = {
