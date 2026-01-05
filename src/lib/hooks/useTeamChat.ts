@@ -189,7 +189,7 @@ export function useTeamChat(teamId: string) {
   }, [accessToken, teamId]);
 
   const sendMessage = (message: string, attachments?: string[]) => {
-    if (!socket || !isConnected || !message.trim()) {
+    if (!socket || !message.trim()) {
       console.warn("Cannot send socket message: socket not ready", { 
         hasSocket: !!socket, 
         isConnected, 
@@ -198,11 +198,17 @@ export function useTeamChat(teamId: string) {
       return;
     }
 
+    // Send even if not connected - socket.io will queue it
     try {
+      console.log("Socket: Sending message via socket", { teamId, message: message.trim() });
       socket.emit("team:message:send", {
         teamId,
         message: message.trim(),
         attachments: attachments || [],
+      }, (response: any) => {
+        if (response) {
+          console.log("Socket: Message send response", response);
+        }
       });
     } catch (error) {
       console.error("Error emitting socket message:", error);

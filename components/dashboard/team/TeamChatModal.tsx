@@ -21,8 +21,7 @@ export function TeamChatModal({ team, onClose }: Props) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Use real-time chat hook
-  // Note: We don't use sendSocketMessage because the backend broadcasts messages automatically after saving via API
-  const { messages, isConnected, setInitialMessages, addMessage, socket } = useTeamChat(team.id);
+  const { messages, isConnected, setInitialMessages, addMessage, socket, sendMessage: sendSocketMessage } = useTeamChat(team.id);
 
   // Debug: Log socket connection status
   useEffect(() => {
@@ -153,24 +152,29 @@ export function TeamChatModal({ team, onClose }: Props) {
       setSending(true);
 
       // Send via API first to ensure persistence and get full message with ID
-      // The API will handle broadcasting via socket on the backend
       const newMessage = await teamService.sendChatMessage(team.id, {
         message: messageText,
       });
       
       console.log("Chat: Message sent via API, response:", newMessage);
       
-      // Add the message from API response (has full sender info)
-      // Note: We add it immediately for instant feedback, but the backend should also
-      // broadcast it via socket so other users receive it in real-time
+      // Add the message from API response (has full sender info) for instant feedback
       const enrichedMessage = enrichMessageWithSender(newMessage);
       addMessage(enrichedMessage);
       
-      console.log("Chat: Message added to local state, waiting for socket broadcast");
-      
-      // Note: The backend should broadcast this message via socket to all team members
-      // We'll receive it via the 'team:message' event handler, but we already have it
-      // so the duplicate check will prevent showing it twice
+      // Also send via socket for real-time delivery to other team members
+      // Note: The backend should broadcast after API save, but if it doesn't,
+      // sending via socket ensures real-time delivery
+      if (isConnected && socket) {
+        console.log("Chat: Also sending via socket for real-time delivery");
+        try {
+          sendSocketMessage(messageText);
+        } catch (socketError) {
+          console.warn("Chat: Socket send failed, but message saved via API", socketError);
+        }
+      } else {
+        console.warn("Chat: Socket not connected, message saved but not broadcast in real-time");
+      }
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error?.message || "Failed to send message");
