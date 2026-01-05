@@ -121,12 +121,13 @@ export function useTeamChat(teamId: string) {
     s.on("error", onError);
 
     // Also listen for any message events (in case backend uses different event name)
-    s.onAny((eventName, ...args) => {
+    const onAnyEvent = (eventName: string, ...args: any[]) => {
       console.log("Socket: Received event", eventName, args);
       if (eventName === "team:message" || eventName.includes("message")) {
         console.log("Socket: Message-related event detected", eventName);
       }
-    });
+    };
+    s.onAny(onAnyEvent);
 
     // Connect if not already connected
     if (!s.connected) {
@@ -140,17 +141,24 @@ export function useTeamChat(teamId: string) {
     }
 
     // Also try to join room after a short delay in case connection is still establishing
-    const joinTimeout = setTimeout(() => {
-      if (s.connected && !isConnected) {
-        console.log("Socket: Delayed join after connection");
-        s.emit("team:join", { teamId });
-        setIsConnected(true);
-      }
-    }, 1000);
+    let joinTimeout: NodeJS.Timeout | null = null;
+    if (!s.connected) {
+      joinTimeout = setTimeout(() => {
+        if (s.connected) {
+          console.log("Socket: Delayed join after connection");
+          s.emit("team:join", { teamId });
+          setIsConnected(true);
+        } else {
+          console.log("Socket: Still not connected after delay");
+        }
+      }, 2000);
+    }
 
     // Cleanup
     return () => {
-      clearTimeout(joinTimeout);
+      if (joinTimeout) {
+        clearTimeout(joinTimeout);
+      }
       if (socketRef.current) {
         console.log("Socket: Cleaning up, leaving team room", { teamId });
         socketRef.current.emit("team:leave", { teamId });
@@ -159,7 +167,7 @@ export function useTeamChat(teamId: string) {
         socketRef.current.off("connect_error", onConnectError);
         socketRef.current.off("team:message", onTeamMessage);
         socketRef.current.off("error", onError);
-        socketRef.current.offAny(); // Remove all listeners
+        socketRef.current.offAny(onAnyEvent);
       }
     };
   }, [accessToken, teamId]);

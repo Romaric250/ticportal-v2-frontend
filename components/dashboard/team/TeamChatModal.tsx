@@ -22,7 +22,16 @@ export function TeamChatModal({ team, onClose }: Props) {
 
   // Use real-time chat hook
   // Note: We don't use sendSocketMessage because the backend broadcasts messages automatically after saving via API
-  const { messages, isConnected, setInitialMessages, addMessage } = useTeamChat(team.id);
+  const { messages, isConnected, setInitialMessages, addMessage, socket } = useTeamChat(team.id);
+
+  // Debug: Log socket connection status
+  useEffect(() => {
+    console.log("Chat Modal: Socket connection status", { isConnected, hasSocket: !!socket });
+    if (socket) {
+      console.log("Chat Modal: Socket ID", socket.id);
+      console.log("Chat Modal: Socket connected?", socket.connected);
+    }
+  }, [isConnected, socket]);
 
   // Helper to enrich socket messages with sender info from team members
   const enrichMessageWithSender = (message: TeamChatMessage): TeamChatMessage => {
