@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Users, Plus, Search, X, Loader2, GraduationCap, Image as ImageIcon } from "lucide-react";
+import { Users, Plus, Search, X, Loader2, GraduationCap, Image as ImageIcon, Check } from "lucide-react";
 import { teamService, type Team } from "../../src/lib/services/teamService";
 import { userService } from "../../src/lib/services/userService";
 import { useAuthStore } from "../../src/state/auth-store";
@@ -35,6 +35,7 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [isInTeam, setIsInTeam] = useState(false);
   const [requestingJoin, setRequestingJoin] = useState<string | null>(null);
+  const [pendingTeamIds, setPendingTeamIds] = useState<Set<string>>(new Set());
 
   // Check if user is in a team or has pending request
   useEffect(() => {
@@ -44,11 +45,33 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
       try {
         setLoading(true);
         const myTeams = await teamService.getMyTeams();
-        setIsInTeam(myTeams.length > 0);
+        const isInTeamNow = Array.isArray(myTeams) && myTeams.length > 0;
+        setIsInTeam(isInTeamNow);
         
         // Check for pending requests
         const pendingRequests = await teamService.getMyJoinRequests();
-        setHasPendingRequest(pendingRequests.length > 0);
+        console.log("Pending requests received:", pendingRequests); // Debug log
+        
+        // Ensure pendingRequests is an array
+        const requestsArray = Array.isArray(pendingRequests) ? pendingRequests : [];
+        const hasPending = requestsArray.length > 0;
+        setHasPendingRequest(hasPending);
+        
+        // Store pending team IDs for UI display
+        const pendingIds = new Set(requestsArray.map((r) => r.teamId));
+        setPendingTeamIds(pendingIds);
+        
+        console.log("Team status check:", { isInTeamNow, hasPending, requestsCount: requestsArray.length }); // Debug log
+        
+        // Close modal if user has pending request or is in a team
+        if (hasPending || isInTeamNow) {
+          console.log("Closing modal - user has pending request or is in team"); // Debug log
+          setTimeout(() => {
+            if (hasPending || isInTeamNow) {
+              onClose();
+            }
+          }, 300);
+        }
       } catch (error) {
         console.error("Error checking team status:", error);
       } finally {
@@ -57,7 +80,7 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
     };
 
     checkTeamStatus();
-  }, [isOpen, user]);
+  }, [isOpen, user, onClose]);
 
   // Load user profile to get school for create team form
   useEffect(() => {
@@ -105,12 +128,15 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
         const myTeams = await teamService.getMyTeams();
         const myTeamIds = new Set(myTeams.map((t) => t.id));
         
-        // Also get pending requests to filter out teams user already requested to join
+        // Get pending requests to show status (but don't filter them out)
         const pendingRequests = await teamService.getMyJoinRequests();
-        const pendingTeamIds = new Set(pendingRequests.map((r) => r.teamId));
+        const pendingIds = new Set(pendingRequests.map((r) => r.teamId));
+        setPendingTeamIds(pendingIds);
         
+        // Filter out only teams user is already a member of
+        // Keep teams with pending requests but mark them in UI
         const filtered = response.data.filter(
-          (team) => !myTeamIds.has(team.id) && !pendingTeamIds.has(team.id)
+          (team) => !myTeamIds.has(team.id)
         );
         
         setAvailableTeams(filtered);
@@ -216,9 +242,14 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
       setRequestingJoin(teamId);
       await teamService.requestToJoin(teamId);
       toast.success("Join request sent! The team lead will review your request.");
-      setHasPendingRequest(true);
-      // Remove the team from available teams since request is pending
-      setAvailableTeams((prev) => prev.filter((team) => team.id !== teamId));
+      
+      // Update pending requests state
+      const pendingRequests = await teamService.getMyJoinRequests();
+      setHasPendingRequest(pendingRequests.length > 0);
+      const pendingIds = new Set(pendingRequests.map((r) => r.teamId));
+      setPendingTeamIds(pendingIds);
+      
+      // Don't remove team from list - it will show as "Pending request" now
       // Close modal after a short delay to show success message
       // User now has a pending request after successful submission, so modal can be closed
       setTimeout(() => {
@@ -506,21 +537,28 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
                               )}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRequestToJoin(team.id)}
-                            disabled={requestingJoin === team.id}
-                            className="w-full sm:w-auto sm:ml-4 rounded-lg bg-[#111827] px-4 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 flex-shrink-0"
-                          >
-                            {requestingJoin === team.id ? (
-                              <>
-                                <Loader2 size={14} className="animate-spin" />
-                                <span>Requesting...</span>
-                              </>
-                            ) : (
-                              "Request to Join"
-                            )}
-                          </button>
+                          {pendingTeamIds.has(team.id) ? (
+                            <div className="w-full sm:w-auto sm:ml-4 rounded-lg bg-slate-200 px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 flex items-center justify-center gap-2 flex-shrink-0">
+                              <Check size={14} />
+                              <span>Pending Request</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRequestToJoin(team.id)}
+                              disabled={requestingJoin === team.id}
+                              className="w-full sm:w-auto sm:ml-4 rounded-lg bg-[#111827] px-4 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 flex-shrink-0"
+                            >
+                              {requestingJoin === team.id ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" />
+                                  <span>Requesting...</span>
+                                </>
+                              ) : (
+                                "Request to Join"
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))

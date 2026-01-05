@@ -63,7 +63,7 @@ export function PendingRequests({ team, onUpdate }: Props) {
     try {
       setProcessingRequest(confirmAction.requestId);
       await teamService.updateJoinRequest(team.id, confirmAction.requestId, {
-        status: "ACCEPTED",
+        action: "accept",
       });
       toast.success("Join request accepted");
       setConfirmAction({ isOpen: false, requestId: "", userName: "", action: "accept" });
@@ -86,7 +86,7 @@ export function PendingRequests({ team, onUpdate }: Props) {
     try {
       setProcessingRequest(confirmAction.requestId);
       await teamService.updateJoinRequest(team.id, confirmAction.requestId, {
-        status: "REJECTED",
+        action: "reject",
       });
       toast.success("Join request rejected");
       setConfirmAction({ isOpen: false, requestId: "", userName: "", action: "reject" });
@@ -174,7 +174,7 @@ export function PendingRequests({ team, onUpdate }: Props) {
                         })
                       }
                       disabled={processingRequest === request.id}
-                      className="cursor-pointer rounded-lg bg-green-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       {processingRequest === request.id ? (
                         <Loader2 size={14} className="animate-spin" />

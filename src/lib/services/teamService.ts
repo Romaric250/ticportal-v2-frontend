@@ -87,7 +87,9 @@ export type TeamJoinRequest = {
   team?: {
     id: string;
     name: string;
+    school?: string;
     profileImage?: string;
+    projectTitle?: string;
   };
 };
 
@@ -96,7 +98,7 @@ export type RequestToJoinPayload = {
 };
 
 export type UpdateJoinRequestPayload = {
-  status: "ACCEPTED" | "REJECTED";
+  action: "accept" | "reject";
 };
 
 export const teamService = {
@@ -268,7 +270,20 @@ export const teamService = {
    */
   async getMyJoinRequests(): Promise<TeamJoinRequest[]> {
     const { data } = await apiClient.get<TeamJoinRequest[]>("/teams/join-requests/my");
-    return data;
+    // The interceptor should extract the array, but handle both cases
+    if (Array.isArray(data)) {
+      return data;
+    }
+    // If interceptor didn't extract (shouldn't happen), try to get data.data
+    if (data && typeof data === "object" && "data" in data) {
+      const nestedData = (data as { data: unknown }).data;
+      if (Array.isArray(nestedData)) {
+        return nestedData;
+      }
+    }
+    // Fallback: return empty array
+    console.warn("Unexpected response format from getMyJoinRequests:", data);
+    return [];
   },
 
   /**

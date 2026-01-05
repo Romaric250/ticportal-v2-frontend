@@ -90,10 +90,16 @@ export default function DashboardLayout({ children }: Props) {
 
       try {
         const myTeams = await teamService.getMyTeams();
-        // TODO: Check for pending requests when that API is available
-        // For now, if user has no teams, show the modal
-        if (myTeams.length === 0) {
+        // Check for pending requests
+        const pendingRequests = await teamService.getMyJoinRequests();
+        const hasPendingRequest = Array.isArray(pendingRequests) && pendingRequests.length > 0;
+        
+        // If user has no teams and no pending requests, show the modal
+        if (myTeams.length === 0 && !hasPendingRequest) {
           setShowTeamModal(true);
+        } else {
+          // User is in a team or has pending request, don't show modal
+          setShowTeamModal(false);
         }
       } catch (error) {
         console.error("Error checking team status:", error);
@@ -125,16 +131,20 @@ export default function DashboardLayout({ children }: Props) {
   };
 
   const handleTeamModalClose = () => {
-    // Check again if user is in a team before closing
+    // Check again if user is in a team or has pending request before closing
     const checkBeforeClose = async () => {
       try {
         const myTeams = await teamService.getMyTeams();
-        // TODO: Check for pending requests when that API is available
-        if (myTeams.length > 0) {
+        const pendingRequests = await teamService.getMyJoinRequests();
+        const hasPendingRequest = Array.isArray(pendingRequests) && pendingRequests.length > 0;
+        const isInTeam = Array.isArray(myTeams) && myTeams.length > 0;
+        
+        if (isInTeam || hasPendingRequest) {
+          // User is in a team or has pending request, allow closing
           setShowTeamModal(false);
         } else {
-          // User still not in a team, keep modal open
-          toast.error("You must be in a team or have a pending request to continue");
+          // User still not in a team and no pending request, keep modal open
+          // Don't show error toast - the modal itself will show the message
         }
       } catch (error) {
         console.error("Error checking team status:", error);
