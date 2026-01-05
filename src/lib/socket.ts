@@ -23,9 +23,19 @@ export function getSocket(token?: string) {
 
 export function connectSocket(token: string) {
   const s = getSocket(token);
-  if (!s.connected) {
-    s.connect();
+  
+  // Ensure auth is set before connecting
+  if (token && s.auth) {
+    s.auth.token = token;
   }
+  
+  if (!s.connected) {
+    console.log("Socket: Attempting to connect...");
+    s.connect();
+  } else {
+    console.log("Socket: Already connected");
+  }
+  
   return s;
 }
 

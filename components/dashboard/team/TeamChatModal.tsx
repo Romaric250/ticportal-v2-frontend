@@ -21,7 +21,8 @@ export function TeamChatModal({ team, onClose }: Props) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Use real-time chat hook
-  const { messages, isConnected, sendMessage: sendSocketMessage, setInitialMessages, addMessage } = useTeamChat(team.id);
+  // Note: We don't use sendSocketMessage because the backend broadcasts messages automatically after saving via API
+  const { messages, isConnected, setInitialMessages, addMessage } = useTeamChat(team.id);
 
   // Helper to enrich socket messages with sender info from team members
   const enrichMessageWithSender = (message: TeamChatMessage): TeamChatMessage => {
@@ -62,12 +63,51 @@ export function TeamChatModal({ team, onClose }: Props) {
       try {
         setLoading(true);
         const response = await teamService.getTeamChats(team.id, 1, 50);
-        const loadedMessages = (response.data || []).map(enrichMessageWithSender);
+        console.log("Loaded messages response:", response); // Debug log
+        
+        // Handle different response structures
+        // Could be: { data: [...], pagination: {...} } or just [...]
+        let messagesArray: any[] = [];
+        if (Array.isArray(response)) {
+          messagesArray = response;
+        } else if (response?.data && Array.isArray(response.data)) {
+          messagesArray = response.data;
+        } else if (Array.isArray(response?.data)) {
+          messagesArray = response.data;
+        }
+        
+        console.log("Messages array:", messagesArray); // Debug log
+        console.log("Messages count:", messagesArray.length); // Debug log
+        
+        if (messagesArray.length === 0) {
+          console.log("No messages found in response");
+        }
+        
+        // Map to TeamChatMessage format and enrich with sender info
+        const loadedMessages = messagesArray.map((msg: any) => {
+          // Ensure message has the correct structure
+          const message: TeamChatMessage = {
+            id: msg.id,
+            message: msg.message || "",
+            attachments: msg.attachments || [],
+            createdAt: msg.createdAt,
+            sender: {
+              id: msg.sender?.id || msg.senderId || "",
+              firstName: msg.sender?.firstName || "",
+              lastName: msg.sender?.lastName || "",
+              profilePhoto: msg.sender?.profilePhoto,
+            },
+          };
+          return enrichMessageWithSender(message);
+        });
+        
+        console.log("Loaded messages after enrichment:", loadedMessages); // Debug log
+        console.log("Setting initial messages, count:", loadedMessages.length); // Debug log
         setInitialMessages(loadedMessages);
         hasLoadedRef.current = team.id;
       } catch (error: any) {
         console.error("Error loading messages:", error);
-        toast.error("Failed to load messages");
+        toast.error(error?.message || "Failed to load messages");
       } finally {
         setLoading(false);
       }
@@ -82,6 +122,18 @@ export function TeamChatModal({ team, onClose }: Props) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Debug: Log messages state
+  useEffect(() => {
+    console.log("Messages state updated:", messages.length, "messages");
+    const grouped = messages.reduce((acc, msg) => {
+      const date = formatDate(msg.createdAt);
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(msg);
+      return acc;
+    }, {} as Record<string, TeamChatMessage[]>);
+    console.log("Grouped messages:", Object.keys(grouped).length, "dates");
+  }, [messages]);
+
   const handleSendMessage = async () => {
     if (!message.trim() || sending) return;
 
@@ -92,26 +144,19 @@ export function TeamChatModal({ team, onClose }: Props) {
       setSending(true);
 
       // Send via API first to ensure persistence and get full message with ID
-      try {
-        const newMessage = await teamService.sendChatMessage(team.id, {
-          message: messageText,
-        });
-        // Add the message from API response (has full sender info)
-        const enrichedMessage = enrichMessageWithSender(newMessage);
-        addMessage(enrichedMessage);
-      } catch (apiError: any) {
-        console.error("Error sending message via API:", apiError);
-        toast.error(apiError?.message || "Failed to send message");
-        // Restore message on error
-        setMessage(messageText);
-        return;
-      }
-
-      // Also send via socket for real-time delivery to other members
-      // Note: We already added the message above, so socket will just broadcast to others
-      if (isConnected) {
-        sendSocketMessage(messageText);
-      }
+      // The API will handle broadcasting via socket on the backend
+      const newMessage = await teamService.sendChatMessage(team.id, {
+        message: messageText,
+      });
+      
+      // Add the message from API response (has full sender info)
+      const enrichedMessage = enrichMessageWithSender(newMessage);
+      addMessage(enrichedMessage);
+      
+      // Note: We don't need to send via socket separately because:
+      // 1. The backend will broadcast the message via socket after saving
+      // 2. We'll receive it via the 'team:message' event handler
+      // 3. This prevents duplicate messages and socket errors
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error?.message || "Failed to send message");
