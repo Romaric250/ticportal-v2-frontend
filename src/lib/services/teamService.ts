@@ -1,18 +1,15 @@
-import { apiClient } from "../api-client";
+import { apiClient, tokenStorage } from "../api-client";
+import axios from "axios";
 
 export type Team = {
   id: string;
   name: string;
-  squadId: string;
+  school: string;
   projectTitle?: string;
   description?: string;
   profileImage?: string;
   createdAt: string;
   members?: TeamMember[];
-  squad?: {
-    id: string;
-    name: string;
-  };
 };
 
 export type TeamMember = {
@@ -70,6 +67,36 @@ export type TeamChatMessage = {
 export type SendChatMessagePayload = {
   message: string;
   attachments?: string[];
+};
+
+export type TeamJoinRequest = {
+  id: string;
+  teamId: string;
+  userId: string;
+  message?: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profilePhoto?: string;
+  };
+  team?: {
+    id: string;
+    name: string;
+    profileImage?: string;
+  };
+};
+
+export type RequestToJoinPayload = {
+  message?: string;
+};
+
+export type UpdateJoinRequestPayload = {
+  status: "ACCEPTED" | "REJECTED";
 };
 
 export const teamService = {
@@ -179,6 +206,91 @@ export const teamService = {
    */
   async sendChatMessage(teamId: string, payload: SendChatMessagePayload): Promise<TeamChatMessage> {
     const { data } = await apiClient.post<TeamChatMessage>(`/teams/${teamId}/chats`, payload);
+    return data;
+  },
+
+  /**
+   * Search teams (for joining)
+   */
+  async searchTeams(query: string, page: number = 1, limit: number = 20) {
+    // The API returns { success: true, data: Team[], pagination: {...} }
+    // The apiClient interceptor extracts response.data.data, so we need to get the raw response
+    // Use axios directly to bypass the interceptor's data extraction
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
+    
+    const token = tokenStorage.getAccessToken();
+    const response = await axios.get(`${apiBaseUrl}/teams/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : undefined,
+        "Content-Type": "application/json",
+      },
+    });
+    
+    // Handle the response format: { success: true, data: Team[], pagination: {...} }
+    const responseData = response.data;
+    if (responseData?.success && responseData?.data) {
+      return {
+        data: responseData.data,
+        pagination: responseData.pagination || {
+          page,
+          limit,
+          total: responseData.data.length,
+          totalPages: 1,
+        },
+      };
+    }
+    
+    // Fallback if structure is different
+    return {
+      data: Array.isArray(responseData) ? responseData : (responseData?.data || []),
+      pagination: responseData?.pagination || {
+        page,
+        limit,
+        total: Array.isArray(responseData) ? responseData.length : (responseData?.data?.length || 0),
+        totalPages: 1,
+      },
+    };
+  },
+
+  /**
+   * Request to join a team
+   */
+  async requestToJoin(teamId: string, payload?: RequestToJoinPayload): Promise<TeamJoinRequest> {
+    const { data } = await apiClient.post<TeamJoinRequest>(
+      `/teams/${teamId}/join-request`,
+      payload || {}
+    );
+    return data;
+  },
+
+  /**
+   * Get my pending join requests
+   */
+  async getMyJoinRequests(): Promise<TeamJoinRequest[]> {
+    const { data } = await apiClient.get<TeamJoinRequest[]>("/teams/join-requests/my");
+    return data;
+  },
+
+  /**
+   * Get join requests for a team (team leads only)
+   */
+  async getTeamJoinRequests(teamId: string): Promise<TeamJoinRequest[]> {
+    const { data } = await apiClient.get<TeamJoinRequest[]>(`/teams/${teamId}/join-requests`);
+    return data;
+  },
+
+  /**
+   * Accept or reject a join request (team leads only)
+   */
+  async updateJoinRequest(
+    teamId: string,
+    requestId: string,
+    payload: UpdateJoinRequestPayload
+  ): Promise<TeamJoinRequest> {
+    const { data } = await apiClient.post<TeamJoinRequest>(
+      `/teams/${teamId}/join-requests/${requestId}`,
+      payload
+    );
     return data;
   },
 };

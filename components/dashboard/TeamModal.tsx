@@ -34,6 +34,7 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [isInTeam, setIsInTeam] = useState(false);
+  const [requestingJoin, setRequestingJoin] = useState<string | null>(null);
 
   // Check if user is in a team or has pending request
   useEffect(() => {
@@ -45,9 +46,9 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
         const myTeams = await teamService.getMyTeams();
         setIsInTeam(myTeams.length > 0);
         
-        // TODO: Check for pending requests when that API is available
-        // For now, we'll assume no pending requests if not in a team
-        setHasPendingRequest(false);
+        // Check for pending requests
+        const pendingRequests = await teamService.getMyJoinRequests();
+        setHasPendingRequest(pendingRequests.length > 0);
       } catch (error) {
         console.error("Error checking team status:", error);
       } finally {
@@ -82,7 +83,7 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
 
   // Search teams when query changes
   useEffect(() => {
-    if (!isOpen || activeTab !== "join" || !searchQuery.trim()) {
+    if (!isOpen || activeTab !== "join" || !searchQuery.trim() || searchQuery.trim().length < 2) {
       setAvailableTeams([]);
       return;
     }
@@ -90,23 +91,33 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
     const searchTeams = async () => {
       try {
         setSearching(true);
-        const response = await teamService.getAllTeams(1, 20);
+        // Use the search API instead of getAllTeams
+        const response = await teamService.searchTeams(searchQuery.trim(), 1, 20);
+        
+        // Ensure response.data exists and is an array
+        if (!response || !response.data || !Array.isArray(response.data)) {
+          console.error("Invalid response format from searchTeams:", response);
+          setAvailableTeams([]);
+          return;
+        }
+        
         // Filter teams that user is not already a member of
         const myTeams = await teamService.getMyTeams();
         const myTeamIds = new Set(myTeams.map((t) => t.id));
-        const filtered = response.data.filter((team) => !myTeamIds.has(team.id));
         
-        // Simple search filter by name
-        const query = searchQuery.toLowerCase();
-        const matched = filtered.filter(
-          (team) =>
-            team.name.toLowerCase().includes(query) ||
-            team.projectTitle?.toLowerCase().includes(query)
+        // Also get pending requests to filter out teams user already requested to join
+        const pendingRequests = await teamService.getMyJoinRequests();
+        const pendingTeamIds = new Set(pendingRequests.map((r) => r.teamId));
+        
+        const filtered = response.data.filter(
+          (team) => !myTeamIds.has(team.id) && !pendingTeamIds.has(team.id)
         );
-        setAvailableTeams(matched);
+        
+        setAvailableTeams(filtered);
       } catch (error) {
         console.error("Error searching teams:", error);
         toast.error("Failed to search teams");
+        setAvailableTeams([]);
       } finally {
         setSearching(false);
       }
@@ -186,6 +197,7 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
         fileInputRef.current.value = "";
       }
       // Close modal after a short delay to show success message
+      // User is now in a team after successful creation, so modal can be closed
       setTimeout(() => {
         onClose();
       }, 500);
@@ -193,6 +205,7 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
       console.error("Error creating team:", error);
       const errorMessage = error?.message || "Failed to create team. Please try again.";
       toast.error(errorMessage);
+      // Don't close modal on error - user needs to try again or join a team
     } finally {
       setSubmitting(false);
     }
@@ -200,17 +213,24 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
 
   const handleRequestToJoin = async (teamId: string) => {
     try {
-      // TODO: Implement request to join API when available
-      // For now, we'll show a message that they need to contact the team lead
-      toast.info("Join request sent! The team lead will review your request.");
+      setRequestingJoin(teamId);
+      await teamService.requestToJoin(teamId);
+      toast.success("Join request sent! The team lead will review your request.");
       setHasPendingRequest(true);
+      // Remove the team from available teams since request is pending
+      setAvailableTeams((prev) => prev.filter((team) => team.id !== teamId));
       // Close modal after a short delay to show success message
+      // User now has a pending request after successful submission, so modal can be closed
       setTimeout(() => {
         onClose();
       }, 500);
     } catch (error: any) {
       console.error("Error requesting to join team:", error);
-      toast.error("Failed to send join request. Please try again.");
+      const errorMessage = error?.message || "Failed to send join request. Please try again.";
+      toast.error(errorMessage);
+      // Don't close modal on error - user needs to try again
+    } finally {
+      setRequestingJoin(null);
     }
   };
 
@@ -233,23 +253,23 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4"
       onClick={handleBackdropClick}
     >
       <div
-        className="relative w-full max-w-2xl rounded-2xl bg-white shadow-xl"
+        className="relative w-full max-w-2xl rounded-xl sm:rounded-2xl bg-white shadow-xl max-h-[95vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - No close button since modal cannot be dismissed unless user is in team or has pending request */}
-        <div className="border-b border-slate-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#111827]">
-                <Users size={24} className="text-white" />
+        <div className="border-b border-slate-200 p-4 sm:p-6 flex-shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#111827] flex-shrink-0">
+                <Users size={20} className="sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Join or Create a Team</h2>
-                <p className="text-sm text-slate-600">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 truncate">Join or Create a Team</h2>
+                <p className="text-xs sm:text-sm text-slate-600">
                   {isInTeam || hasPendingRequest
                     ? "You're all set!"
                     : "You need to be part of a team to continue"}
@@ -270,41 +290,41 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-slate-200 px-6">
-          <div className="flex gap-4">
+        <div className="border-b border-slate-200 px-4 sm:px-6 flex-shrink-0">
+          <div className="flex gap-2 sm:gap-4">
             <button
               type="button"
               onClick={() => setActiveTab("create")}
-              className={`border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+              className={`border-b-2 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors flex-1 ${
                 activeTab === "create"
                   ? "border-[#111827] text-[#111827]"
                   : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Plus size={16} />
-                Create Team
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                <Plus size={14} className="sm:w-4 sm:h-4" />
+                <span>Create Team</span>
               </div>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("join")}
-              className={`border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+              className={`border-b-2 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors flex-1 ${
                 activeTab === "join"
                   ? "border-[#111827] text-[#111827]"
                   : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Search size={16} />
-                Join Team
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                <Search size={14} className="sm:w-4 sm:h-4" />
+                <span>Join Team</span>
               </div>
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 size={24} className="animate-spin text-slate-400" />
@@ -453,36 +473,53 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
               </div>
 
               {/* Teams List */}
-              <div className="max-h-96 space-y-3 overflow-y-auto">
+              <div className="space-y-3">
                 {searching ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 size={24} className="animate-spin text-slate-400" />
                   </div>
-                ) : searchQuery.trim() ? (
+                ) : searchQuery.trim().length >= 2 ? (
                   availableTeams.length > 0 ? (
                     availableTeams.map((team) => (
                       <div
                         key={team.id}
-                        className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+                        className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-slate-900">{team.name}</h3>
-                            {team.projectTitle && (
-                              <p className="mt-1 text-sm text-slate-600">{team.projectTitle}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            {team.profileImage && (
+                              <img
+                                src={team.profileImage}
+                                alt={team.name}
+                                className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg object-cover flex-shrink-0"
+                              />
                             )}
-                            {team.description && (
-                              <p className="mt-2 text-sm text-slate-500 line-clamp-2">
-                                {team.description}
-                              </p>
-                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-slate-900 text-sm sm:text-base break-words">{team.name}</h3>
+                              {team.projectTitle && (
+                                <p className="mt-1 text-xs sm:text-sm text-slate-600 break-words">{team.projectTitle}</p>
+                              )}
+                              {team.description && (
+                                <p className="mt-2 text-xs sm:text-sm text-slate-500 line-clamp-2 break-words">
+                                  {team.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleRequestToJoin(team.id)}
-                            className="ml-4 rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f2937]"
+                            disabled={requestingJoin === team.id}
+                            className="w-full sm:w-auto sm:ml-4 rounded-lg bg-[#111827] px-4 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 flex-shrink-0"
                           >
-                            Request to Join
+                            {requestingJoin === team.id ? (
+                              <>
+                                <Loader2 size={14} className="animate-spin" />
+                                <span>Requesting...</span>
+                              </>
+                            ) : (
+                              "Request to Join"
+                            )}
                           </button>
                         </div>
                       </div>
@@ -494,7 +531,9 @@ export function TeamModal({ isOpen, onClose }: TeamModalProps) {
                   )
                 ) : (
                   <div className="py-8 text-center text-sm text-slate-500">
-                    Enter a search query to find teams
+                    {searchQuery.trim().length > 0 && searchQuery.trim().length < 2
+                      ? "Type at least 2 characters to search"
+                      : "Enter a search query to find teams"}
                   </div>
                 )}
               </div>
