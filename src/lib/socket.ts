@@ -5,15 +5,35 @@ let socket: Socket | null = null;
 
 export type SocketStatus = "disconnected" | "connecting" | "connected";
 
-export function getSocket() {
+export function getSocket(token?: string) {
   if (!socket) {
-    socket = io(process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:4000", {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:5000";
+    socket = io(wsUrl, {
       withCredentials: true,
-      autoConnect: true,
+      autoConnect: false, // We'll connect manually after setting auth
       transports: ["websocket"],
+      auth: token ? { token } : undefined,
     });
+  } else if (token && !socket.auth?.token) {
+    // Update auth if token is provided and socket exists
+    socket.auth = { token };
   }
   return socket;
+}
+
+export function connectSocket(token: string) {
+  const s = getSocket(token);
+  if (!s.connected) {
+    s.connect();
+  }
+  return s;
+}
+
+export function disconnectSocket() {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
 }
 
 export function useSocketConnection() {

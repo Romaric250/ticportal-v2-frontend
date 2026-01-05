@@ -4,6 +4,7 @@ import { X, MessageCircle, Send, FileText, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { teamService, type Team, type TeamChatMessage } from "../../../src/lib/services/teamService";
 import { useAuthStore } from "../../../src/state/auth-store";
+import { useTeamChat } from "../../../src/lib/hooks/useTeamChat";
 import { toast } from "sonner";
 
 type Props = {
@@ -14,18 +15,56 @@ type Props = {
 export function TeamChatModal({ team, onClose }: Props) {
   const { user } = useAuthStore();
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<TeamChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  // Use real-time chat hook
+  const { messages, isConnected, sendMessage: sendSocketMessage, setInitialMessages, addMessage } = useTeamChat(team.id);
+
+  // Helper to enrich socket messages with sender info from team members
+  const enrichMessageWithSender = (message: TeamChatMessage): TeamChatMessage => {
+    if (message.sender?.profilePhoto || (message.sender?.firstName && message.sender?.lastName)) {
+      return message; // Already has full sender info
+    }
+
+    // Try to find sender in team members
+    const member = team.members?.find((m) => m.userId === message.sender?.id);
+    if (member?.user) {
+      return {
+        ...message,
+        sender: {
+          id: member.userId,
+          firstName: member.user.firstName,
+          lastName: member.user.lastName,
+          profilePhoto: member.user.profilePhoto,
+        },
+      };
+    }
+
+    return message;
+  };
+
+  // Load initial messages from API - only once per team
+  const hasLoadedRef = useRef<string | null>(null);
+  
   useEffect(() => {
+    // Reset if team changed
+    if (hasLoadedRef.current !== team.id) {
+      hasLoadedRef.current = null;
+    }
+    
+    // Only load messages once per team
+    if (hasLoadedRef.current === team.id) return;
+    
     const loadMessages = async () => {
       try {
         setLoading(true);
         const response = await teamService.getTeamChats(team.id, 1, 50);
-        setMessages(response.data || []);
+        const loadedMessages = (response.data || []).map(enrichMessageWithSender);
+        setInitialMessages(loadedMessages);
+        hasLoadedRef.current = team.id;
       } catch (error: any) {
         console.error("Error loading messages:", error);
         toast.error("Failed to load messages");
@@ -35,26 +74,49 @@ export function TeamChatModal({ team, onClose }: Props) {
     };
 
     loadMessages();
-  }, [team.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team.id]); // Only depend on team.id, load once per team
 
+  // Scroll to bottom when messages change
   useEffect(() => {
-    // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || sending) return;
 
+    const messageText = message.trim();
+    setMessage("");
+
     try {
       setSending(true);
-      const newMessage = await teamService.sendChatMessage(team.id, {
-        message: message.trim(),
-      });
-      setMessages((prev) => [...prev, newMessage]);
-      setMessage("");
+
+      // Send via API first to ensure persistence and get full message with ID
+      try {
+        const newMessage = await teamService.sendChatMessage(team.id, {
+          message: messageText,
+        });
+        // Add the message from API response (has full sender info)
+        const enrichedMessage = enrichMessageWithSender(newMessage);
+        addMessage(enrichedMessage);
+      } catch (apiError: any) {
+        console.error("Error sending message via API:", apiError);
+        toast.error(apiError?.message || "Failed to send message");
+        // Restore message on error
+        setMessage(messageText);
+        return;
+      }
+
+      // Also send via socket for real-time delivery to other members
+      // Note: We already added the message above, so socket will just broadcast to others
+      if (isConnected) {
+        sendSocketMessage(messageText);
+      }
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error?.message || "Failed to send message");
+      // Restore message on error
+      setMessage(messageText);
     } finally {
       setSending(false);
     }
@@ -93,9 +155,21 @@ export function TeamChatModal({ team, onClose }: Props) {
             <h2 className="text-lg font-semibold text-slate-900">Team Chat</h2>
             {team.members && (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                {team.members.length}
+                {team.members.length} Members
               </span>
             )}
+            {/* Connection Status */}
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`h-2 w-2 rounded-full ${
+                  isConnected ? "bg-green-500" : "bg-red-500"
+                }`}
+                title={isConnected ? "Connected" : "Disconnected"}
+              />
+              <span className="text-[10px] text-slate-500">
+                {isConnected ? "Live" : "Offline"}
+              </span>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -127,21 +201,23 @@ export function TeamChatModal({ team, onClose }: Props) {
 
                 {/* Messages for this date */}
                 {dateMessages.map((msg) => {
-                  const senderName = msg.sender
-                    ? `${msg.sender.firstName} ${msg.sender.lastName}`
+                  // Enrich message with sender info from team members if needed
+                  const enrichedMsg = enrichMessageWithSender(msg);
+                  const senderName = enrichedMsg.sender
+                    ? `${enrichedMsg.sender.firstName} ${enrichedMsg.sender.lastName}`
                     : "Unknown";
-                  const isOwn = msg.sender.id === user?.id;
+                  const isOwn = enrichedMsg.sender.id === user?.id;
 
                   return (
                     <ChatMessage
-                      key={msg.id}
+                      key={enrichedMsg.id}
                       name={isOwn ? "You" : senderName}
-                      time={formatTime(msg.createdAt)}
-                      message={msg.message}
+                      time={formatTime(enrichedMsg.createdAt)}
+                      message={enrichedMsg.message}
                       isOwn={isOwn}
-                      profilePhoto={msg.sender.profilePhoto}
-                      hasAttachment={msg.attachments && msg.attachments.length > 0}
-                      attachments={msg.attachments}
+                      profilePhoto={enrichedMsg.sender.profilePhoto}
+                      hasAttachment={enrichedMsg.attachments && enrichedMsg.attachments.length > 0}
+                      attachments={enrichedMsg.attachments}
                     />
                   );
                 })}
