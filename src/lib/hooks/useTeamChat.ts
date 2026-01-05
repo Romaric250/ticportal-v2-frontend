@@ -36,10 +36,12 @@ export function useTeamChat(teamId: string) {
 
     // Handle connection
     const onConnect = () => {
-      console.log("Socket: Connected, joining team room", { teamId });
+      console.log("Socket: Connected, joining team room", { teamId, socketId: s.id });
       setIsConnected(true);
       // Join team room
-      s.emit("team:join", { teamId });
+      s.emit("team:join", { teamId }, (response: any) => {
+        console.log("Socket: Team join response", response);
+      });
     };
 
     const onDisconnect = (reason: string) => {
@@ -54,7 +56,8 @@ export function useTeamChat(teamId: string) {
 
     // Listen for new messages
     const onTeamMessage = (data: TeamChatMessageSocket | any) => {
-      console.log("Socket: Received team message", data);
+      console.log("Socket: Received team message event", data);
+      console.log("Socket: Message data type", typeof data, Array.isArray(data) ? "array" : "object");
       
       // Handle both socket format and API format
       let newMessage: TeamChatMessage;
@@ -122,9 +125,14 @@ export function useTeamChat(teamId: string) {
 
     // Also listen for any message events (in case backend uses different event name)
     const onAnyEvent = (eventName: string, ...args: any[]) => {
-      console.log("Socket: Received event", eventName, args);
-      if (eventName === "team:message" || eventName.includes("message")) {
-        console.log("Socket: Message-related event detected", eventName);
+      console.log("Socket: Received event", eventName, "with args:", args);
+      if (eventName === "team:message" || eventName.includes("message") || eventName.includes("chat")) {
+        console.log("Socket: Message-related event detected!", eventName, args);
+        // Try to handle it as a message
+        if (args.length > 0 && args[0]) {
+          console.log("Socket: Attempting to process as message", args[0]);
+          onTeamMessage(args[0]);
+        }
       }
     };
     s.onAny(onAnyEvent);
@@ -134,9 +142,11 @@ export function useTeamChat(teamId: string) {
       console.log("Socket: Not connected, calling connect()");
       s.connect();
     } else {
-      console.log("Socket: Already connected, joining room immediately");
+      console.log("Socket: Already connected, joining room immediately", { socketId: s.id });
       // Already connected, join room immediately
-      s.emit("team:join", { teamId });
+      s.emit("team:join", { teamId }, (response: any) => {
+        console.log("Socket: Team join response (already connected)", response);
+      });
       setIsConnected(true);
     }
 

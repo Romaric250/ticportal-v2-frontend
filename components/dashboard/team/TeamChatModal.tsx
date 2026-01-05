@@ -158,14 +158,19 @@ export function TeamChatModal({ team, onClose }: Props) {
         message: messageText,
       });
       
+      console.log("Chat: Message sent via API, response:", newMessage);
+      
       // Add the message from API response (has full sender info)
+      // Note: We add it immediately for instant feedback, but the backend should also
+      // broadcast it via socket so other users receive it in real-time
       const enrichedMessage = enrichMessageWithSender(newMessage);
       addMessage(enrichedMessage);
       
-      // Note: We don't need to send via socket separately because:
-      // 1. The backend will broadcast the message via socket after saving
-      // 2. We'll receive it via the 'team:message' event handler
-      // 3. This prevents duplicate messages and socket errors
+      console.log("Chat: Message added to local state, waiting for socket broadcast");
+      
+      // Note: The backend should broadcast this message via socket to all team members
+      // We'll receive it via the 'team:message' event handler, but we already have it
+      // so the duplicate check will prevent showing it twice
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error?.message || "Failed to send message");
