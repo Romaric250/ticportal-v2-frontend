@@ -125,7 +125,10 @@ export function useTeamChat(teamId: string) {
 
     // Also listen for any message events (in case backend uses different event name)
     const onAnyEvent = (eventName: string, ...args: any[]) => {
-      console.log("Socket: Received event", eventName, "with args:", args);
+      // Only log non-standard events to reduce noise
+      if (eventName !== "connect" && eventName !== "disconnect" && eventName !== "connect_error") {
+        console.log("Socket: Received event", eventName, "with args:", args);
+      }
       if (eventName === "team:message" || eventName.includes("message") || eventName.includes("chat")) {
         console.log("Socket: Message-related event detected!", eventName, args);
         // Try to handle it as a message
@@ -136,6 +139,9 @@ export function useTeamChat(teamId: string) {
       }
     };
     s.onAny(onAnyEvent);
+    
+    // Test: Listen for all events to see what the backend is actually sending
+    console.log("Socket: All event listeners registered. Waiting for messages...");
 
     // Connect if not already connected
     if (!s.connected) {

@@ -8,15 +8,30 @@ export type SocketStatus = "disconnected" | "connecting" | "connected";
 export function getSocket(token?: string) {
   if (!socket) {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:5000";
+    console.log("Socket: Creating new socket connection", { wsUrl, hasToken: !!token });
     socket = io(wsUrl, {
       withCredentials: true,
       autoConnect: false, // We'll connect manually after setting auth
       transports: ["websocket"],
       auth: token ? { token } : undefined,
     });
-  } else if (token && !socket.auth?.token) {
+    
+    // Log connection events for debugging
+    socket.on("connect", () => {
+      console.log("Socket: Connected successfully", { socketId: socket?.id });
+    });
+    
+    socket.on("connect_error", (error) => {
+      console.error("Socket: Connection error", error);
+    });
+    
+    socket.on("disconnect", (reason) => {
+      console.log("Socket: Disconnected", { reason });
+    });
+  } else if (token && socket.auth) {
     // Update auth if token is provided and socket exists
-    socket.auth = { token };
+    console.log("Socket: Updating auth token");
+    socket.auth.token = token;
   }
   return socket;
 }
@@ -27,13 +42,14 @@ export function connectSocket(token: string) {
   // Ensure auth is set before connecting
   if (token && s.auth) {
     s.auth.token = token;
+    console.log("Socket: Auth token set", { hasToken: !!s.auth.token });
   }
   
   if (!s.connected) {
-    console.log("Socket: Attempting to connect...");
+    console.log("Socket: Attempting to connect with token...", { hasToken: !!token });
     s.connect();
   } else {
-    console.log("Socket: Already connected");
+    console.log("Socket: Already connected", { socketId: s.id });
   }
   
   return s;
