@@ -15,11 +15,12 @@ export type TeamChatMessageSocket = {
 };
 
 export function useTeamChat(teamId: string) {
-  const { accessToken } = useAuthStore();
+  const { accessToken, user } = useAuthStore();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<TeamChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const recentMessageIdsRef = useRef<Set<string>>(new Set()); // Track recent messages to prevent duplicates
 
   useEffect(() => {
     if (!accessToken || !teamId) {
@@ -57,6 +58,23 @@ export function useTeamChat(teamId: string) {
     // Listen for new messages
     const onTeamMessage = (data: TeamChatMessageSocket | any) => {
       console.log("Socket: Received team message event", data);
+      
+      // Get message ID and sender ID for duplicate/self-message check
+      const messageId = data.id;
+      const senderId = data.sender?.id || data.userId || data.senderId;
+      
+      // Skip if this is our own message (we already added it via API)
+      if (user && senderId === user.id) {
+        console.log("Socket: Ignoring own message (already added via API)", messageId);
+        return;
+      }
+      
+      // Check if we recently processed this message
+      if (recentMessageIdsRef.current.has(messageId)) {
+        console.log("Socket: Message already processed recently, skipping", messageId);
+        return;
+      }
+      
       console.log("Socket: Message data type", typeof data, Array.isArray(data) ? "array" : "object");
       
       // Handle both socket format and API format
@@ -95,11 +113,19 @@ export function useTeamChat(teamId: string) {
 
       setMessages((prev) => {
         // Check if message already exists (avoid duplicates)
-        // This can happen if we sent via API and also received via socket
         const exists = prev.some((msg) => msg.id === newMessage.id);
         if (exists) {
-          console.log("Socket: Message already exists, skipping", newMessage.id);
+          console.log("Socket: Message already exists in state, skipping", newMessage.id);
           return prev;
+        }
+        
+        // Mark as processed
+        recentMessageIdsRef.current.add(newMessage.id);
+        
+        // Clean up old message IDs (keep last 100)
+        if (recentMessageIdsRef.current.size > 100) {
+          const idsArray = Array.from(recentMessageIdsRef.current);
+          recentMessageIdsRef.current = new Set(idsArray.slice(-100));
         }
         
         console.log("Socket: Adding new message", newMessage.id);
@@ -217,6 +243,10 @@ export function useTeamChat(teamId: string) {
 
   const addMessage = (message: TeamChatMessage) => {
     console.log("Adding message via addMessage", message.id);
+    
+    // Mark as processed to prevent socket from adding it again
+    recentMessageIdsRef.current.add(message.id);
+    
     setMessages((prev) => {
       // Check if message already exists (avoid duplicates)
       const exists = prev.some((msg) => msg.id === message.id);
