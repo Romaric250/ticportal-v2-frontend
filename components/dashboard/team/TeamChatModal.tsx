@@ -113,6 +113,13 @@ export function TeamChatModal({ team, onClose }: Props) {
         console.log("Setting initial messages, count:", loadedMessages.length); // Debug log
         setInitialMessages(loadedMessages);
         hasLoadedRef.current = team.id;
+
+        // Mark all messages as read when chat is opened (non-blocking)
+        // Do this asynchronously so it doesn't interfere with socket connection
+        teamService.markMessagesAsRead(team.id).catch((error) => {
+          console.error("Error marking messages as read:", error);
+          // Don't show error toast for this, it's not critical
+        });
       } catch (error: any) {
         console.error("Error loading messages:", error);
         toast.error(error?.message || "Failed to load messages");
@@ -151,29 +158,57 @@ export function TeamChatModal({ team, onClose }: Props) {
     try {
       setSending(true);
 
-      // Send via API first to ensure persistence and get full message with ID
-      const newMessage = await teamService.sendChatMessage(team.id, {
-        message: messageText,
-      });
-      
-      console.log("Chat: Message sent via API, response:", newMessage);
-      
-      // Add the message from API response (has full sender info) for instant feedback
-      const enrichedMessage = enrichMessageWithSender(newMessage);
-      addMessage(enrichedMessage);
-      
-      // Also send via socket for real-time delivery to other team members
-      // Note: The backend should broadcast after API save, but if it doesn't,
-      // sending via socket ensures real-time delivery
-      if (isConnected && socket) {
-        console.log("Chat: Also sending via socket for real-time delivery");
+      // Use socket to send message - this will save to DB and broadcast to all team members
+      // The backend socket handler handles both persistence and real-time broadcasting
+      if (socket && socket.connected) {
+        console.log("Chat: Sending message via socket", { 
+          teamId: team.id, 
+          message: messageText,
+          socketId: socket.id,
+          isConnected: socket.connected 
+        });
+        
         try {
-          sendSocketMessage(messageText);
-        } catch (socketError) {
-          console.warn("Chat: Socket send failed, but message saved via API", socketError);
+          // Send via socket - backend will save and broadcast
+          await sendSocketMessage(messageText);
+          console.log("Chat: Message sent successfully via socket");
+          // The message will be added to state when we receive it back via socket broadcast
+        } catch (socketError: any) {
+          // If socket send fails, fall back to API
+          console.error("Chat: Socket send failed, error details:", socketError);
+          console.error("Chat: Socket state:", { 
+            connected: socket?.connected, 
+            disconnected: socket?.disconnected,
+            id: socket?.id 
+          });
+          
+          // Try API fallback
+          try {
+            const newMessage = await teamService.sendChatMessage(team.id, {
+              message: messageText,
+            });
+            const enrichedMessage = enrichMessageWithSender(newMessage);
+            addMessage(enrichedMessage);
+            toast.warning(`Message sent via API. Socket error: ${socketError?.message || "Unknown error"}`);
+          } catch (apiError: any) {
+            console.error("Chat: API fallback also failed", apiError);
+            throw apiError; // Re-throw to be caught by outer catch
+          }
         }
       } else {
-        console.warn("Chat: Socket not connected, message saved but not broadcast in real-time");
+        // Fallback: if socket not connected, use API (but this won't broadcast)
+        console.warn("Chat: Socket not connected, falling back to API", {
+          hasSocket: !!socket,
+          isConnected,
+          socketConnected: socket?.connected,
+          socketDisconnected: socket?.disconnected
+        });
+        const newMessage = await teamService.sendChatMessage(team.id, {
+          message: messageText,
+        });
+        const enrichedMessage = enrichMessageWithSender(newMessage);
+        addMessage(enrichedMessage);
+        toast.warning("Message sent, but real-time updates may not work. Socket not connected.");
       }
     } catch (error: any) {
       console.error("Error sending message:", error);

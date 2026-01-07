@@ -39,8 +39,23 @@ export default function TeamPage() {
           return;
         }
         // Get the first team (or you could get by ID if needed)
-        const teamData = await teamService.getTeamById(myTeams[0].id);
-        setTeam(teamData);
+        // myTeams already includes unreadCount from the API response
+        const firstTeam = myTeams[0];
+        const teamData = await teamService.getTeamById(firstTeam.id);
+        // Use unreadCount from myTeams if available, otherwise fetch it
+        if (firstTeam.unreadCount !== undefined) {
+          setTeam({ ...teamData, unreadCount: firstTeam.unreadCount });
+        } else {
+          // Fallback: fetch unread count separately
+          try {
+            const unreadCount = await teamService.getTeamUnreadCount(teamData.id);
+            setTeam({ ...teamData, unreadCount });
+          } catch (error) {
+            // If unread count fetch fails, use the team data as-is
+            console.warn("Failed to fetch unread count:", error);
+            setTeam(teamData);
+          }
+        }
         setPendingRequests([]);
       } catch (error: any) {
         console.error("Error fetching team:", error);
@@ -57,11 +72,59 @@ export default function TeamPage() {
     if (!team) return;
     try {
       const updatedTeam = await teamService.getTeamById(team.id);
-      setTeam(updatedTeam);
+      // Refresh unread count
+      try {
+        const unreadCount = await teamService.getTeamUnreadCount(team.id);
+        setTeam({ ...updatedTeam, unreadCount });
+      } catch (error) {
+        console.warn("Failed to refresh unread count:", error);
+        setTeam(updatedTeam);
+      }
     } catch (error) {
       console.error("Error refreshing team:", error);
     }
   };
+
+  // Refresh unread count periodically (every 30 seconds)
+  useEffect(() => {
+    if (!team) return;
+
+    const refreshUnreadCount = async () => {
+      try {
+        const unreadCount = await teamService.getTeamUnreadCount(team.id);
+        setTeam((prev) => (prev ? { ...prev, unreadCount } : null));
+      } catch (error) {
+        console.warn("Failed to refresh unread count:", error);
+      }
+    };
+
+    // Refresh immediately, then every 30 seconds
+    refreshUnreadCount();
+    const interval = setInterval(refreshUnreadCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [team?.id]);
+
+  // Refresh unread count when chat modal closes (messages were marked as read)
+  const handleChatClose = () => {
+    setShowChatModal(false);
+    // Refresh unread count after a short delay to allow backend to process
+    setTimeout(() => {
+      if (team) {
+        teamService
+          .getTeamUnreadCount(team.id)
+          .then((unreadCount) => {
+            setTeam((prev) => (prev ? { ...prev, unreadCount } : null));
+          })
+          .catch((error) => {
+            console.warn("Failed to refresh unread count after chat close:", error);
+          });
+      }
+    }, 500);
+  };
+
+  // Note: We removed the socket listener here to avoid interfering with the chat modal's socket connection
+  // Unread count will be refreshed periodically (every 30 seconds) and when chat modal closes
 
   if (loading) {
     return (
@@ -197,7 +260,7 @@ export default function TeamPage() {
       {showChatModal && (
         <TeamChatModal 
           team={team}
-          onClose={() => setShowChatModal(false)} 
+          onClose={handleChatClose} 
         />
       )}
       {showEditTeamModal && team && (

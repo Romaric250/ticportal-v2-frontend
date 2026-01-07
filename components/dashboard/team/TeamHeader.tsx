@@ -60,10 +60,15 @@ export function TeamHeader({ team, onRequestMentorship, onOpenChat, onEditTeam }
       <div className="flex items-center gap-3">
         <button
           onClick={onOpenChat}
-          className="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-slate-50"
+          className="cursor-pointer relative inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#111827] hover:bg-slate-50"
         >
           <MessageCircle size={16} />
           <span>Team Chat</span>
+          {team.unreadCount !== undefined && team.unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {team.unreadCount > 99 ? "99+" : team.unreadCount}
+            </span>
+          )}
         </button>
         <button
           onClick={onRequestMentorship}

@@ -59,17 +59,13 @@ export function useTeamChat(teamId: string) {
     const onTeamMessage = (data: TeamChatMessageSocket | any) => {
       console.log("Socket: Received team message event", data);
       
-      // Get message ID and sender ID for duplicate/self-message check
+      // Get message ID and sender ID for duplicate check
       const messageId = data.id;
       const senderId = data.sender?.id || data.userId || data.senderId;
       
-      // Skip if this is our own message (we already added it via API)
-      if (user && senderId === user.id) {
-        console.log("Socket: Ignoring own message (already added via API)", messageId);
-        return;
-      }
-      
-      // Check if we recently processed this message
+      // Check if we recently processed this message (prevent duplicates)
+      // We no longer filter out own messages because we're using socket to send,
+      // and the backend broadcasts to all team members including the sender
       if (recentMessageIdsRef.current.has(messageId)) {
         console.log("Socket: Message already processed recently, skipping", messageId);
         return;
@@ -137,9 +133,12 @@ export function useTeamChat(teamId: string) {
       });
     };
 
-    // Listen for errors
+    // Listen for errors (but don't log message send errors here - they're handled in sendMessage)
     const onError = (data: { message: string }) => {
-      console.error("Socket error:", data.message);
+      // Only log non-message-send errors to avoid duplicate logging
+      if (!data.message?.includes("send message") && !data.message?.includes("Failed to send")) {
+        console.error("Socket error:", data.message);
+      }
     };
 
     // Set up event listeners BEFORE connecting
@@ -214,31 +213,105 @@ export function useTeamChat(teamId: string) {
     };
   }, [accessToken, teamId]);
 
-  const sendMessage = (message: string, attachments?: string[]) => {
-    if (!socket || !message.trim()) {
-      console.warn("Cannot send socket message: socket not ready", { 
-        hasSocket: !!socket, 
-        isConnected, 
-        hasMessage: !!message.trim() 
-      });
-      return;
-    }
+  const sendMessage = (message: string, attachments?: string[]): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (!socket) {
+        const error = new Error("Cannot send socket message: socket not initialized");
+        console.warn("Cannot send socket message: socket not initialized", { 
+          hasSocket: !!socket, 
+          isConnected, 
+          hasMessage: !!message.trim() 
+        });
+        reject(error);
+        return;
+      }
 
-    // Send even if not connected - socket.io will queue it
-    try {
-      console.log("Socket: Sending message via socket", { teamId, message: message.trim() });
-      socket.emit("team:message:send", {
-        teamId,
-        message: message.trim(),
-        attachments: attachments || [],
-      }, (response: any) => {
-        if (response) {
-          console.log("Socket: Message send response", response);
-        }
-      });
-    } catch (error) {
-      console.error("Error emitting socket message:", error);
-    }
+      if (!socket.connected) {
+        const error = new Error("Cannot send socket message: socket not connected");
+        console.warn("Cannot send socket message: socket not connected", { 
+          hasSocket: !!socket, 
+          isConnected,
+          socketConnected: socket.connected,
+          socketDisconnected: socket.disconnected,
+          hasMessage: !!message.trim() 
+        });
+        reject(error);
+        return;
+      }
+
+      if (!message.trim()) {
+        const error = new Error("Cannot send socket message: message is empty");
+        console.warn("Cannot send socket message: message is empty");
+        reject(error);
+        return;
+      }
+
+      // Set up a one-time error listener for this specific send
+      let errorOccurred = false;
+      const errorHandler = (errorData: { message: string }) => {
+        if (errorOccurred) return; // Prevent multiple calls
+        errorOccurred = true;
+        socket.off("error", errorHandler);
+        console.error("Socket: Message send failed", errorData);
+        reject(new Error(errorData.message || "Failed to send message"));
+      };
+
+      // Listen for errors (backend emits "error" event on failure)
+      socket.once("error", errorHandler);
+
+      // Set a timeout to clean up if no error occurs
+      const cleanup = () => {
+        socket.off("error", errorHandler);
+      };
+
+      // Send the message
+      try {
+        console.log("Socket: Sending message via socket", { 
+          teamId, 
+          message: message.trim().substring(0, 50),
+          socketId: socket.id,
+          socketConnected: socket.connected
+        });
+        
+        socket.emit("team:message:send", {
+          teamId,
+          message: message.trim(),
+          attachments: attachments || [],
+        }, (response: any) => {
+          // Backend may or may not send a callback
+          if (errorOccurred) {
+            console.log("Socket: Error already occurred, ignoring callback");
+            return;
+          }
+          
+          cleanup();
+          
+          if (response && response.error) {
+            console.error("Socket: Message send response error", response);
+            reject(new Error(response.error || "Failed to send message"));
+          } else {
+            console.log("Socket: Message send successful (callback received)", response);
+            // Resolve - message will be received via broadcast
+            resolve();
+          }
+        });
+
+        // If no callback is received and no error occurs, assume success
+        // The message will be received via broadcast
+        // Note: Backend may not send a callback, so we resolve after a short delay
+        setTimeout(() => {
+          if (!errorOccurred) {
+            cleanup();
+            console.log("Socket: Message send assumed successful (no error after delay)");
+            resolve(); // Assume success if no error after short delay
+          }
+        }, 1000); // 1 second should be enough for backend to process and emit error if any
+      } catch (error) {
+        cleanup();
+        console.error("Error emitting socket message:", error);
+        reject(error);
+      }
+    });
   };
 
   const addMessage = (message: TeamChatMessage) => {

@@ -10,6 +10,7 @@ export type Team = {
   profileImage?: string;
   createdAt: string;
   members?: TeamMember[];
+  unreadCount?: number; // Unread message count (included in /teams/my response)
 };
 
 export type TeamMember = {
@@ -305,6 +306,43 @@ export const teamService = {
     const { data } = await apiClient.post<TeamJoinRequest>(
       `/teams/${teamId}/join-requests/${requestId}`,
       payload
+    );
+    return data;
+  },
+
+  /**
+   * Get total unread message count across all teams
+   */
+  async getTotalUnreadCount(): Promise<number> {
+    const { data } = await apiClient.get<{ totalUnread: number }>("/teams/chats/total-unread");
+    return data.totalUnread;
+  },
+
+  /**
+   * Get unread count for a specific team
+   */
+  async getTeamUnreadCount(teamId: string): Promise<number> {
+    const { data } = await apiClient.get<{ unreadCount: number }>(`/teams/${teamId}/chats/unread-count`);
+    return data.unreadCount;
+  },
+
+  /**
+   * Get unread counts for all teams (dictionary of teamId -> count)
+   */
+  async getUnreadCounts(): Promise<Record<string, number>> {
+    const { data } = await apiClient.get<Record<string, number>>("/teams/chats/unread-counts");
+    return data;
+  },
+
+  /**
+   * Mark messages as read for a team
+   * @param teamId - Team ID
+   * @param messageIds - Optional array of specific message IDs to mark as read. If omitted, marks all as read.
+   */
+  async markMessagesAsRead(teamId: string, messageIds?: string[]): Promise<{ markedCount: number }> {
+    const { data } = await apiClient.post<{ markedCount: number }>(
+      `/teams/${teamId}/chats/mark-read`,
+      messageIds ? { messageIds } : {}
     );
     return data;
   },
