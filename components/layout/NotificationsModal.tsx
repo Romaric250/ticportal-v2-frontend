@@ -1,79 +1,95 @@
 "use client";
 
-import { X, Bell, CheckCircle, AlertCircle, Info, Clock } from "lucide-react";
-import { useState } from "react";
+import { X, Bell, CheckCircle, AlertCircle, Info, Clock, Trash2, Loader2 } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { useNotifications } from "../../src/lib/hooks/useNotifications";
+import type { NotificationType } from "../../src/lib/services/notificationService";
 
 type Props = {
   onClose: () => void;
 };
 
-type Notification = {
-  id: string;
-  type: "success" | "warning" | "info" | "reminder";
-  title: string;
-  message: string;
-  time: string;
-  isRead: boolean;
-};
-
 export function NotificationsModal({ onClose }: Props) {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: "1",
-      type: "success",
-      title: "Project Proposal Graded",
-      message: "Your team's project proposal has been reviewed and graded.",
-      time: "2 hours ago",
-      isRead: false,
-    },
-    {
-      id: "2",
-      type: "warning",
-      title: "Deadline Approaching",
-      message: "Prototype Demo is due in 2 days. Don't forget to submit!",
-      time: "5 hours ago",
-      isRead: false,
-    },
-    {
-      id: "3",
-      type: "info",
-      title: "New Team Member",
-      message: "Alex Rivera has joined your team as Data Analyst.",
-      time: "1 day ago",
-      isRead: true,
-    },
-    {
-      id: "4",
-      type: "reminder",
-      title: "Mentor Session Scheduled",
-      message: "Your next mentor session is scheduled for Friday, Oct 28 at 2:00 PM.",
-      time: "2 days ago",
-      isRead: true,
-    },
-  ]);
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    pagination,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    loadMore,
+  } = useNotifications();
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isLoadingMoreRef = useRef(false);
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-  };
+  // Handle scroll for infinite loading
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
 
-  const getIcon = (type: Notification["type"]) => {
+      if (isNearBottom && pagination.page < pagination.totalPages && !loading && !isLoadingMoreRef.current) {
+        isLoadingMoreRef.current = true;
+        loadMore();
+        setTimeout(() => {
+          isLoadingMoreRef.current = false;
+        }, 1000);
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [pagination, loading, loadMore]);
+
+  const getIcon = (type: NotificationType) => {
     switch (type) {
-      case "success":
+      case "POINTS_EARNED":
+      case "ACHIEVEMENT_UNLOCKED":
         return <CheckCircle size={18} className="text-emerald-500" />;
-      case "warning":
+      case "DEADLINE_REMINDER":
         return <AlertCircle size={18} className="text-amber-500" />;
-      case "info":
+      case "TEAM_MESSAGE":
+      case "TEAM_INVITATION":
+      case "MENTORSHIP_REQUEST":
+      case "GRADE_RECEIVED":
+      case "SYSTEM_ANNOUNCEMENT":
+      default:
         return <Info size={18} className="text-blue-500" />;
-      case "reminder":
-        return <Clock size={18} className="text-slate-500" />;
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (diffInSeconds < 60) return "Just now";
+      if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+      }
+      if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+      }
+      if (diffInSeconds < 604800) {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days} day${days > 1 ? "s" : ""} ago`;
+      }
+      if (diffInSeconds < 2592000) {
+        const weeks = Math.floor(diffInSeconds / 604800);
+        return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
+      }
+      const months = Math.floor(diffInSeconds / 2592000);
+      return `${months} month${months > 1 ? "s" : ""} ago`;
+    } catch {
+      return "Recently";
     }
   };
 
@@ -110,8 +126,12 @@ export function NotificationsModal({ onClose }: Props) {
         </div>
 
         {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto">
-          {notifications.length === 0 ? (
+        <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+          {loading && notifications.length === 0 ? (
+            <div className="flex h-full items-center justify-center p-8">
+              <Loader2 size={24} className="animate-spin text-slate-400" />
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="flex h-full items-center justify-center p-8">
               <div className="text-center">
                 <Bell size={48} className="mx-auto text-slate-300" />
@@ -123,8 +143,7 @@ export function NotificationsModal({ onClose }: Props) {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => markAsRead(notification.id)}
-                  className={`cursor-pointer p-4 transition hover:bg-slate-50 ${
+                  className={`group relative p-4 transition hover:bg-slate-50 ${
                     !notification.isRead ? "bg-slate-50" : ""
                   }`}
                 >
@@ -132,7 +151,14 @@ export function NotificationsModal({ onClose }: Props) {
                     <div className="mt-0.5">{getIcon(notification.type)}</div>
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => {
+                            if (!notification.isRead) {
+                              markAsRead(notification.id);
+                            }
+                          }}
+                        >
                           <p
                             className={`text-sm font-semibold ${
                               !notification.isRead
@@ -146,17 +172,43 @@ export function NotificationsModal({ onClose }: Props) {
                             {notification.message}
                           </p>
                           <p className="mt-2 text-[10px] text-slate-400">
-                            {notification.time}
+                            {formatTime(notification.createdAt)}
                           </p>
                         </div>
-                        {!notification.isRead && (
-                          <div className="h-2 w-2 rounded-full bg-[#111827]" />
-                        )}
+                        <div className="flex items-start gap-2">
+                          {!notification.isRead && (
+                            <div className="h-2 w-2 rounded-full bg-[#111827] mt-1" />
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(notification.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-red-500"
+                            title="Delete notification"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
+              {pagination.page < pagination.totalPages && (
+                <div className="flex justify-center p-4">
+                  {loading ? (
+                    <Loader2 size={20} className="animate-spin text-slate-400" />
+                  ) : (
+                    <button
+                      onClick={loadMore}
+                      className="text-xs text-slate-500 hover:text-slate-700"
+                    >
+                      Load more
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, MessageSquare, Activity, Home, BookOpen, User, Users, Trophy, Flag, Circle, Settings } from "lucide-react";
+import { MessageSquare, Activity, Home, BookOpen, User, Users, Trophy, Flag, Circle, Settings } from "lucide-react";
 import { UserProfileMenu } from "./UserProfileMenu";
 import { NotificationsModal } from "./NotificationsModal";
+import { NotificationsButton } from "./NotificationsButton";
 
 type PageInfo = {
   title: string;
@@ -142,13 +143,7 @@ export function TopNav() {
           </button>
 
           {/* Notifications Button */}
-          <button
-            onClick={() => setShowNotifications(true)}
-            className="cursor-pointer relative rounded-full p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-          >
-            <Bell size={18} />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-          </button>
+          <NotificationsButton onOpen={() => setShowNotifications(true)} />
 
           {/* User Profile Menu */}
           <UserProfileMenu />
