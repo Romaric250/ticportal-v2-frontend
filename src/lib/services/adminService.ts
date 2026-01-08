@@ -313,6 +313,100 @@ export const adminService = {
 
     return response.data;
   },
+
+  /**
+   * Get all teams with pagination and filters
+   */
+  async getTeams(
+    page: number = 1,
+    limit: number = 20,
+    filters?: {
+      search?: string;
+      school?: string;
+      status?: string;
+    }
+  ): Promise<TeamsResponse> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+
+    if (filters?.search) {
+      params.append("search", filters.search);
+    }
+    if (filters?.school) {
+      params.append("school", filters.school);
+    }
+    if (filters?.status) {
+      params.append("status", filters.status);
+    }
+
+    const { data } = await apiClient.get<TeamsResponse>(`/admin/teams?${params.toString()}`);
+    return data;
+  },
+
+  /**
+   * Get team details by ID
+   */
+  async getTeam(teamId: string): Promise<Team> {
+    const { data } = await apiClient.get<{ success: true; data: Team }>(`/admin/teams/${teamId}`);
+    return data.data;
+  },
+
+  /**
+   * Update team (admin override)
+   */
+  async updateTeam(
+    teamId: string,
+    payload: {
+      name?: string;
+      projectTitle?: string;
+      description?: string;
+    }
+  ): Promise<Team> {
+    const { data } = await apiClient.put<{ success: true; data: Team }>(`/admin/teams/${teamId}`, payload);
+    return data.data;
+  },
+
+  /**
+   * Delete team (admin only)
+   */
+  async deleteTeam(teamId: string): Promise<void> {
+    await apiClient.delete(`/admin/teams/${teamId}`);
+  },
+};
+
+export type Team = {
+  id: string;
+  name: string;
+  school: string;
+  projectTitle?: string;
+  description?: string;
+  profileImage?: string;
+  members?: Array<{
+    id: string;
+    userId: string;
+    role: "MEMBER" | "LEAD";
+    user?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      profilePhoto?: string;
+    };
+  }>;
+  createdAt: string;
+};
+
+export type TeamsResponse = {
+  success: true;
+  teams: Team[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export type DeliverableTemplate = {

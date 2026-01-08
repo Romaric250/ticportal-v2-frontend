@@ -11,6 +11,7 @@ import { TeamModal } from "../../../components/dashboard/TeamModal";
 import { useAuthStore } from "../../../src/state/auth-store";
 import { userService } from "../../../src/lib/services/userService";
 import { teamService } from "../../../src/lib/services/teamService";
+import { tokenStorage } from "../../../src/lib/api-client";
 import { toast } from "sonner";
 
 type Props = {
@@ -51,28 +52,39 @@ export default function DashboardLayout({ children }: Props) {
 
   // Protect admin routes - check immediately and redirect silently if not authorized
   useEffect(() => {
+    // Wait for auth store to be initialized before checking
+    if (!initialized) {
+      return;
+    }
+
     if (role === "admin" || role === "super-admin") {
-      // If user is null, they might not be logged in - redirect to login
-      if (!user) {
+      // Check if tokens exist in storage (even if user not loaded yet)
+      const hasToken = typeof window !== "undefined" && tokenStorage.getAccessToken();
+      
+      // If no token and no user, redirect to login
+      if (!hasToken && !user) {
         router.replace(`/${locale}/login`);
         return;
       }
       
-      const userRole = user.role?.toLowerCase();
-      if (userRole !== "admin" && userRole !== "super-admin") {
-        // User is not an admin, redirect silently to their dashboard (no toast, no indication)
-        const redirectRole = userRole || "student";
-        router.replace(`/${locale}/${redirectRole}`);
-        return;
+      // If user is loaded, check role
+      if (user) {
+        const userRole = user.role?.toLowerCase();
+        if (userRole !== "admin" && userRole !== "super-admin") {
+          // User is not an admin, redirect silently to their dashboard (no toast, no indication)
+          const redirectRole = userRole || "student";
+          router.replace(`/${locale}/${redirectRole}`);
+          return;
+        }
       }
       
-      // User is admin, allow access
+      // User has token (and is admin if user is loaded), allow access
       setAuthChecked(true);
     } else {
       // Not an admin route, no need to check
       setAuthChecked(true);
     }
-  }, [role, user, router, locale]);
+  }, [role, user, router, locale, initialized]);
 
 
   // Check if student needs onboarding

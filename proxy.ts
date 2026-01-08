@@ -13,23 +13,9 @@ export default function proxy(request: NextRequest) {
   // Locale handling (e.g. / -> /en, /student -> /en/student)
   const response = intlProxy(request);
 
-  const { pathname } = request.nextUrl;
-
-  const isDashboardRoute =
-    pathname.startsWith("/student") ||
-    pathname.startsWith("/mentor") ||
-    pathname.startsWith("/judge") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/super-admin");
-
-  // Simple protected-route scaffold; backend should set `tp_auth` httpOnly cookie.
-  const hasAuthCookie = request.cookies.get("tp_auth");
-
-  if (isDashboardRoute && !hasAuthCookie) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
+  // Note: Authentication is handled client-side via tokenStorage (localStorage)
+  // The middleware cannot access localStorage, so we don't check auth here.
+  // Auth checks happen in the dashboard layout component.
 
   return response;
 }
