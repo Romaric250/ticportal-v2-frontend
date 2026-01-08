@@ -44,7 +44,18 @@ export default function LoginPage() {
 
       setUser(user);
 
-      const redirectTo = searchParams.get("redirect") ?? "/student";
+      // Auto-redirect admins to admin dashboard
+      const userRole = user.role?.toLowerCase();
+      let redirectTo = searchParams.get("redirect");
+      
+      if (!redirectTo) {
+        if (userRole === "admin" || userRole === "super-admin") {
+          redirectTo = `/${userRole}`;
+        } else {
+          redirectTo = "/student";
+        }
+      }
+      
       toast.success("Logged in successfully");
       router.push(`/${locale}${redirectTo}`);
     } catch (error: any) {

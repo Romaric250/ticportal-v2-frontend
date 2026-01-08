@@ -6,15 +6,50 @@ import { adminService } from "../../../../src/lib/services/adminService";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useLocale } from "next-intl";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+type DashboardStats = {
+  totalUsers: number;
+  pendingApprovals: number;
+  mentorsAndLeads: number;
+  unassignedJudges: number;
+  totalUsersChange?: number;
+  usersByRole: { role: string; count: number }[];
+  usersByStatus: { status: string; count: number }[];
+  usersOverTime: { date: string; users: number }[];
+  teamsCount: number;
+  activeTeams: number;
+};
+
+const COLORS = ["#111827", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function AdminDashboardPage() {
   const locale = useLocale();
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     pendingApprovals: 0,
     mentorsAndLeads: 0,
     unassignedJudges: 0,
     totalUsersChange: 0,
+    usersByRole: [],
+    usersByStatus: [],
+    usersOverTime: [],
+    teamsCount: 0,
+    activeTeams: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +58,12 @@ export default function AdminDashboardPage() {
       try {
         setLoading(true);
         const statsData = await adminService.getStats();
-        setStats(statsData);
+        const dashboardStats = await adminService.getDashboardStats();
+        
+        setStats({
+          ...statsData,
+          ...dashboardStats,
+        });
       } catch (error: any) {
         console.error("Error loading stats:", error);
         toast.error(error?.message || "Failed to load dashboard statistics");
@@ -118,6 +158,112 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Charts Row 1 */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Users by Role - Pie Chart */}
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
+          <h3 className="text-lg font-semibold text-slate-900">Users by Role</h3>
+          <p className="mb-4 text-sm text-slate-600">Distribution of users across different roles</p>
+          {loading ? (
+            <div className="flex h-64 items-center justify-center">
+              <p className="text-slate-400">Loading...</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={stats.usersByRole}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {stats.usersByRole.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Users by Status - Bar Chart */}
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
+          <h3 className="text-lg font-semibold text-slate-900">Users by Status</h3>
+          <p className="mb-4 text-sm text-slate-600">User account status breakdown</p>
+          {loading ? (
+            <div className="flex h-64 items-center justify-center">
+              <p className="text-slate-400">Loading...</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats.usersByStatus}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="status" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#111827" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Users Over Time - Line Chart */}
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
+          <h3 className="text-lg font-semibold text-slate-900">User Growth</h3>
+          <p className="mb-4 text-sm text-slate-600">New user registrations over time</p>
+          {loading ? (
+            <div className="flex h-64 items-center justify-center">
+              <p className="text-slate-400">Loading...</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={stats.usersOverTime}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="users" stroke="#111827" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Teams Overview */}
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
+          <h3 className="text-lg font-semibold text-slate-900">Teams Overview</h3>
+          <p className="mb-4 text-sm text-slate-600">Team statistics and activity</p>
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-4">
+              <div>
+                <p className="text-sm text-slate-600">Total Teams</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">
+                  {loading ? "..." : stats.teamsCount}
+                </p>
+              </div>
+              <Users size={24} className="text-slate-400" />
+            </div>
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-4">
+              <div>
+                <p className="text-sm text-slate-600">Active Teams</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">
+                  {loading ? "..." : stats.activeTeams}
+                </p>
+              </div>
+              <Activity size={24} className="text-slate-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Link
@@ -168,5 +314,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-

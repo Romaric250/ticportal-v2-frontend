@@ -14,7 +14,7 @@ export default function RootLayout({
   // Locale and theming are handled in the per-locale layout.
   return (
     <html suppressHydrationWarning>
-      <body className="min-h-screen bg-slate-950 text-slate-50 antialiased">
+      <body className="min-h-screen bg-slate-950 text-slate-50 antialiased" suppressHydrationWarning>
         {children}
       </body>
     </html>

@@ -1,6 +1,31 @@
 import { apiClient, tokenStorage } from "../api-client";
 import axios from "axios";
 
+export type TeamDeliverable = {
+  id: string;
+  teamId: string;
+  templateId: string; // Reference to deliverable template
+  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION";
+  fileUrl: string;
+  description?: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  submittedAt: string;
+  feedback?: string;
+  hackathonId?: string;
+};
+
+export type DeliverableTemplate = {
+  id: string;
+  title: string;
+  description: string;
+  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION";
+  hackathonId?: string;
+  dueDate?: string;
+  required: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Team = {
   id: string;
   name: string;
@@ -346,6 +371,55 @@ export const teamService = {
     );
     return data;
   },
-};
 
+  /**
+   * Get team deliverables
+   */
+  async getTeamDeliverables(teamId: string): Promise<TeamDeliverable[]> {
+    const { data } = await apiClient.get<TeamDeliverable[]>(`/teams/${teamId}/deliverables`);
+    return data;
+  },
+
+  /**
+   * Get available deliverable templates for team
+   */
+  async getAvailableDeliverableTemplates(): Promise<DeliverableTemplate[]> {
+    const { data } = await apiClient.get<DeliverableTemplate[]>("/teams/deliverable-templates");
+    return data;
+  },
+
+  /**
+   * Upload deliverable (student submission)
+   */
+  async uploadDeliverable(
+    teamId: string,
+    payload: {
+      templateId: string; // Reference to deliverable template
+      file: File;
+      description?: string;
+    }
+  ): Promise<TeamDeliverable> {
+    const formData = new FormData();
+    formData.append("templateId", payload.templateId);
+    formData.append("file", payload.file);
+    if (payload.description) {
+      formData.append("description", payload.description);
+    }
+
+    const token = tokenStorage.getAccessToken();
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
+    const response = await axios.post<TeamDeliverable>(
+      `${apiBaseUrl}/teams/${teamId}/deliverables`,
+      formData,
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    return response.data;
+  },
+};
 

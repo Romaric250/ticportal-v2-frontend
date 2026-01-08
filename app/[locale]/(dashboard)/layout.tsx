@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { Sidebar } from "../../../components/layout/Sidebar";
 import { TopNav } from "../../../components/layout/TopNav";
 import { OnboardingModal } from "../../../components/dashboard/OnboardingModal";
@@ -27,6 +28,8 @@ export default function DashboardLayout({ children }: Props) {
     | "super-admin";
 
   const { user } = useAuthStore();
+  const router = useRouter();
+  const locale = useLocale();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [profileData, setProfileData] = useState<{
@@ -37,6 +40,33 @@ export default function DashboardLayout({ children }: Props) {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingTeam, setLoadingTeam] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Protect admin routes - check immediately and redirect silently if not authorized
+  useEffect(() => {
+    if (role === "admin" || role === "super-admin") {
+      // If user is null, they might not be logged in - redirect to login
+      if (!user) {
+        router.replace(`/${locale}/login`);
+        return;
+      }
+      
+      const userRole = user.role?.toLowerCase();
+      if (userRole !== "admin" && userRole !== "super-admin") {
+        // User is not an admin, redirect silently to their dashboard (no toast, no indication)
+        const redirectRole = userRole || "student";
+        router.replace(`/${locale}/${redirectRole}`);
+        return;
+      }
+      
+      // User is admin, allow access
+      setAuthChecked(true);
+    } else {
+      // Not an admin route, no need to check
+      setAuthChecked(true);
+    }
+  }, [role, user, router, locale]);
+
 
   // Check if student needs onboarding
   useEffect(() => {
@@ -154,6 +184,12 @@ export default function DashboardLayout({ children }: Props) {
     };
     checkBeforeClose();
   };
+
+  // Don't render anything until auth is checked for admin routes - show nothing (invisible)
+  // This check happens AFTER all hooks are called to follow Rules of Hooks
+  if ((role === "admin" || role === "super-admin") && !authChecked) {
+    return null; // Render nothing - completely invisible
+  }
 
   return (
     <div className="flex h-screen bg-[#f9fafb] text-slate-900" style={{ overflow: 'visible', position: 'relative' }}>

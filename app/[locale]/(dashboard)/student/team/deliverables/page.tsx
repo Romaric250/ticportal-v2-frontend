@@ -1,374 +1,313 @@
 "use client";
 
-import { useState } from "react";
-import { LocalizedLink } from "@/components/ui/LocalizedLink";
-import {
-  Check,
-  Clock,
-  Star,
-  AlertTriangle,
-  Eye,
-  Info,
-  Lock,
-  Filter,
-  GraduationCap,
-  Settings,
-  BarChart,
-  Code,
-  Users,
-  AlertCircle,
-  ChevronDown,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, FileText, CheckCircle, XCircle, Clock, Download, AlertCircle } from "lucide-react";
+import { teamService, type TeamDeliverable, type DeliverableTemplate } from "../../../../../../src/lib/services/teamService";
+import { toast } from "sonner";
 
-export default function DeliverablesPage() {
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("due-date");
-
-  const filters = [
-    { id: "all", label: "All", icon: <Check size={14} /> },
-    { id: "pending", label: "Pending", icon: <Clock size={14} /> },
-    { id: "graded", label: "Graded", icon: <Star size={14} /> },
-    { id: "overdue", label: "Overdue", icon: <AlertTriangle size={14} /> },
-  ];
-
-  // All deliverables data
-  const allDeliverables = [
-    {
-      id: "1",
-      status: "graded" as const,
-      title: "Project Proposal",
-      submittedDate: "Oct 12",
-      description: "Initial draft of the team solution outlining the problem statement...",
-      actionLabel: "View Feedback",
-      actionIcon: <Eye size={14} />,
-      icon: <GraduationCap size={24} />,
-      iconColor: "text-[#111827]",
-    },
-    {
-      id: "2",
-      status: "needs-attention" as const,
-      title: "Prototype Demo",
-      dueDate: "2 days",
-      isUrgent: true,
-      description: "A 3-minute video walkthrough of the MVP demonstrating core features...",
-      actionLabel: "Submit Work",
-      actionIcon: <Info size={14} />,
-      icon: <Settings size={24} />,
-      iconColor: "text-slate-400",
-    },
-    {
-      id: "3",
-      status: "overdue" as const,
-      title: "Market Research",
-      dueDate: "yesterday",
-      isOverdue: true,
-      description: "Detailed survey results and competitor analysis matrix. Require...",
-      actionLabel: "Late Submission",
-      actionIcon: <AlertCircle size={14} />,
-      icon: <BarChart size={24} />,
-      iconColor: "text-slate-400",
-    },
-    {
-      id: "4",
-      status: "upcoming" as const,
-      title: "Final Codebase",
-      dueDate: "Nov 15",
-      description: "Complete source code repository link with README documentation...",
-      actionLabel: "Locked",
-      actionIcon: <Lock size={14} />,
-      isLocked: true,
-      icon: <Code size={24} />,
-      iconColor: "text-slate-400",
-    },
-    {
-      id: "5",
-      status: "graded" as const,
-      title: "Team Formation",
-      submittedDate: "Sep 20",
-      description: "Registration of all team members, roles assignment, and mentor...",
-      actionLabel: "View Details",
-      actionIcon: <Eye size={14} />,
-      icon: <Users size={24} />,
-      iconColor: "text-slate-400",
-    },
-    {
-      id: "6",
-      status: "pending" as const,
-      title: "Pitch Deck",
-      dueDate: "Nov 05",
-      description: "The visual presentation slides used during the final pitch to judges.",
-      actionLabel: "Start Draft",
-      actionIcon: <Info size={14} />,
-      icon: <BarChart size={24} />,
-      iconColor: "text-slate-400",
-    },
-  ];
-
-  // Filter deliverables based on active filter
-  const filteredDeliverables = allDeliverables.filter((deliverable) => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "graded") return deliverable.status === "graded";
-    if (activeFilter === "pending") 
-      return deliverable.status === "pending" || deliverable.status === "needs-attention";
-    if (activeFilter === "overdue") return deliverable.status === "overdue";
-    return true;
+export default function StudentTeamDeliverablesPage() {
+  const [deliverables, setDeliverables] = useState<TeamDeliverable[]>([]);
+  const [templates, setTemplates] = useState<DeliverableTemplate[]>([]);
+  const [team, setTeam] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<DeliverableTemplate | null>(null);
+  const [uploadData, setUploadData] = useState({
+    templateId: "",
+    file: null as File | null,
+    description: "",
   });
 
-  // Sort deliverables
-  const sortedDeliverables = [...filteredDeliverables].sort((a, b) => {
-    if (sortBy === "due-date") {
-      // Simple date comparison (you might want to improve this)
-      if (a.dueDate && b.dueDate) {
-        return a.dueDate.localeCompare(b.dueDate);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const myTeams = await teamService.getMyTeams();
+      if (myTeams.length > 0) {
+        setTeam(myTeams[0]);
+        const [teamDeliverables, availableTemplates] = await Promise.all([
+          teamService.getTeamDeliverables(myTeams[0].id),
+          teamService.getAvailableDeliverableTemplates(),
+        ]);
+        setDeliverables(teamDeliverables);
+        setTemplates(availableTemplates);
       }
-      return 0;
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to load deliverables");
+    } finally {
+      setLoading(false);
     }
-    if (sortBy === "status") {
-      return a.status.localeCompare(b.status);
-    }
-    if (sortBy === "title") {
-      return a.title.localeCompare(b.title);
-    }
-    return 0;
-  });
-
-  return (
-    <div className="space-y-6 text-slate-900">
-      {/* Breadcrumbs */}
-      <nav className="text-xs text-slate-500">
-        <LocalizedLink href="/student" className="hover:text-slate-700">
-          Home
-        </LocalizedLink>
-        {" / "}
-        <LocalizedLink href="/student/team" className="hover:text-slate-700">
-          My Team
-        </LocalizedLink>
-        {" / "}
-        <span className="text-slate-900">Deliverables</span>
-      </nav>
-
-      {/* Header */}
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900">My Deliverables</h1>
-          <p className="mt-2 text-base text-slate-600">
-            Track your team&apos;s submission progress. Keep up the momentum to reach the finals!
-          </p>
-        </div>
-
-        {/* Overall Progress Card */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm lg:w-72">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            OVERALL PROGRESS
-          </p>
-          <div className="mt-4">
-            <div className="mb-3">
-              <span className="text-3xl font-bold text-slate-900">65%</span>
-            </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full w-[65%] rounded-full bg-[#111827]" />
-            </div>
-            <p className="mt-3 text-sm font-medium text-[#111827]">
-              Next Deadline: 2 days
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters and Sort */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {filters.map((filter) => (
-            <button
-              key={filter.id}
-              onClick={() => setActiveFilter(filter.id)}
-              className={`cursor-pointer inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition ${
-                activeFilter === filter.id
-                  ? "bg-[#111827] text-white shadow-sm"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
-              }`}
-            >
-              {filter.icon}
-              <span>{filter.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Filter size={16} className="text-slate-500" />
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white px-4 py-2 pr-8 text-xs font-medium text-slate-700 outline-none focus:border-[#111827] focus:ring-1 focus:ring-[#111827]"
-            >
-              <option value="due-date">Sort by: Due Date</option>
-              <option value="status">Sort by: Status</option>
-              <option value="title">Sort by: Title</option>
-            </select>
-            <ChevronDown
-              size={14}
-              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Deliverables Grid */}
-      {sortedDeliverables.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
-          <p className="text-sm text-slate-500">No deliverables found for this filter.</p>
-        </div>
-      ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {sortedDeliverables.map((deliverable) => (
-            <DeliverableCard
-              key={deliverable.id}
-              status={deliverable.status}
-              title={deliverable.title}
-              submittedDate={deliverable.submittedDate}
-              dueDate={deliverable.dueDate}
-              isUrgent={deliverable.isUrgent}
-              isOverdue={deliverable.isOverdue}
-              description={deliverable.description}
-              actionLabel={deliverable.actionLabel}
-              actionIcon={deliverable.actionIcon}
-              icon={deliverable.icon}
-              iconColor={deliverable.iconColor}
-              isLocked={deliverable.isLocked}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-type DeliverableCardProps = {
-  status: "graded" | "needs-attention" | "overdue" | "upcoming" | "pending";
-  title: string;
-  submittedDate?: string;
-  dueDate?: string;
-  isUrgent?: boolean;
-  isOverdue?: boolean;
-  description: string;
-  actionLabel: string;
-  actionIcon: React.ReactNode;
-  icon: React.ReactNode;
-  iconColor?: string;
-  isLocked?: boolean;
-};
-
-function DeliverableCard({
-  status,
-  title,
-  submittedDate,
-  dueDate,
-  isUrgent,
-  isOverdue,
-  description,
-  actionLabel,
-  actionIcon,
-  icon,
-  iconColor = "text-slate-300",
-  isLocked,
-}: DeliverableCardProps) {
-  const statusConfig = {
-    graded: {
-      label: "GRADED",
-      className: "bg-slate-100 text-[#111827]",
-      borderColor: "border-l-[#111827]",
-    },
-    "needs-attention": {
-      label: "NEEDS ATTENTION",
-      className: "bg-amber-50 text-amber-700",
-      borderColor: "border-l-amber-500",
-    },
-    overdue: {
-      label: "OVERDUE",
-      className: "bg-red-50 text-red-700",
-      borderColor: "border-l-red-500",
-    },
-    upcoming: {
-      label: "UPCOMING",
-      className: "bg-slate-100 text-slate-600",
-      borderColor: "border-l-slate-300",
-    },
-    pending: {
-      label: "PENDING",
-      className: "bg-slate-100 text-slate-600",
-      borderColor: "border-l-slate-300",
-    },
   };
 
-  const config = statusConfig[status];
+  const handleUpload = async () => {
+    if (!uploadData.file || !team || !uploadData.templateId) return;
+
+    try {
+      setLoading(true);
+      await teamService.uploadDeliverable(team.id, {
+        templateId: uploadData.templateId,
+        file: uploadData.file,
+        description: uploadData.description,
+      });
+      toast.success("Deliverable uploaded successfully");
+      setShowUploadModal(false);
+      setUploadData({ templateId: "", file: null, description: "" });
+      setSelectedTemplate(null);
+      loadData();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to upload deliverable");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "APPROVED":
+        return <CheckCircle size={16} className="text-emerald-500" />;
+      case "REJECTED":
+        return <XCircle size={16} className="text-red-500" />;
+      case "PENDING":
+        return <Clock size={16} className="text-amber-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getTemplateStatus = (templateId: string) => {
+    const submission = deliverables.find((d) => d.templateId === templateId);
+    return submission ? submission.status : "NOT_SUBMITTED";
+  };
+
+  if (!team) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-slate-500">You must be in a team to view deliverables</p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`group relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md border-l-4 ${config.borderColor}`}
-    >
-      {/* Status Badge */}
-      <div className="mb-4">
-        <span
-          className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${config.className}`}
-        >
-          {config.label}
-        </span>
+    <div className="space-y-6 p-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Team Deliverables</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          View required deliverables and submit your team's work.
+        </p>
       </div>
 
-      {/* Icon */}
-      <div className={`absolute right-5 top-5 ${iconColor} opacity-60 group-hover:opacity-80 transition-opacity`}>
-        {icon}
+      {/* Required Deliverables */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Required Deliverables</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {loading ? (
+            <div className="text-center text-slate-500">Loading...</div>
+          ) : templates.length === 0 ? (
+            <div className="col-span-full rounded-lg border border-slate-200 bg-white p-8 text-center">
+              <FileText size={48} className="mx-auto text-slate-300" />
+              <p className="mt-4 text-sm text-slate-500">No deliverables assigned yet</p>
+            </div>
+          ) : (
+            templates.map((template) => {
+              const status = getTemplateStatus(template.id);
+              const submission = deliverables.find((d) => d.templateId === template.id);
+
+              return (
+                <div
+                  key={template.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-slate-900">{template.title}</h3>
+                        {template.required && (
+                          <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                            Required
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-slate-600">{template.description}</p>
+                      {template.dueDate && (
+                        <p className="mt-2 text-xs text-slate-500">
+                          Due: {new Date(template.dueDate).toLocaleDateString()}
+                        </p>
+                      )}
+                      <div className="mt-3 flex items-center gap-2">
+                        {status === "NOT_SUBMITTED" && (
+                          <span className="flex items-center gap-1 text-xs text-amber-600">
+                            <AlertCircle size={12} />
+                            Not submitted
+                          </span>
+                        )}
+                        {status === "PENDING" && (
+                          <span className="flex items-center gap-1 text-xs text-amber-600">
+                            <Clock size={12} />
+                            Pending review
+                          </span>
+                        )}
+                        {status === "APPROVED" && (
+                          <span className="flex items-center gap-1 text-xs text-emerald-600">
+                            <CheckCircle size={12} />
+                            Approved
+                          </span>
+                        )}
+                        {status === "REJECTED" && (
+                          <span className="flex items-center gap-1 text-xs text-red-600">
+                            <XCircle size={12} />
+                            Rejected
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    {status === "NOT_SUBMITTED" && (
+                      <button
+                        onClick={() => {
+                          setSelectedTemplate(template);
+                          setUploadData({ ...uploadData, templateId: template.id });
+                          setShowUploadModal(true);
+                        }}
+                        className="flex-1 rounded-lg bg-[#111827] px-3 py-2 text-sm font-medium text-white hover:bg-[#1f2937]"
+                      >
+                        <Upload size={14} className="mr-1 inline" />
+                        Submit
+                      </button>
+                    )}
+                    {submission && (
+                      <a
+                        href={submission.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <Download size={14} className="mr-1 inline" />
+                        View
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
-      {/* Title */}
-      <h3 className="mb-3 pr-16 text-lg font-bold text-slate-900">
-        {title}
-      </h3>
+      {/* Submitted Deliverables */}
+      {deliverables.length > 0 && (
+        <div>
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Submitted Deliverables</h2>
+          <div className="space-y-4">
+            {deliverables.map((deliverable) => (
+              <div
+                key={deliverable.id}
+                className="rounded-lg border border-slate-200 bg-white p-4"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <FileText size={20} className="text-slate-400" />
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{deliverable.type}</h3>
+                        {deliverable.description && (
+                          <p className="mt-1 text-sm text-slate-600">{deliverable.description}</p>
+                        )}
+                        <p className="mt-1 text-xs text-slate-500">
+                          Submitted: {new Date(deliverable.submittedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(deliverable.status)}
+                      <span className="text-sm text-slate-700">{deliverable.status}</span>
+                    </div>
+                    {deliverable.fileUrl && (
+                      <a
+                        href={deliverable.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded p-1 text-slate-600 hover:bg-slate-100"
+                      >
+                        <Download size={16} />
+                      </a>
+                    )}
+                  </div>
+                </div>
+                {deliverable.feedback && (
+                  <div className="mt-3 rounded-lg bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-700">Feedback:</p>
+                    <p className="mt-1 text-sm text-slate-600">{deliverable.feedback}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Date Info */}
-      <div className="mb-4">
-        {submittedDate ? (
-          <p className="text-sm text-slate-500">Submitted on {submittedDate}</p>
-        ) : (
-          <p
-            className={`inline-flex items-center gap-1.5 text-sm font-medium ${
-              isOverdue
-                ? "text-red-600"
-                : isUrgent
-                ? "text-red-600"
-                : "text-slate-500"
-            }`}
-          >
-            {isOverdue && <AlertTriangle size={14} />}
-            Due {dueDate}
-          </p>
-        )}
-      </div>
-
-      {/* Description */}
-      <p className="mb-6 line-clamp-2 text-sm leading-relaxed text-slate-600">
-        {description}
-      </p>
-
-      {/* Action Button */}
-      <button
-        disabled={isLocked}
-        className={`w-full rounded-lg px-4 py-2.5 text-xs font-semibold transition ${
-          isLocked
-            ? "cursor-not-allowed bg-slate-100 text-slate-400"
-            : status === "overdue"
-            ? "cursor-pointer bg-red-500 text-white hover:bg-red-600"
-            : status === "needs-attention" || status === "pending"
-            ? "cursor-pointer bg-[#111827] text-white hover:bg-[#1f2937]"
-            : "cursor-pointer border-2 border-slate-200 bg-white text-[#111827] hover:border-[#111827] hover:bg-slate-50"
-        }`}
-      >
-        <span className="inline-flex items-center justify-center gap-2">
-          {actionIcon}
-          <span>{actionLabel}</span>
-        </span>
-      </button>
+      {/* Upload Modal */}
+      {showUploadModal && selectedTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">
+              Submit: {selectedTemplate.title}
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700">File</label>
+                <input
+                  type="file"
+                  onChange={(e) =>
+                    setUploadData({ ...uploadData, file: e.target.files?.[0] || null })
+                  }
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#111827] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Description (Optional)</label>
+                <textarea
+                  value={uploadData.description}
+                  onChange={(e) => setUploadData({ ...uploadData, description: e.target.value })}
+                  rows={3}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#111827] focus:outline-none"
+                />
+              </div>
+              {selectedTemplate.dueDate && (
+                <div className="rounded-lg bg-amber-50 p-3">
+                  <p className="text-xs font-medium text-amber-800">
+                    Due Date: {new Date(selectedTemplate.dueDate).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setSelectedTemplate(null);
+                    setUploadData({ templateId: "", file: null, description: "" });
+                  }}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpload}
+                  disabled={loading || !uploadData.file}
+                  className="rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50"
+                >
+                  {loading ? "Uploading..." : "Submit"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
