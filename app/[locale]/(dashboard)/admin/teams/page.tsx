@@ -38,6 +38,10 @@ export default function AdminTeamsPage() {
     userId: "",
     role: "MEMBER" as "MEMBER" | "LEAD",
   });
+  const [studentSearch, setStudentSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
   useEffect(() => {
     loadTeams();
@@ -144,7 +148,7 @@ export default function AdminTeamsPage() {
 
   const handleAddMember = async () => {
     if (!selectedTeam || !addMemberForm.userId) {
-      toast.error("Please enter a user ID");
+      toast.error("Please select a student");
       return;
     }
 
@@ -156,6 +160,9 @@ export default function AdminTeamsPage() {
       });
       toast.success("Member added successfully");
       setAddMemberForm({ userId: "", role: "MEMBER" });
+      setSelectedStudent(null);
+      setStudentSearch("");
+      setSearchResults([]);
       setShowAddMemberModal(false);
       // Reload members
       const members = await adminService.getTeamMembers(selectedTeam.id);
@@ -663,6 +670,9 @@ export default function AdminTeamsPage() {
                 onClick={() => {
                   setShowAddMemberModal(false);
                   setAddMemberForm({ userId: "", role: "MEMBER" });
+                  setSelectedStudent(null);
+                  setStudentSearch("");
+                  setSearchResults([]);
                 }}
                 className="cursor-pointer rounded p-1 text-slate-400 hover:text-slate-600"
               >
@@ -671,14 +681,109 @@ export default function AdminTeamsPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700">User ID</label>
-                <input
-                  type="text"
-                  value={addMemberForm.userId}
-                  onChange={(e) => setAddMemberForm({ ...addMemberForm, userId: e.target.value })}
-                  placeholder="Enter user ID"
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#111827] focus:outline-none"
-                />
+                <label className="block text-sm font-medium text-slate-700">Search Student</label>
+                <div className="relative">
+                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={studentSearch}
+                    onChange={async (e) => {
+                      const query = e.target.value;
+                      setStudentSearch(query);
+                      
+                      if (query.length < 2) {
+                        setSearchResults([]);
+                        return;
+                      }
+                      
+                      try {
+                        setSearching(true);
+                        const response = await adminService.getUsers(1, 10, {
+                          search: query,
+                          role: "STUDENT",
+                          status: "ACTIVE",
+                        });
+                        setSearchResults(response.users || []);
+                      } catch (error) {
+                        console.error("Error searching students:", error);
+                        setSearchResults([]);
+                      } finally {
+                        setSearching(false);
+                      }
+                    }}
+                    placeholder="Search by name or email..."
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#111827] focus:outline-none"
+                  />
+                  
+                  {/* Search Results Dropdown */}
+                  {studentSearch.length >= 2 && (
+                    <div className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                      {searching ? (
+                        <div className="p-4 text-center text-sm text-slate-500">Searching...</div>
+                      ) : searchResults.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-slate-500">No students found</div>
+                      ) : (
+                        searchResults.map((student) => (
+                          <button
+                            key={student.id}
+                            onClick={() => {
+                              setSelectedStudent(student);
+                              setAddMemberForm({ ...addMemberForm, userId: student.id });
+                              setStudentSearch(`${student.firstName} ${student.lastName}`.trim() || student.email);
+                              setSearchResults([]);
+                            }}
+                            className="w-full cursor-pointer px-4 py-3 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-3">
+                              {student.profilePhoto ? (
+                                <img
+                                  src={student.profilePhoto}
+                                  alt={student.firstName}
+                                  className="h-8 w-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
+                                  <Users size={14} className="text-slate-500" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <div className="font-medium text-slate-900">
+                                  {`${student.firstName || ""} ${student.lastName || ""}`.trim() || student.email}
+                                </div>
+                                <div className="text-xs text-slate-500">{student.email}</div>
+                                {student.school && (
+                                  <div className="text-xs text-slate-400">{student.school}</div>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Selected Student Display */}
+                {selectedStudent && (
+                  <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-slate-900">
+                        {`${selectedStudent.firstName || ""} ${selectedStudent.lastName || ""}`.trim() || selectedStudent.email}
+                      </div>
+                      <div className="text-xs text-slate-500">{selectedStudent.email}</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedStudent(null);
+                        setAddMemberForm({ ...addMemberForm, userId: "" });
+                        setStudentSearch("");
+                      }}
+                      className="cursor-pointer rounded p-1 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700">Role</label>
@@ -698,6 +803,9 @@ export default function AdminTeamsPage() {
                   onClick={() => {
                     setShowAddMemberModal(false);
                     setAddMemberForm({ userId: "", role: "MEMBER" });
+                    setSelectedStudent(null);
+                    setStudentSearch("");
+                    setSearchResults([]);
                   }}
                   className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
@@ -705,7 +813,7 @@ export default function AdminTeamsPage() {
                 </button>
                 <button
                   onClick={handleAddMember}
-                  disabled={loadingMembers || !addMemberForm.userId}
+                  disabled={loadingMembers || !addMemberForm.userId || !selectedStudent}
                   className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loadingMembers ? "Adding..." : "Add Member"}

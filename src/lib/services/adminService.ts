@@ -209,7 +209,7 @@ export const adminService = {
   },
 
   /**
-   * Get team deliverables (admin view)
+   * Get all team deliverables/submissions (admin view)
    */
   async getTeamDeliverables(filters?: {
     status?: string;
@@ -228,7 +228,7 @@ export const adminService = {
     }
 
     const { data } = await apiClient.get<TeamDeliverable[]>(
-      `/admin/teams/deliverables?${params.toString()}`
+      `/admin/deliverables?${params.toString()}`
     );
     return data;
   },
@@ -251,7 +251,7 @@ export const adminService = {
    * Get deliverable templates (admin-created requirements)
    */
   async getDeliverableTemplates(): Promise<DeliverableTemplate[]> {
-    const { data } = await apiClient.get<DeliverableTemplate[]>("/admin/deliverable-templates");
+    const { data } = await apiClient.get<DeliverableTemplate[]>("/deliverable-templates");
     return data;
   },
 
@@ -288,30 +288,56 @@ export const adminService = {
     teamId: string,
     payload: {
       templateId: string;
-      file: File;
+      content?: string;
+      contentType: "TEXT" | "FILE" | "URL";
+      file?: File | null;
       description?: string;
     }
   ): Promise<TeamDeliverable> {
-    const formData = new FormData();
-    formData.append("templateId", payload.templateId);
-    formData.append("file", payload.file);
-    if (payload.description) {
-      formData.append("description", payload.description);
-    }
-
     const token = tokenStorage.getAccessToken();
-    const response = await axios.post<TeamDeliverable>(
-      `${apiBaseUrl}/admin/teams/${teamId}/deliverables`,
-      formData,
-      {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
 
-    return response.data;
+    // If contentType is FILE, use FormData
+    if (payload.contentType === "FILE" && payload.file) {
+      const formData = new FormData();
+      formData.append("templateId", payload.templateId);
+      formData.append("contentType", payload.contentType);
+      formData.append("file", payload.file);
+      if (payload.description) {
+        formData.append("description", payload.description);
+      }
+
+      const response = await axios.post<TeamDeliverable>(
+        `${apiBaseUrl}/admin/teams/${teamId}/deliverables`,
+        formData,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : undefined,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return response.data;
+    } else {
+      // For TEXT or URL, use JSON
+      const response = await axios.post<TeamDeliverable>(
+        `${apiBaseUrl}/admin/teams/${teamId}/deliverables`,
+        {
+          templateId: payload.templateId,
+          content: payload.content || "",
+          contentType: payload.contentType,
+          description: payload.description,
+        },
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : undefined,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return response.data;
+    }
   },
 
   /**
@@ -482,7 +508,9 @@ export type DeliverableTemplate = {
   id: string;
   title: string;
   description: string;
-  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION";
+  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION" | "CUSTOM";
+  customType?: string;
+  contentType: "TEXT" | "FILE" | "URL";
   hackathonId?: string;
   dueDate?: string;
   required: boolean;
@@ -493,7 +521,9 @@ export type DeliverableTemplate = {
 export type CreateDeliverableTemplatePayload = {
   title: string;
   description: string;
-  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION";
+  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION" | "CUSTOM";
+  customType?: string;
+  contentType: "TEXT" | "FILE" | "URL";
   hackathonId?: string;
   dueDate?: string;
   required: boolean;
