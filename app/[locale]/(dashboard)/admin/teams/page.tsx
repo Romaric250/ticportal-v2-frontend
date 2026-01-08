@@ -133,7 +133,7 @@ export default function AdminTeamsPage() {
         adminService.getTeamMembers(teamId),
       ]);
       setSelectedTeam(team);
-      setTeamMembers(members);
+      setTeamMembers(Array.isArray(members) ? members : []);
       setShowViewModal(true);
     } catch (error: any) {
       toast.error(error?.message || "Failed to load team details");
@@ -159,7 +159,7 @@ export default function AdminTeamsPage() {
       setShowAddMemberModal(false);
       // Reload members
       const members = await adminService.getTeamMembers(selectedTeam.id);
-      setTeamMembers(members);
+      setTeamMembers(Array.isArray(members) ? members : []);
     } catch (error: any) {
       toast.error(error?.message || "Failed to add member");
     } finally {
@@ -176,7 +176,7 @@ export default function AdminTeamsPage() {
       toast.success("Member role updated");
       // Reload members
       const members = await adminService.getTeamMembers(selectedTeam.id);
-      setTeamMembers(members);
+      setTeamMembers(Array.isArray(members) ? members : []);
     } catch (error: any) {
       toast.error(error?.message || "Failed to update role");
     } finally {
@@ -194,7 +194,7 @@ export default function AdminTeamsPage() {
       toast.success("Member removed");
       // Reload members
       const members = await adminService.getTeamMembers(selectedTeam.id);
-      setTeamMembers(members);
+      setTeamMembers(Array.isArray(members) ? members : []);
     } catch (error: any) {
       toast.error(error?.message || "Failed to remove member");
     } finally {
@@ -563,7 +563,7 @@ export default function AdminTeamsPage() {
               <div className="flex items-center justify-center py-8">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
               </div>
-            ) : teamMembers.length === 0 ? (
+            ) : !teamMembers || teamMembers.length === 0 ? (
               <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
                 <p className="text-slate-500">No members found</p>
               </div>

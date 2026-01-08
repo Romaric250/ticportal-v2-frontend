@@ -380,10 +380,17 @@ export const adminService = {
    * Get team members
    */
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
-    const { data } = await apiClient.get<{ success: true; data: TeamMember[] }>(
-      `/admin/teams/${teamId}/members`
-    );
-    return data.data;
+    try {
+      const response = await apiClient.get<{ success: true; data: TeamMember[] }>(
+        `/admin/teams/${teamId}/members`
+      );
+      // Handle both response.data.data and response.data formats
+      const members = response.data?.data || response.data;
+      return Array.isArray(members) ? members : [];
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      return [];
+    }
   },
 
   /**
