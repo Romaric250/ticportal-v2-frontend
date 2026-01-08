@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, Download, Eye, CheckCircle, XCircle, Clock, Plus, Upload, Users, Edit2, Trash2, X } from "lucide-react";
+import { Plus, Upload, X, Search, Users } from "lucide-react";
 import { adminService, type TeamDeliverable, type DeliverableTemplate } from "../../../../../../src/lib/services/adminService";
 import { toast } from "sonner";
+import { DeliverableTemplatesTab } from "../../../../../../components/dashboard/admin/DeliverableTemplatesTab";
+import { DeliverableSubmissionsTab } from "../../../../../../components/dashboard/admin/DeliverableSubmissionsTab";
+import { DeliverableViewModal } from "../../../../../../components/dashboard/admin/DeliverableViewModal";
 
 export default function AdminTeamDeliverablesPage() {
   const [deliverables, setDeliverables] = useState<TeamDeliverable[]>([]);
@@ -14,6 +17,7 @@ export default function AdminTeamDeliverablesPage() {
   const [showDeleteTemplateModal, setShowDeleteTemplateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDeliverable, setSelectedDeliverable] = useState<TeamDeliverable | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DeliverableTemplate | null>(null);
   const [activeTab, setActiveTab] = useState<"templates" | "submissions">("templates");
   
@@ -222,19 +226,6 @@ export default function AdminTeamDeliverablesPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return <CheckCircle size={16} className="text-emerald-500" />;
-      case "REJECTED":
-        return <XCircle size={16} className="text-red-500" />;
-      case "PENDING":
-        return <Clock size={16} className="text-amber-500" />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -294,192 +285,28 @@ export default function AdminTeamDeliverablesPage() {
 
       {/* Templates Tab */}
       {activeTab === "templates" && (
-        <div className="space-y-4">
-          {loading ? (
-            <div className="text-center text-slate-500">Loading...</div>
-          ) : templates.length === 0 ? (
-            <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
-              <p className="text-slate-500">No deliverable templates yet. Create one to get started.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {templates.map((template) => (
-                <div
-                  key={template.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-slate-900">{template.title}</h3>
-                        {template.required && (
-                          <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                            Required
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-slate-600">{template.description}</p>
-                      <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
-                        <span>{template.customType || template.type}</span>
-                        <span className="rounded bg-slate-100 px-2 py-0.5">
-                          {template.contentType}
-                        </span>
-                        {template.dueDate && (
-                          <span>Due: {new Date(template.dueDate).toLocaleDateString()}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleEditTemplate(template)}
-                        className="cursor-pointer rounded p-1 text-slate-600 hover:bg-slate-100"
-                        title="Edit Template"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTemplate(template)}
-                        className="cursor-pointer rounded p-1 text-red-600 hover:bg-red-50"
-                        title="Delete Template"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <DeliverableTemplatesTab
+          templates={templates}
+          loading={loading}
+          onEdit={handleEditTemplate}
+          onDelete={handleDeleteTemplate}
+        />
       )}
 
       {/* Submissions Tab */}
       {activeTab === "submissions" && (
-        <>
-          {/* Filters */}
-          <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 md:flex-row md:items-center">
-            <div className="relative flex-1">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by team name, project title..."
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#111827] focus:outline-none"
-              />
-            </div>
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#111827] focus:outline-none"
-            >
-              <option>All Statuses</option>
-              <option>PENDING</option>
-              <option>APPROVED</option>
-              <option>REJECTED</option>
-            </select>
-            <select
-              value={filters.hackathon}
-              onChange={(e) => setFilters({ ...filters, hackathon: e.target.value })}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#111827] focus:outline-none"
-            >
-              <option>All Hackathons</option>
-            </select>
-          </div>
-
-          {/* Deliverables Table */}
-          <div className="rounded-lg border border-slate-200 bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
-                      Team
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
-                      Deliverable
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
-                      Submitted
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center">
-                        <p className="text-slate-400">Loading...</p>
-                      </td>
-                    </tr>
-                  ) : deliverables.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
-                        No submissions found
-                      </td>
-                    </tr>
-                  ) : (
-                    deliverables.map((deliverable) => (
-                      <tr key={deliverable.id} className="hover:bg-slate-50">
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-slate-900">{deliverable.teamName}</div>
-                          <div className="text-xs text-slate-500">{deliverable.projectTitle}</div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-700">
-                          {deliverable.type}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-500">
-                          {new Date(deliverable.submittedAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(deliverable.status)}
-                            <span className="text-sm text-slate-700">{deliverable.status}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => window.open(deliverable.fileUrl, "_blank")}
-                              className="rounded p-1 text-slate-600 hover:bg-slate-100"
-                              title="View"
-                            >
-                              <Eye size={16} />
-                            </button>
-                            {deliverable.status === "PENDING" && (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(deliverable.id)}
-                                  className="rounded bg-emerald-500 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-600"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const reason = prompt("Rejection reason:");
-                                    if (reason) handleReject(deliverable.id, reason);
-                                  }}
-                                  className="rounded bg-red-500 px-2 py-1 text-xs font-medium text-white hover:bg-red-600"
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
+        <DeliverableSubmissionsTab
+          deliverables={deliverables}
+          loading={loading}
+          filters={filters}
+          onFilterChange={setFilters}
+          onView={(deliverable) => {
+            setSelectedDeliverable(deliverable);
+            setShowViewModal(true);
+          }}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
       )}
 
       {/* Create Template Modal */}
@@ -1060,6 +887,17 @@ export default function AdminTeamDeliverablesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* View Deliverable Modal */}
+      {showViewModal && selectedDeliverable && (
+        <DeliverableViewModal
+          deliverable={selectedDeliverable}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedDeliverable(null);
+          }}
+        />
       )}
     </div>
   );

@@ -227,10 +227,16 @@ export const adminService = {
       params.append("search", filters.search);
     }
 
-    const { data } = await apiClient.get<TeamDeliverable[]>(
+    const response = await apiClient.get<{ success: true; data: TeamDeliverable[] } | TeamDeliverable[]>(
       `/admin/deliverables?${params.toString()}`
     );
-    return data;
+    // Handle both response formats: { success: true, data: [...] } or direct array
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data?.data) {
+      return response.data.data;
+    }
+    return [];
   },
 
   /**
@@ -534,8 +540,11 @@ export type TeamDeliverable = {
   teamId: string;
   teamName: string;
   projectTitle: string;
-  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION";
-  fileUrl: string;
+  templateId: string;
+  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION" | "CUSTOM";
+  contentType: "TEXT" | "FILE" | "URL";
+  content?: string; // For TEXT or URL content
+  fileUrl?: string; // For FILE content
   description?: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   submittedAt: string;
