@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { notificationService, type Notification } from "../services/notificationService";
 import { getSocket, connectSocket } from "../socket";
 import { useAuthStore } from "../../state/auth-store";
+import { tokenStorage } from "../api-client";
 import { toast } from "sonner";
 
 export function useNotifications() {
@@ -21,7 +22,11 @@ export function useNotifications() {
   // Load notifications from API
   const loadNotifications = useCallback(
     async (page: number = 1, append: boolean = false) => {
-      if (!accessToken) return;
+      if (!accessToken) {
+        // Check tokenStorage as fallback
+        const token = tokenStorage.getAccessToken();
+        if (!token) return;
+      }
 
       try {
         setLoading(true);
@@ -34,9 +39,9 @@ export function useNotifications() {
         }
         
         setPagination(response.pagination);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading notifications:", error);
-        toast.error("Failed to load notifications");
+        // Don't show error toast - notifications are non-critical and errors are handled in service
       } finally {
         setLoading(false);
       }

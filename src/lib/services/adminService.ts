@@ -349,8 +349,9 @@ export const adminService = {
    * Get team details by ID
    */
   async getTeam(teamId: string): Promise<Team> {
-    const { data } = await apiClient.get<{ success: true; data: Team }>(`/admin/teams/${teamId}`);
-    return data.data;
+    const response = await apiClient.get<{ success: true; data: Team }>(`/admin/teams/${teamId}`);
+    // Handle both response.data.data and response.data formats
+    return response.data?.data || response.data;
   },
 
   /**
@@ -374,6 +375,67 @@ export const adminService = {
   async deleteTeam(teamId: string): Promise<void> {
     await apiClient.delete(`/admin/teams/${teamId}`);
   },
+
+  /**
+   * Get team members
+   */
+  async getTeamMembers(teamId: string): Promise<TeamMember[]> {
+    const { data } = await apiClient.get<{ success: true; data: TeamMember[] }>(
+      `/admin/teams/${teamId}/members`
+    );
+    return data.data;
+  },
+
+  /**
+   * Add member to team
+   */
+  async addTeamMember(
+    teamId: string,
+    payload: { userId: string; role: "MEMBER" | "LEAD" }
+  ): Promise<TeamMember> {
+    const { data } = await apiClient.post<{ success: true; data: TeamMember }>(
+      `/admin/teams/${teamId}/members`,
+      payload
+    );
+    return data.data;
+  },
+
+  /**
+   * Change member role
+   */
+  async changeMemberRole(
+    teamId: string,
+    userId: string,
+    role: "MEMBER" | "LEAD"
+  ): Promise<TeamMember> {
+    const { data } = await apiClient.put<{ success: true; data: TeamMember }>(
+      `/admin/teams/${teamId}/members/${userId}`,
+      { role }
+    );
+    return data.data;
+  },
+
+  /**
+   * Remove member from team
+   */
+  async removeTeamMember(teamId: string, userId: string): Promise<void> {
+    await apiClient.delete(`/admin/teams/${teamId}/members/${userId}`);
+  },
+};
+
+export type TeamMember = {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: "MEMBER" | "LEAD";
+  joinedAt: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profilePhoto?: string;
+  };
 };
 
 export type Team = {

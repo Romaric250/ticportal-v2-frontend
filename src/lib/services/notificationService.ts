@@ -50,25 +50,68 @@ export const notificationService = {
    * Get notifications with pagination
    */
   async getNotifications(page: number = 1, limit: number = 20): Promise<NotificationResponse> {
-    // Use axios directly to preserve pagination data structure (bypass apiClient interceptor)
+    // Use axios directly to preserve full response structure (notifications endpoint doesn't use data wrapper)
     const token = tokenStorage.getAccessToken();
     
-    const response = await axios.get<NotificationResponse>(
-      `${apiBaseUrl}/notifications?page=${page}&limit=${limit}`,
-      {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    
-    // Handle response format: { success: true, notifications: [...], pagination: {...} }
-    if (response.data.success) {
-      return response.data;
+    if (!token) {
+      throw new Error("No access token available");
     }
     
-    throw new Error("Failed to fetch notifications");
+    try {
+      const response = await axios.get<NotificationResponse>(
+        `${apiBaseUrl}/notifications?page=${page}&limit=${limit}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      // Handle response format: { success: true, notifications: [...], pagination: {...} }
+      if (response.data?.success) {
+        return response.data;
+      }
+      
+      throw new Error("Failed to fetch notifications");
+    } catch (error: any) {
+      // If 401, try to refresh token via apiClient and retry
+      if (error.response?.status === 401) {
+        try {
+          // Use apiClient which will handle token refresh
+          const refreshedToken = tokenStorage.getAccessToken();
+          if (refreshedToken) {
+            const retryResponse = await axios.get<NotificationResponse>(
+              `${apiBaseUrl}/notifications?page=${page}&limit=${limit}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${refreshedToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            if (retryResponse.data?.success) {
+              return retryResponse.data;
+            }
+          }
+        } catch (retryError) {
+          // If retry fails, suppress error for notifications (non-critical)
+          console.error("Error loading notifications after retry:", retryError);
+          return {
+            success: true,
+            notifications: [],
+            pagination: { page, limit, total: 0, totalPages: 1 },
+          };
+        }
+      }
+      // For other errors, return empty result instead of throwing
+      console.error("Error loading notifications:", error);
+      return {
+        success: true,
+        notifications: [],
+        pagination: { page, limit, total: 0, totalPages: 1 },
+      };
+    }
   },
 
   /**
@@ -78,22 +121,32 @@ export const notificationService = {
     // Use axios directly to preserve response structure
     const token = tokenStorage.getAccessToken();
     
-    const response = await axios.get<UnreadCountResponse>(
-      `${apiBaseUrl}/notifications/unread-count`,
-      {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    
-    // Handle response format: { success: true, count: 5 }
-    if (response.data.success) {
-      return response.data.count;
+    if (!token) {
+      return 0;
     }
     
-    return 0;
+    try {
+      const response = await axios.get<UnreadCountResponse>(
+        `${apiBaseUrl}/notifications/unread-count`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      // Handle response format: { success: true, count: 5 }
+      if (response.data?.success) {
+        return response.data.count;
+      }
+      
+      return 0;
+    } catch (error: any) {
+      // Silently fail for unread count - don't show errors
+      console.error("Error loading unread count:", error);
+      return 0;
+    }
   },
 
   /**

@@ -24,11 +24,19 @@ export default function AdminTeamsPage() {
   });
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     projectTitle: "",
     description: "",
+  });
+  const [addMemberForm, setAddMemberForm] = useState({
+    userId: "",
+    role: "MEMBER" as "MEMBER" | "LEAD",
   });
 
   useEffect(() => {
@@ -119,12 +127,78 @@ export default function AdminTeamsPage() {
 
   const handleViewDetails = async (teamId: string) => {
     try {
-      const team = await adminService.getTeam(teamId);
-      // For now, just show a toast with team info
-      // You can create a detailed view modal if needed
-      toast.info(`Team: ${team.name} - ${team.members?.length || 0} members`);
+      setLoadingMembers(true);
+      const [team, members] = await Promise.all([
+        adminService.getTeam(teamId),
+        adminService.getTeamMembers(teamId),
+      ]);
+      setSelectedTeam(team);
+      setTeamMembers(members);
+      setShowViewModal(true);
     } catch (error: any) {
       toast.error(error?.message || "Failed to load team details");
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!selectedTeam || !addMemberForm.userId) {
+      toast.error("Please enter a user ID");
+      return;
+    }
+
+    try {
+      setLoadingMembers(true);
+      await adminService.addTeamMember(selectedTeam.id, {
+        userId: addMemberForm.userId,
+        role: addMemberForm.role,
+      });
+      toast.success("Member added successfully");
+      setAddMemberForm({ userId: "", role: "MEMBER" });
+      setShowAddMemberModal(false);
+      // Reload members
+      const members = await adminService.getTeamMembers(selectedTeam.id);
+      setTeamMembers(members);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to add member");
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleChangeRole = async (userId: string, newRole: "MEMBER" | "LEAD") => {
+    if (!selectedTeam) return;
+
+    try {
+      setLoadingMembers(true);
+      await adminService.changeMemberRole(selectedTeam.id, userId, newRole);
+      toast.success("Member role updated");
+      // Reload members
+      const members = await adminService.getTeamMembers(selectedTeam.id);
+      setTeamMembers(members);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to update role");
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!selectedTeam) return;
+    if (!confirm("Are you sure you want to remove this member?")) return;
+
+    try {
+      setLoadingMembers(true);
+      await adminService.removeTeamMember(selectedTeam.id, userId);
+      toast.success("Member removed");
+      // Reload members
+      const members = await adminService.getTeamMembers(selectedTeam.id);
+      setTeamMembers(members);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to remove member");
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
@@ -419,6 +493,224 @@ export default function AdminTeamsPage() {
               >
                 {loading ? "Deleting..." : "Delete Team"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Team Details Modal */}
+      {showViewModal && selectedTeam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900">Team Details</h2>
+              <button
+                onClick={() => {
+                  setShowViewModal(false);
+                  setSelectedTeam(null);
+                  setTeamMembers([]);
+                }}
+                className="cursor-pointer rounded p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Team Info */}
+            <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center gap-4">
+                {selectedTeam?.profileImage ? (
+                  <img
+                    src={selectedTeam.profileImage}
+                    alt={selectedTeam?.name || "Team"}
+                    className="h-16 w-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-200">
+                    <Users size={24} className="text-slate-500" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-slate-900">
+                    {selectedTeam?.name || "Unnamed Team"}
+                  </h3>
+                  <p className="text-sm text-slate-600">{selectedTeam?.school || "-"}</p>
+                  {selectedTeam?.projectTitle && (
+                    <p className="mt-1 text-sm font-medium text-slate-700">
+                      {selectedTeam.projectTitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {selectedTeam?.description && (
+                <p className="mt-4 text-sm text-slate-600">{selectedTeam.description}</p>
+              )}
+            </div>
+
+            {/* Members Section */}
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">Team Members</h3>
+              <button
+                onClick={() => setShowAddMemberModal(true)}
+                className="cursor-pointer flex items-center gap-2 rounded-lg bg-[#111827] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#1f2937]"
+              >
+                <Plus size={16} />
+                Add Member
+              </button>
+            </div>
+
+            {loadingMembers ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
+              </div>
+            ) : teamMembers.length === 0 ? (
+              <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
+                <p className="text-slate-500">No members found</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-200 bg-white">
+                <table className="w-full">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Member
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Email
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Role
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Joined
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {teamMembers.map((member) => (
+                      <tr key={member.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {member.user?.profilePhoto ? (
+                              <img
+                                src={member.user.profilePhoto}
+                                alt={member.user.firstName}
+                                className="h-8 w-8 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
+                                <Users size={14} className="text-slate-500" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium text-slate-900">
+                                {member.user
+                                  ? `${member.user.firstName} ${member.user.lastName}`.trim()
+                                  : `User ${member.userId}`}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                          {member.user?.email || "-"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={member.role}
+                            onChange={(e) =>
+                              handleChangeRole(member.userId, e.target.value as "MEMBER" | "LEAD")
+                            }
+                            disabled={loadingMembers}
+                            className="cursor-pointer rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-[#111827] focus:outline-none disabled:opacity-50"
+                          >
+                            <option value="MEMBER">Member</option>
+                            <option value="LEAD">Lead</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-500">
+                          {new Date(member.joinedAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => handleRemoveMember(member.userId)}
+                            disabled={loadingMembers}
+                            className="cursor-pointer rounded p-1 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                            title="Remove Member"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && selectedTeam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900">Add Team Member</h2>
+              <button
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  setAddMemberForm({ userId: "", role: "MEMBER" });
+                }}
+                className="cursor-pointer rounded p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700">User ID</label>
+                <input
+                  type="text"
+                  value={addMemberForm.userId}
+                  onChange={(e) => setAddMemberForm({ ...addMemberForm, userId: e.target.value })}
+                  placeholder="Enter user ID"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#111827] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Role</label>
+                <select
+                  value={addMemberForm.role}
+                  onChange={(e) =>
+                    setAddMemberForm({ ...addMemberForm, role: e.target.value as "MEMBER" | "LEAD" })
+                  }
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#111827] focus:outline-none"
+                >
+                  <option value="MEMBER">Member</option>
+                  <option value="LEAD">Lead</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowAddMemberModal(false);
+                    setAddMemberForm({ userId: "", role: "MEMBER" });
+                  }}
+                  className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddMember}
+                  disabled={loadingMembers || !addMemberForm.userId}
+                  className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingMembers ? "Adding..." : "Add Member"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
