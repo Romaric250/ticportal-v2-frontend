@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare } from "lucide-react";
+import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare, UserCog, Gavel, GraduationCap } from "lucide-react";
 import { useAuthStore } from "../../src/state/auth-store";
 import { authService } from "../../src/lib/services/authService";
 import { toast } from "sonner";
@@ -54,17 +54,30 @@ export function Sidebar({ role }: Props) {
 
   const links: SidebarLink[] = [
     { href: `${basePath}`, label: "Overview", icon: <Home size={16} /> },
-    { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
     ...(role === "student"
       ? [
+          { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
           { href: `${basePath}/learning-path`, label: "Learning Path", icon: <BookOpen size={16} /> },
           { href: `${basePath}/portfolio`, label: "Portfolio", icon: <User size={16} /> },
           { href: `${basePath}/team`, label: "My Team", icon: <Users size={16} /> },
           { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
+          { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
+          { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
         ]
-      : []),
-    { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
-    { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
+      : role === "admin" || role === "super-admin"
+      ? [
+          { href: `${basePath}/users`, label: "User Management", icon: <UserCog size={16} /> },
+          { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
+          { href: `${basePath}/teams`, label: "Teams", icon: <Users size={16} /> },
+          { href: `${basePath}/learning-path`, label: "Learning Path", icon: <BookOpen size={16} /> },
+          { href: `${basePath}/mentorship`, label: "Mentorship", icon: <GraduationCap size={16} /> },
+          { href: `${basePath}/judging`, label: "Judging", icon: <Gavel size={16} /> },
+        ]
+      : [
+          { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
+          { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
+          { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
+        ]),
   ];
 
   return (
