@@ -27,9 +27,16 @@ export default function DashboardLayout({ children }: Props) {
     | "admin"
     | "super-admin";
 
-  const { user } = useAuthStore();
+  const { user, initialize, initialized } = useAuthStore();
   const router = useRouter();
   const locale = useLocale();
+
+  // Initialize auth store on mount to sync tokens
+  useEffect(() => {
+    if (!initialized) {
+      initialize();
+    }
+  }, [initialize, initialized]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [profileData, setProfileData] = useState<{
