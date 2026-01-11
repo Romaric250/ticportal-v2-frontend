@@ -19,6 +19,9 @@ export function SubmitDeliverableModal({
   onSubmit,
   loading,
 }: SubmitDeliverableModalProps) {
+  // Check if this is a resubmission (rejected deliverable)
+  const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
+  const isResubmit = reviewStatus === "REJECTED" && isUpdate;
   const [formData, setFormData] = useState({
     content: deliverable.content || "",
     description: deliverable.description || "",
@@ -59,7 +62,7 @@ export function SubmitDeliverableModal({
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
           <h2 className="text-lg font-semibold text-slate-900">
-            {isUpdate ? "Update" : "Submit"}: {deliverable.template.title}
+            {isResubmit ? "Resubmit" : (isUpdate ? "Update" : "Submit")}: {deliverable.template.title}
           </h2>
           <button
             onClick={onClose}
@@ -171,12 +174,12 @@ export function SubmitDeliverableModal({
               {loading ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  {isUpdate ? "Updating..." : "Submitting..."}
+                  {isResubmit ? "Resubmitting..." : (isUpdate ? "Updating..." : "Submitting...")}
                 </>
               ) : (
                 <>
                   <Upload size={14} />
-                  {isUpdate ? "Update" : "Submit"}
+                  {isResubmit ? "Resubmit" : (isUpdate ? "Update" : "Submit")}
                 </>
               )}
             </button>

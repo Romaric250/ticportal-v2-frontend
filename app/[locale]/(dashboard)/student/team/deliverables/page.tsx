@@ -78,7 +78,9 @@ export default function StudentTeamDeliverablesPage() {
         description: data.description,
       });
 
-      toast.success(isUpdate ? "Deliverable updated successfully" : "Deliverable submitted successfully");
+      const reviewStatus = selectedDeliverable.reviewStatus || selectedDeliverable.status || "PENDING";
+      const isResubmit = reviewStatus === "REJECTED";
+      toast.success(isResubmit ? "Deliverable resubmitted successfully" : (isUpdate ? "Deliverable updated successfully" : "Deliverable submitted successfully"));
       setShowSubmitModal(false);
       setSelectedDeliverable(null);
       setIsUpdate(false);
@@ -96,7 +98,9 @@ export default function StudentTeamDeliverablesPage() {
 
   const handleOpenSubmit = (deliverable: TeamDeliverable) => {
     setSelectedDeliverable(deliverable);
-    setIsUpdate(false);
+    // If reviewStatus is REJECTED, treat it as an update (resubmission)
+    const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
+    setIsUpdate(reviewStatus === "REJECTED");
     setShowSubmitModal(true);
   };
 
@@ -275,6 +279,7 @@ export default function StudentTeamDeliverablesPage() {
                   const canSubmit = !deadlineStatuses[deliverable.id]?.passed;
                   const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
                   const canUpdate = isSubmitted && canSubmit && reviewStatus === "PENDING";
+                  const canResubmit = reviewStatus === "REJECTED" && canSubmit;
                   const canDelete = isSubmitted && canSubmit && (reviewStatus === "PENDING" || reviewStatus === "REJECTED");
                   const deadlineStatus = deadlineStatuses[deliverable.id];
                   const displayStatus = getDisplayStatus(deliverable);
@@ -348,7 +353,17 @@ export default function StudentTeamDeliverablesPage() {
                             </button>
                           )}
                           
-                          {!isSubmitted && canSubmit && (
+                          {canResubmit && (
+                            <button
+                              onClick={() => handleOpenSubmit(deliverable)}
+                              className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] transition-colors flex items-center gap-1.5"
+                            >
+                              <Upload size={14} />
+                              Resubmit
+                            </button>
+                          )}
+
+                          {!isSubmitted && canSubmit && !canResubmit && (
                             <button
                               onClick={() => handleOpenSubmit(deliverable)}
                               className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] transition-colors flex items-center gap-1.5"
