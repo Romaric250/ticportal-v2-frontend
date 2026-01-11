@@ -80,6 +80,22 @@ export type DashboardStats = {
   activeTeams: number;
 };
 
+/**
+ * Normalize deliverable data to ensure consistent structure
+ */
+function normalizeDeliverable(deliverable: any): TeamDeliverable {
+  return {
+    ...deliverable,
+    // Support both team.name and teamName
+    teamName: deliverable.team?.name || deliverable.teamName || "Unknown Team",
+    // Support legacy status field, map to reviewStatus if needed
+    reviewStatus: deliverable.reviewStatus || deliverable.status || "PENDING",
+    submissionStatus: deliverable.submissionStatus || (deliverable.content ? "SUBMITTED" : "NOT_SUBMITTED"),
+    // Ensure status field exists for backward compatibility
+    status: deliverable.reviewStatus || deliverable.status || "PENDING",
+  };
+}
+
 export const adminService = {
   /**
    * Get admin dashboard statistics
@@ -209,14 +225,26 @@ export const adminService = {
   },
 
   /**
-   * Get all team deliverables/submissions (admin view)
+   * Get all team deliverables/submissions (admin view) with dual status filtering
    */
-  async getTeamDeliverables(filters?: {
-    status?: string;
-    hackathon?: string;
-    search?: string;
-  }): Promise<TeamDeliverable[]> {
+  async getTeamDeliverables(filters?: DeliverableFilters): Promise<TeamDeliverable[]> {
     const params = new URLSearchParams();
+    
+    // New dual status filters
+    if (filters?.submissionStatus) {
+      params.append("submissionStatus", filters.submissionStatus);
+    }
+    if (filters?.reviewStatus) {
+      params.append("reviewStatus", filters.reviewStatus);
+    }
+    if (filters?.teamId) {
+      params.append("teamId", filters.teamId);
+    }
+    if (filters?.templateId) {
+      params.append("templateId", filters.templateId);
+    }
+    
+    // Legacy filters for backward compatibility
     if (filters?.status && filters.status !== "All Statuses") {
       params.append("status", filters.status);
     }
@@ -232,9 +260,9 @@ export const adminService = {
     );
     // Handle both response formats: { success: true, data: [...] } or direct array
     if (Array.isArray(response.data)) {
-      return response.data;
+      return response.data.map(normalizeDeliverable);
     } else if (response.data?.data) {
-      return response.data.data;
+      return response.data.data.map(normalizeDeliverable);
     }
     return [];
   },
@@ -243,21 +271,21 @@ export const adminService = {
    * Approve deliverable
    */
   async approveDeliverable(deliverableId: string): Promise<void> {
-    await apiClient.post(`/admin/teams/deliverables/${deliverableId}/approve`);
+    await apiClient.post(`/admin/deliverables/${deliverableId}/approve`);
   },
 
   /**
    * Reject deliverable
    */
   async rejectDeliverable(deliverableId: string, reason: string): Promise<void> {
-    await apiClient.post(`/admin/teams/deliverables/${deliverableId}/reject`, { reason });
+    await apiClient.post(`/admin/deliverables/${deliverableId}/reject`, { reason });
   },
 
   /**
    * Delete deliverable (admin)
    */
   async deleteDeliverable(deliverableId: string): Promise<void> {
-    await apiClient.delete(`/admin/teams/deliverables/${deliverableId}`);
+    await apiClient.delete(`/admin/deliverables/${deliverableId}`);
   },
 
   /**
@@ -545,17 +573,42 @@ export type CreateDeliverableTemplatePayload = {
 export type TeamDeliverable = {
   id: string;
   teamId: string;
-  teamName: string;
-  projectTitle: string;
+  team?: {
+    name: string;
+  };
+  teamName?: string; // Legacy support
+  projectTitle?: string;
   templateId: string;
   type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION" | "CUSTOM";
-  contentType: "TEXT" | "FILE" | "URL";
+  contentType?: "TEXT" | "FILE" | "URL";
   content?: string; // For TEXT or URL content
-  fileUrl?: string; // For FILE content
+  fileUrl?: string; // For FILE content (legacy)
   description?: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  submittedAt: string;
+  // Dual status system
+  submissionStatus: "NOT_SUBMITTED" | "SUBMITTED";
+  reviewStatus: "PENDING" | "APPROVED" | "REJECTED";
+  // Legacy status field (deprecated, use reviewStatus)
+  status?: "PENDING" | "APPROVED" | "REJECTED";
+  submittedAt?: string;
+  reviewedAt?: string;
   feedback?: string;
   hackathonId?: string;
+  template?: {
+    id: string;
+    title: string;
+    description: string;
+    contentType: "TEXT" | "FILE" | "URL";
+    dueDate?: string;
+  };
+};
+
+export type DeliverableFilters = {
+  submissionStatus?: "NOT_SUBMITTED" | "SUBMITTED";
+  reviewStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  teamId?: string;
+  templateId?: string;
+  status?: string; // Legacy filter support
+  hackathon?: string; // Legacy filter support
+  search?: string;
 };
 

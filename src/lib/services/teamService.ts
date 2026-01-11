@@ -5,10 +5,12 @@ export type TeamDeliverable = {
   id: string;
   teamId: string;
   templateId: string; // Reference to deliverable template
-  content: string; // File URL, external URL, or text content
+  content: string; // File URL, external URL, or text content (empty initially)
   contentType?: "FILE" | "URL" | "TEXT";
   description?: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  // Dual status system
+  submissionStatus: "NOT_SUBMITTED" | "SUBMITTED";
+  reviewStatus: "PENDING" | "APPROVED" | "REJECTED";
   submittedAt?: string;
   feedback?: string;
   reviewedAt?: string;
@@ -21,6 +23,7 @@ export type TeamDeliverable = {
     required: boolean;
   };
   // Legacy fields for backward compatibility
+  status?: "PENDING" | "APPROVED" | "REJECTED"; // Deprecated, use reviewStatus
   type?: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION" | "CUSTOM";
   fileUrl?: string;
   hackathonId?: string;
@@ -397,7 +400,14 @@ export const teamService = {
     const { data } = await apiClient.get<{ success: boolean; data: TeamDeliverable[] }>(
       `/deliverables/team/${teamId}`
     );
-    return data.data || data;
+    const deliverables = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+    // Normalize deliverables to ensure consistent structure
+    return deliverables.map((deliverable: any) => ({
+      ...deliverable,
+      submissionStatus: deliverable.submissionStatus || (deliverable.content && deliverable.content.length > 0 ? "SUBMITTED" : "NOT_SUBMITTED"),
+      reviewStatus: deliverable.reviewStatus || deliverable.status || "PENDING",
+      status: deliverable.reviewStatus || deliverable.status || "PENDING", // Legacy support
+    }));
   },
 
   /**

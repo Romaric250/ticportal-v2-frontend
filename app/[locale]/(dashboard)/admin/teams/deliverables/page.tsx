@@ -21,9 +21,13 @@ export default function AdminTeamDeliverablesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<DeliverableTemplate | null>(null);
   const [activeTab, setActiveTab] = useState<"templates" | "submissions">("templates");
   
-  const [filters, setFilters] = useState({
-    status: "All Statuses",
-    hackathon: "All Hackathons",
+  const [filters, setFilters] = useState<{
+    submissionStatus?: "NOT_SUBMITTED" | "SUBMITTED" | string;
+    reviewStatus?: "PENDING" | "APPROVED" | "REJECTED" | string;
+    status?: string;
+    hackathon?: string;
+    search?: string;
+  }>({
     search: "",
   });
 
@@ -62,7 +66,11 @@ export default function AdminTeamDeliverablesPage() {
         const data = await adminService.getDeliverableTemplates();
         setTemplates(data);
       } else {
-        const data = await adminService.getTeamDeliverables(filters);
+        const data = await adminService.getTeamDeliverables({
+          ...filters,
+          submissionStatus: filters.submissionStatus as "NOT_SUBMITTED" | "SUBMITTED" | undefined,
+          reviewStatus: filters.reviewStatus as "PENDING" | "APPROVED" | "REJECTED" | undefined,
+        });
         setDeliverables(data);
       }
     } catch (error: any) {
@@ -159,6 +167,20 @@ export default function AdminTeamDeliverablesPage() {
       loadData();
     } catch (error: any) {
       toast.error(error?.message || "Failed to reject deliverable");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this submission? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await adminService.deleteDeliverable(id);
+      toast.success("Submission deleted successfully");
+      loadData();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to delete submission");
     }
   };
 
@@ -306,6 +328,7 @@ export default function AdminTeamDeliverablesPage() {
           }}
           onApprove={handleApprove}
           onReject={handleReject}
+          onDelete={handleDelete}
         />
       )}
 

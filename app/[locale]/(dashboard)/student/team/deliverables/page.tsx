@@ -133,8 +133,8 @@ export default function StudentTeamDeliverablesPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (reviewStatus: string) => {
+    switch (reviewStatus) {
       case "APPROVED":
         return <CheckCircle size={16} className="text-emerald-500" />;
       case "REJECTED":
@@ -143,6 +143,24 @@ export default function StudentTeamDeliverablesPage() {
         return <Clock size={16} className="text-amber-500" />;
       default:
         return <AlertCircle size={16} className="text-slate-400" />;
+    }
+  };
+
+  const getDisplayStatus = (deliverable: TeamDeliverable) => {
+    if (deliverable.submissionStatus === "NOT_SUBMITTED") {
+      return { text: "Not Submitted", color: "text-slate-500", icon: <AlertCircle size={16} className="text-slate-400" /> };
+    }
+    // If submitted, show review status
+    const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
+    switch (reviewStatus) {
+      case "APPROVED":
+        return { text: "Approved", color: "text-emerald-600", icon: <CheckCircle size={16} className="text-emerald-500" /> };
+      case "REJECTED":
+        return { text: "Rejected", color: "text-red-600", icon: <XCircle size={16} className="text-red-500" /> };
+      case "PENDING":
+        return { text: "Pending Review", color: "text-amber-600", icon: <Clock size={16} className="text-amber-500" /> };
+      default:
+        return { text: "Pending", color: "text-slate-500", icon: <Clock size={16} className="text-slate-400" /> };
     }
   };
 
@@ -253,11 +271,13 @@ export default function StudentTeamDeliverablesPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {deliverables.map((deliverable) => {
-                  const isSubmitted = deliverable.content && deliverable.content.length > 0;
+                  const isSubmitted = deliverable.submissionStatus === "SUBMITTED" || (deliverable.content && deliverable.content.length > 0);
                   const canSubmit = !deadlineStatuses[deliverable.id]?.passed;
-                  const canUpdate = isSubmitted && canSubmit && deliverable.status === "PENDING";
-                  const canDelete = isSubmitted && canSubmit && (deliverable.status === "PENDING" || deliverable.status === "REJECTED");
+                  const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
+                  const canUpdate = isSubmitted && canSubmit && reviewStatus === "PENDING";
+                  const canDelete = isSubmitted && canSubmit && (reviewStatus === "PENDING" || reviewStatus === "REJECTED");
                   const deadlineStatus = deadlineStatuses[deliverable.id];
+                  const displayStatus = getDisplayStatus(deliverable);
 
                   return (
                     <tr key={deliverable.id} className="hover:bg-slate-50 transition-colors">
@@ -282,14 +302,14 @@ export default function StudentTeamDeliverablesPage() {
                           {deliverable.template.contentType}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(isSubmitted ? deliverable.status : "NOT_SUBMITTED")}
-                          <span className="text-sm text-slate-700">
-                            {isSubmitted ? deliverable.status : "Not Submitted"}
-                          </span>
-                        </div>
-                      </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {displayStatus.icon}
+                        <span className={`text-sm font-medium ${displayStatus.color}`}>
+                          {displayStatus.text}
+                        </span>
+                      </div>
+                    </td>
                       <td className="px-6 py-4">
                         <div className="space-y-1">
                           {deliverable.template.dueDate && (

@@ -9,8 +9,8 @@ interface DeliverableViewModalProps {
 }
 
 export function DeliverableViewModal({ deliverable, onClose }: DeliverableViewModalProps) {
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (reviewStatus: string) => {
+    switch (reviewStatus) {
       case "APPROVED":
         return <CheckCircle size={18} className="text-emerald-500" />;
       case "REJECTED":
@@ -21,6 +21,8 @@ export function DeliverableViewModal({ deliverable, onClose }: DeliverableViewMo
         return null;
     }
   };
+
+  const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
 
   const renderContent = () => {
     if (deliverable.contentType === "FILE" && deliverable.fileUrl) {
@@ -145,8 +147,12 @@ export function DeliverableViewModal({ deliverable, onClose }: DeliverableViewMo
                   Team Information
                 </label>
                 <div className="rounded-lg border border-slate-200 bg-white p-4">
-                  <p className="text-base font-semibold text-slate-900">{deliverable.teamName}</p>
-                  <p className="text-sm text-slate-600 mt-1">{deliverable.projectTitle}</p>
+                  <p className="text-base font-semibold text-slate-900">
+                    {deliverable.team?.name || deliverable.teamName || "Unknown Team"}
+                  </p>
+                  {deliverable.projectTitle && (
+                    <p className="text-sm text-slate-600 mt-1">{deliverable.projectTitle}</p>
+                  )}
                 </div>
               </div>
 
@@ -166,26 +172,63 @@ export function DeliverableViewModal({ deliverable, onClose }: DeliverableViewMo
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                  Status
+                  Submission Status
                 </label>
-                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                <div className="rounded-lg border border-slate-200 bg-white p-4 mb-3">
                   <div className="flex items-center gap-2">
-                    {getStatusIcon(deliverable.status)}
-                    <span className="text-sm font-medium text-slate-900">{deliverable.status}</span>
+                    {deliverable.submissionStatus === "SUBMITTED" ? (
+                      <>
+                        <CheckCircle size={18} className="text-emerald-500" />
+                        <span className="text-sm font-medium text-emerald-700">Submitted</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock size={18} className="text-slate-400" />
+                        <span className="text-sm font-medium text-slate-600">Not Submitted</span>
+                      </>
+                    )}
                   </div>
                 </div>
+                {deliverable.submissionStatus === "SUBMITTED" && (
+                  <>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      Review Status
+                    </label>
+                    <div className="rounded-lg border border-slate-200 bg-white p-4">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(reviewStatus)}
+                        <span className="text-sm font-medium text-slate-900">{reviewStatus}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                  Submitted At
-                </label>
-                <div className="rounded-lg border border-slate-200 bg-white p-4">
-                  <p className="text-sm text-slate-900">
-                    {new Date(deliverable.submittedAt).toLocaleString()}
-                  </p>
+              {deliverable.submissionStatus === "SUBMITTED" && deliverable.submittedAt && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                    Submitted At
+                  </label>
+                  <div className="rounded-lg border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-900">
+                      {new Date(deliverable.submittedAt).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {deliverable.submissionStatus === "SUBMITTED" && deliverable.reviewStatus !== "PENDING" && deliverable.reviewedAt && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                    Reviewed At
+                  </label>
+                  <div className="rounded-lg border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-900">
+                      {new Date(deliverable.reviewedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right Column */}
