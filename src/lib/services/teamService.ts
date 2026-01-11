@@ -469,5 +469,14 @@ export const teamService = {
     const { data } = await apiClient.get<DeliverableTemplate[]>("/teams/deliverable-templates");
     return data;
   },
+
+  /**
+   * Delete a deliverable submission
+   */
+  async deleteDeliverable(deliverableId: string, teamId: string): Promise<void> {
+    await apiClient.delete(`/deliverables/${deliverableId}`, {
+      data: { teamId },
+    });
+  },
 };
 

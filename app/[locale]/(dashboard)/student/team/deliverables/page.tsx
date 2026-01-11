@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText } from "lucide-react";
+import { FileText, Eye, Edit2, Trash2, Upload, CheckCircle, XCircle, Clock, AlertCircle, ExternalLink } from "lucide-react";
 import { teamService, type TeamDeliverable, type DeliverableDeadlineStatus } from "../../../../../../src/lib/services/teamService";
 import { toast } from "sonner";
-import { DeliverableCard } from "../../../../../../components/dashboard/student/DeliverableCard";
 import { SubmitDeliverableModal } from "../../../../../../components/dashboard/student/SubmitDeliverableModal";
+import { ViewDeliverableModal } from "../../../../../../components/dashboard/student/ViewDeliverableModal";
+import { DeleteDeliverableModal } from "../../../../../../components/dashboard/student/DeleteDeliverableModal";
 
 export default function StudentTeamDeliverablesPage() {
   const [deliverables, setDeliverables] = useState<TeamDeliverable[]>([]);
@@ -13,7 +14,10 @@ export default function StudentTeamDeliverablesPage() {
   const [team, setTeam] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedDeliverable, setSelectedDeliverable] = useState<TeamDeliverable | null>(null);
   const [isUpdate, setIsUpdate] = useState(false);
 
@@ -102,6 +106,98 @@ export default function StudentTeamDeliverablesPage() {
     setShowSubmitModal(true);
   };
 
+  const handleOpenView = (deliverable: TeamDeliverable) => {
+    setSelectedDeliverable(deliverable);
+    setShowViewModal(true);
+  };
+
+  const handleOpenDelete = (deliverable: TeamDeliverable) => {
+    setSelectedDeliverable(deliverable);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedDeliverable || !team) return;
+
+    try {
+      setDeleting(true);
+      await teamService.deleteDeliverable(selectedDeliverable.id, team.id);
+      toast.success("Submission deleted successfully");
+      setShowDeleteModal(false);
+      setSelectedDeliverable(null);
+      loadData();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to delete submission");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "APPROVED":
+        return <CheckCircle size={16} className="text-emerald-500" />;
+      case "REJECTED":
+        return <XCircle size={16} className="text-red-500" />;
+      case "PENDING":
+        return <Clock size={16} className="text-amber-500" />;
+      default:
+        return <AlertCircle size={16} className="text-slate-400" />;
+    }
+  };
+
+  const truncateText = (text: string, maxLength: number = 100) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + "...";
+  };
+
+  const renderContentPreview = (deliverable: TeamDeliverable) => {
+    if (!deliverable.content) {
+      return <span className="text-slate-400 italic">No content</span>;
+    }
+
+    if (deliverable.contentType === "FILE" || deliverable.contentType === "URL") {
+      return (
+        <a
+          href={deliverable.content}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline inline-flex items-center gap-1 max-w-xs truncate"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {truncateText(deliverable.content, 50)}
+          <ExternalLink size={12} />
+        </a>
+      );
+    }
+
+    if (deliverable.contentType === "TEXT") {
+      return (
+        <span className="text-slate-700 max-w-md line-clamp-2" title={deliverable.content}>
+          {truncateText(deliverable.content, 100)}
+        </span>
+      );
+    }
+
+    // Fallback for legacy fileUrl
+    if (deliverable.fileUrl) {
+      return (
+        <a
+          href={deliverable.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline inline-flex items-center gap-1 max-w-xs truncate"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {truncateText(deliverable.fileUrl, 50)}
+          <ExternalLink size={12} />
+        </a>
+      );
+    }
+
+    return <span className="text-slate-400 italic">No content</span>;
+  };
+
   if (!team) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -130,16 +226,149 @@ export default function StudentTeamDeliverablesPage() {
           <p className="mt-4 text-sm text-slate-500">No deliverables assigned yet</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {deliverables.map((deliverable) => (
-            <DeliverableCard
-              key={deliverable.id}
-              deliverable={deliverable}
-              deadlineStatus={deadlineStatuses[deliverable.id]}
-              onSubmit={() => handleOpenSubmit(deliverable)}
-              onUpdate={() => handleOpenUpdate(deliverable)}
-            />
-          ))}
+        <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-slate-200 bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Deliverable
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Content Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Due Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Submission
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {deliverables.map((deliverable) => {
+                  const isSubmitted = deliverable.content && deliverable.content.length > 0;
+                  const canSubmit = !deadlineStatuses[deliverable.id]?.passed;
+                  const canUpdate = isSubmitted && canSubmit && deliverable.status === "PENDING";
+                  const canDelete = isSubmitted && canSubmit && (deliverable.status === "PENDING" || deliverable.status === "REJECTED");
+                  const deadlineStatus = deadlineStatuses[deliverable.id];
+
+                  return (
+                    <tr key={deliverable.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-slate-900">{deliverable.template.title}</h3>
+                              {deliverable.template.required && (
+                                <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                  Required
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-600 line-clamp-2">{deliverable.template.description}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                          <FileText size={12} />
+                          {deliverable.template.contentType}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(isSubmitted ? deliverable.status : "NOT_SUBMITTED")}
+                          <span className="text-sm text-slate-700">
+                            {isSubmitted ? deliverable.status : "Not Submitted"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          {deliverable.template.dueDate && (
+                            <p className="text-sm text-slate-900">
+                              {new Date(deliverable.template.dueDate).toLocaleDateString()}
+                            </p>
+                          )}
+                          {deadlineStatus && (
+                            <p className={`text-xs font-medium ${
+                              deadlineStatus.passed ? "text-red-600" : "text-emerald-600"
+                            }`}>
+                              {deadlineStatus.passed ? "Passed" : deadlineStatus.timeRemaining}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1 max-w-md">
+                          {isSubmitted && deliverable.submittedAt && (
+                            <p className="text-xs text-slate-500">
+                              {new Date(deliverable.submittedAt).toLocaleString()}
+                            </p>
+                          )}
+                          {renderContentPreview(deliverable)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {isSubmitted && (
+                            <button
+                              onClick={() => handleOpenView(deliverable)}
+                              className="cursor-pointer rounded p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
+                              title="View Details"
+                            >
+                              <Eye size={16} />
+                            </button>
+                          )}
+                          
+                          {!isSubmitted && canSubmit && (
+                            <button
+                              onClick={() => handleOpenSubmit(deliverable)}
+                              className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] transition-colors flex items-center gap-1.5"
+                            >
+                              <Upload size={14} />
+                              Submit
+                            </button>
+                          )}
+
+                          {canUpdate && (
+                            <button
+                              onClick={() => handleOpenUpdate(deliverable)}
+                              className="cursor-pointer rounded p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
+                              title="Update"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                          )}
+
+                          {canDelete && (
+                            <button
+                              onClick={() => handleOpenDelete(deliverable)}
+                              className="cursor-pointer rounded-lg border border-red-300 bg-white px-2 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                              title="Delete Submission"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+
+                          {!canSubmit && !isSubmitted && (
+                            <span className="text-xs font-medium text-red-600">Deadline Passed</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -154,6 +383,28 @@ export default function StudentTeamDeliverablesPage() {
           }}
           onSubmit={handleSubmit}
           loading={submitting}
+        />
+      )}
+
+      {showViewModal && selectedDeliverable && (
+        <ViewDeliverableModal
+          deliverable={selectedDeliverable}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedDeliverable(null);
+          }}
+        />
+      )}
+
+      {showDeleteModal && selectedDeliverable && (
+        <DeleteDeliverableModal
+          deliverable={selectedDeliverable}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setSelectedDeliverable(null);
+          }}
+          onConfirm={handleDelete}
+          loading={deleting}
         />
       )}
     </div>

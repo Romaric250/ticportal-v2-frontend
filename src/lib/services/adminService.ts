@@ -254,6 +254,13 @@ export const adminService = {
   },
 
   /**
+   * Delete deliverable (admin)
+   */
+  async deleteDeliverable(deliverableId: string): Promise<void> {
+    await apiClient.delete(`/admin/teams/deliverables/${deliverableId}`);
+  },
+
+  /**
    * Get deliverable templates (admin-created requirements)
    */
   async getDeliverableTemplates(): Promise<DeliverableTemplate[]> {
