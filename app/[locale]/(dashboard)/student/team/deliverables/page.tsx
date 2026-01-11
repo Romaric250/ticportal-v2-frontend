@@ -1,22 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, FileText, CheckCircle, XCircle, Clock, Download, AlertCircle } from "lucide-react";
-import { teamService, type TeamDeliverable, type DeliverableTemplate } from "../../../../../../src/lib/services/teamService";
+import { FileText } from "lucide-react";
+import { teamService, type TeamDeliverable, type DeliverableDeadlineStatus } from "../../../../../../src/lib/services/teamService";
 import { toast } from "sonner";
+import { DeliverableCard } from "../../../../../../components/dashboard/student/DeliverableCard";
+import { SubmitDeliverableModal } from "../../../../../../components/dashboard/student/SubmitDeliverableModal";
 
 export default function StudentTeamDeliverablesPage() {
   const [deliverables, setDeliverables] = useState<TeamDeliverable[]>([]);
-  const [templates, setTemplates] = useState<DeliverableTemplate[]>([]);
+  const [deadlineStatuses, setDeadlineStatuses] = useState<Record<string, DeliverableDeadlineStatus>>({});
   const [team, setTeam] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<DeliverableTemplate | null>(null);
-  const [uploadData, setUploadData] = useState({
-    templateId: "",
-    file: null as File | null,
-    description: "",
-  });
+  const [submitting, setSubmitting] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [selectedDeliverable, setSelectedDeliverable] = useState<TeamDeliverable | null>(null);
+  const [isUpdate, setIsUpdate] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -28,12 +27,22 @@ export default function StudentTeamDeliverablesPage() {
       const myTeams = await teamService.getMyTeams();
       if (myTeams.length > 0) {
         setTeam(myTeams[0]);
-        const [teamDeliverables, availableTemplates] = await Promise.all([
-          teamService.getTeamDeliverables(myTeams[0].id),
-          teamService.getAvailableDeliverableTemplates(),
-        ]);
+        const teamDeliverables = await teamService.getTeamDeliverables(myTeams[0].id);
         setDeliverables(teamDeliverables);
-        setTemplates(availableTemplates);
+
+        // Load deadline statuses for all deliverables
+        const statuses: Record<string, DeliverableDeadlineStatus> = {};
+        await Promise.all(
+          teamDeliverables.map(async (deliverable) => {
+            try {
+              const status = await teamService.checkDeadline(deliverable.id);
+              statuses[deliverable.id] = status;
+            } catch (error) {
+              console.error(`Failed to load deadline for ${deliverable.id}:`, error);
+            }
+          })
+        );
+        setDeadlineStatuses(statuses);
       }
     } catch (error: any) {
       toast.error(error?.message || "Failed to load deliverables");
@@ -42,44 +51,55 @@ export default function StudentTeamDeliverablesPage() {
     }
   };
 
-  const handleUpload = async () => {
-    if (!uploadData.file || !team || !uploadData.templateId) return;
+  const handleSubmit = async (data: { content: string; contentType: "FILE" | "URL" | "TEXT"; description?: string; file?: File }) => {
+    if (!selectedDeliverable || !team) return;
 
     try {
-      setLoading(true);
-      await teamService.uploadDeliverable(team.id, {
-        templateId: uploadData.templateId,
-        file: uploadData.file,
-        description: uploadData.description,
+      setSubmitting(true);
+
+      // For FILE type, we need to upload the file first
+      let content = data.content;
+      if (data.contentType === "FILE" && data.file) {
+        // Upload file using the uploadFileForDeliverable method
+        const fileUrl = await teamService.uploadFileForDeliverable(data.file);
+        content = fileUrl;
+      } else if (data.contentType === "FILE" && !content) {
+        throw new Error("Please select a file to upload");
+      }
+
+      await teamService.submitDeliverable(selectedDeliverable.id, {
+        teamId: team.id,
+        content,
+        contentType: data.contentType,
+        description: data.description,
       });
-      toast.success("Deliverable uploaded successfully");
-      setShowUploadModal(false);
-      setUploadData({ templateId: "", file: null, description: "" });
-      setSelectedTemplate(null);
+
+      toast.success(isUpdate ? "Deliverable updated successfully" : "Deliverable submitted successfully");
+      setShowSubmitModal(false);
+      setSelectedDeliverable(null);
+      setIsUpdate(false);
       loadData();
     } catch (error: any) {
-      toast.error(error?.message || "Failed to upload deliverable");
+      if (error?.response?.status === 400) {
+        toast.error(error?.response?.data?.message || "Deadline has passed. Cannot submit or update.");
+      } else {
+        toast.error(error?.message || "Failed to submit deliverable");
+      }
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return <CheckCircle size={16} className="text-emerald-500" />;
-      case "REJECTED":
-        return <XCircle size={16} className="text-red-500" />;
-      case "PENDING":
-        return <Clock size={16} className="text-amber-500" />;
-      default:
-        return null;
-    }
+  const handleOpenSubmit = (deliverable: TeamDeliverable) => {
+    setSelectedDeliverable(deliverable);
+    setIsUpdate(false);
+    setShowSubmitModal(true);
   };
 
-  const getTemplateStatus = (templateId: string) => {
-    const submission = deliverables.find((d) => d.templateId === templateId);
-    return submission ? submission.status : "NOT_SUBMITTED";
+  const handleOpenUpdate = (deliverable: TeamDeliverable) => {
+    setSelectedDeliverable(deliverable);
+    setIsUpdate(true);
+    setShowSubmitModal(true);
   };
 
   if (!team) {
@@ -99,214 +119,42 @@ export default function StudentTeamDeliverablesPage() {
         </p>
       </div>
 
-      {/* Required Deliverables */}
-      <div>
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">Required Deliverables</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {loading ? (
-            <div className="text-center text-slate-500">Loading...</div>
-          ) : templates.length === 0 ? (
-            <div className="col-span-full rounded-lg border border-slate-200 bg-white p-8 text-center">
-              <FileText size={48} className="mx-auto text-slate-300" />
-              <p className="mt-4 text-sm text-slate-500">No deliverables assigned yet</p>
-            </div>
-          ) : (
-            templates.map((template) => {
-              const status = getTemplateStatus(template.id);
-              const submission = deliverables.find((d) => d.templateId === template.id);
-
-              return (
-                <div
-                  key={template.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-slate-900">{template.title}</h3>
-                        {template.required && (
-                          <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                            Required
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-slate-600">{template.description}</p>
-                      {template.dueDate && (
-                        <p className="mt-2 text-xs text-slate-500">
-                          Due: {new Date(template.dueDate).toLocaleDateString()}
-                        </p>
-                      )}
-                      <div className="mt-3 flex items-center gap-2">
-                        {status === "NOT_SUBMITTED" && (
-                          <span className="flex items-center gap-1 text-xs text-amber-600">
-                            <AlertCircle size={12} />
-                            Not submitted
-                          </span>
-                        )}
-                        {status === "PENDING" && (
-                          <span className="flex items-center gap-1 text-xs text-amber-600">
-                            <Clock size={12} />
-                            Pending review
-                          </span>
-                        )}
-                        {status === "APPROVED" && (
-                          <span className="flex items-center gap-1 text-xs text-emerald-600">
-                            <CheckCircle size={12} />
-                            Approved
-                          </span>
-                        )}
-                        {status === "REJECTED" && (
-                          <span className="flex items-center gap-1 text-xs text-red-600">
-                            <XCircle size={12} />
-                            Rejected
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center gap-2">
-                    {status === "NOT_SUBMITTED" && (
-                      <button
-                        onClick={() => {
-                          setSelectedTemplate(template);
-                          setUploadData({ ...uploadData, templateId: template.id });
-                          setShowUploadModal(true);
-                        }}
-                        className="flex-1 rounded-lg bg-[#111827] px-3 py-2 text-sm font-medium text-white hover:bg-[#1f2937]"
-                      >
-                        <Upload size={14} className="mr-1 inline" />
-                        Submit
-                      </button>
-                    )}
-                    {submission && (
-                      <a
-                        href={submission.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      >
-                        <Download size={14} className="mr-1 inline" />
-                        View
-                      </a>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
+          <p className="mt-4 text-sm text-slate-500">Loading deliverables...</p>
         </div>
-      </div>
-
-      {/* Submitted Deliverables */}
-      {deliverables.length > 0 && (
-        <div>
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Submitted Deliverables</h2>
-          <div className="space-y-4">
-            {deliverables.map((deliverable) => (
-              <div
-                key={deliverable.id}
-                className="rounded-lg border border-slate-200 bg-white p-4"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <FileText size={20} className="text-slate-400" />
-                      <div>
-                        <h3 className="font-semibold text-slate-900">{deliverable.type}</h3>
-                        {deliverable.description && (
-                          <p className="mt-1 text-sm text-slate-600">{deliverable.description}</p>
-                        )}
-                        <p className="mt-1 text-xs text-slate-500">
-                          Submitted: {new Date(deliverable.submittedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(deliverable.status)}
-                      <span className="text-sm text-slate-700">{deliverable.status}</span>
-                    </div>
-                    {deliverable.fileUrl && (
-                      <a
-                        href={deliverable.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded p-1 text-slate-600 hover:bg-slate-100"
-                      >
-                        <Download size={16} />
-                      </a>
-                    )}
-                  </div>
-                </div>
-                {deliverable.feedback && (
-                  <div className="mt-3 rounded-lg bg-slate-50 p-3">
-                    <p className="text-xs font-medium text-slate-700">Feedback:</p>
-                    <p className="mt-1 text-sm text-slate-600">{deliverable.feedback}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+      ) : deliverables.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
+          <FileText size={48} className="mx-auto text-slate-300" />
+          <p className="mt-4 text-sm text-slate-500">No deliverables assigned yet</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {deliverables.map((deliverable) => (
+            <DeliverableCard
+              key={deliverable.id}
+              deliverable={deliverable}
+              deadlineStatus={deadlineStatuses[deliverable.id]}
+              onSubmit={() => handleOpenSubmit(deliverable)}
+              onUpdate={() => handleOpenUpdate(deliverable)}
+            />
+          ))}
         </div>
       )}
 
-      {/* Upload Modal */}
-      {showUploadModal && selectedTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6">
-            <h2 className="mb-4 text-lg font-semibold text-slate-900">
-              Submit: {selectedTemplate.title}
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">File</label>
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    setUploadData({ ...uploadData, file: e.target.files?.[0] || null })
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#111827] focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Description (Optional)</label>
-                <textarea
-                  value={uploadData.description}
-                  onChange={(e) => setUploadData({ ...uploadData, description: e.target.value })}
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#111827] focus:outline-none"
-                />
-              </div>
-              {selectedTemplate.dueDate && (
-                <div className="rounded-lg bg-amber-50 p-3">
-                  <p className="text-xs font-medium text-amber-800">
-                    Due Date: {new Date(selectedTemplate.dueDate).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => {
-                    setShowUploadModal(false);
-                    setSelectedTemplate(null);
-                    setUploadData({ templateId: "", file: null, description: "" });
-                  }}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpload}
-                  disabled={loading || !uploadData.file}
-                  className="rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50"
-                >
-                  {loading ? "Uploading..." : "Submit"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {showSubmitModal && selectedDeliverable && (
+        <SubmitDeliverableModal
+          deliverable={selectedDeliverable}
+          isUpdate={isUpdate}
+          onClose={() => {
+            setShowSubmitModal(false);
+            setSelectedDeliverable(null);
+            setIsUpdate(false);
+          }}
+          onSubmit={handleSubmit}
+          loading={submitting}
+        />
       )}
     </div>
   );

@@ -5,13 +5,31 @@ export type TeamDeliverable = {
   id: string;
   teamId: string;
   templateId: string; // Reference to deliverable template
-  type: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION";
-  fileUrl: string;
+  content: string; // File URL, external URL, or text content
+  contentType?: "FILE" | "URL" | "TEXT";
   description?: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
-  submittedAt: string;
+  submittedAt?: string;
   feedback?: string;
+  reviewedAt?: string;
+  template: {
+    id: string;
+    title: string;
+    description: string;
+    dueDate: string;
+    contentType: "FILE" | "URL" | "TEXT";
+    required: boolean;
+  };
+  // Legacy fields for backward compatibility
+  type?: "PROPOSAL" | "PROTOTYPE" | "FINAL_SUBMISSION" | "DOCUMENTATION" | "CUSTOM";
+  fileUrl?: string;
   hackathonId?: string;
+};
+
+export type DeliverableDeadlineStatus = {
+  passed: boolean;
+  dueDate: string;
+  timeRemaining: string;
 };
 
 export type DeliverableTemplate = {
@@ -373,43 +391,65 @@ export const teamService = {
   },
 
   /**
-   * Get team deliverables
+   * Get team deliverables (new API structure)
    */
   async getTeamDeliverables(teamId: string): Promise<TeamDeliverable[]> {
-    const { data } = await apiClient.get<TeamDeliverable[]>(`/teams/${teamId}/deliverables`);
-    return data;
+    const { data } = await apiClient.get<{ success: boolean; data: TeamDeliverable[] }>(
+      `/deliverables/team/${teamId}`
+    );
+    return data.data || data;
   },
 
   /**
-   * Get available deliverable templates for team
+   * Get single deliverable details
    */
-  async getAvailableDeliverableTemplates(): Promise<DeliverableTemplate[]> {
-    const { data } = await apiClient.get<DeliverableTemplate[]>("/teams/deliverable-templates");
-    return data;
+  async getDeliverableDetails(deliverableId: string, teamId: string): Promise<TeamDeliverable> {
+    const { data } = await apiClient.get<{ success: boolean; data: TeamDeliverable }>(
+      `/deliverables/${deliverableId}?teamId=${teamId}`
+    );
+    return data.data || data;
   },
 
   /**
-   * Upload deliverable (student submission)
+   * Check deadline status for a deliverable
    */
-  async uploadDeliverable(
-    teamId: string,
+  async checkDeadline(deliverableId: string): Promise<DeliverableDeadlineStatus> {
+    const { data } = await apiClient.get<{ success: boolean; data: DeliverableDeadlineStatus }>(
+      `/deliverables/${deliverableId}/deadline`
+    );
+    return data.data || data;
+  },
+
+  /**
+   * Submit or update deliverable (handles both first submission and updates)
+   */
+  async submitDeliverable(
+    deliverableId: string,
     payload: {
-      templateId: string; // Reference to deliverable template
-      file: File;
+      teamId: string;
+      content: string; // File URL, external URL, or text content
+      contentType: "FILE" | "URL" | "TEXT";
       description?: string;
     }
   ): Promise<TeamDeliverable> {
+    const { data } = await apiClient.post<{ success: boolean; message: string; data: TeamDeliverable }>(
+      `/deliverables/${deliverableId}/submit`,
+      payload
+    );
+    return data.data;
+  },
+
+  /**
+   * Upload file for deliverable (helper to upload file first, then submit)
+   */
+  async uploadFileForDeliverable(file: File): Promise<string> {
     const formData = new FormData();
-    formData.append("templateId", payload.templateId);
-    formData.append("file", payload.file);
-    if (payload.description) {
-      formData.append("description", payload.description);
-    }
+    formData.append("file", file);
 
     const token = tokenStorage.getAccessToken();
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
-    const response = await axios.post<TeamDeliverable>(
-      `${apiBaseUrl}/teams/${teamId}/deliverables`,
+    const response = await axios.post<{ url: string }>(
+      `${apiBaseUrl}/upload`, // Assuming there's an upload endpoint
       formData,
       {
         headers: {
@@ -419,7 +459,15 @@ export const teamService = {
       }
     );
 
-    return response.data;
+    return response.data.url;
+  },
+
+  /**
+   * Get available deliverable templates for team (legacy - may not be needed with new structure)
+   */
+  async getAvailableDeliverableTemplates(): Promise<DeliverableTemplate[]> {
+    const { data } = await apiClient.get<DeliverableTemplate[]>("/teams/deliverable-templates");
+    return data;
   },
 };
 

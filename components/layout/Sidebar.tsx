@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare, UserCog, Gavel, GraduationCap, FileText } from "lucide-react";
+import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare, UserCog, Gavel, GraduationCap } from "lucide-react";
 import { useAuthStore } from "../../src/state/auth-store";
 import { authService } from "../../src/lib/services/authService";
 import { toast } from "sonner";
@@ -60,7 +60,6 @@ export function Sidebar({ role }: Props) {
           { href: `${basePath}/learning-path`, label: "Learning Path", icon: <BookOpen size={16} /> },
           { href: `${basePath}/portfolio`, label: "Portfolio", icon: <User size={16} /> },
           { href: `${basePath}/team`, label: "My Team", icon: <Users size={16} /> },
-          { href: `${basePath}/team/deliverables`, label: "Deliverables", icon: <FileText size={16} /> },
           { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
           { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
           { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
