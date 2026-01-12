@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo } from "react";
-import { X, FileText, HelpCircle, Plus, Trash2, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code, Bold, Italic, Underline, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
+import { X, FileText, HelpCircle, Plus, Trash2, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code, Bold, Italic, Underline } from "lucide-react";
 import type { LearningPath, Module, QuizQuestion } from "../../../src/lib/services/learningPathService";
 import { 
   EditorRoot, 
@@ -12,10 +12,15 @@ import {
   EditorCommandEmpty,
   StarterKit,
   Placeholder,
-  type JSONContent
+  Command,
+  createSuggestionItems,
+  renderItems,
+  type JSONContent,
+  type SuggestionItem
 } from "novel";
 import { TiptapLink } from "novel";
 import { TiptapImage } from "novel";
+import { TiptapUnderline } from "novel";
 
 interface ModuleEditorModalProps {
   learningPath: LearningPath;
@@ -29,90 +34,6 @@ interface ModuleEditorModalProps {
   }) => void;
   loading: boolean;
 }
-
-// Slash command items for formatting options
-const slashCommands = [
-  {
-    title: "Heading 1",
-    description: "Big section heading",
-    icon: <Heading1 size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 1 }).run();
-    },
-  },
-  {
-    title: "Heading 2",
-    description: "Medium section heading",
-    icon: <Heading2 size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 2 }).run();
-    },
-  },
-  {
-    title: "Heading 3",
-    description: "Small section heading",
-    icon: <Heading3 size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 3 }).run();
-    },
-  },
-  {
-    title: "Bullet List",
-    description: "Create a bullet list",
-    icon: <List size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).toggleBulletList().run();
-    },
-  },
-  {
-    title: "Numbered List",
-    description: "Create a numbered list",
-    icon: <ListOrdered size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).toggleOrderedList().run();
-    },
-  },
-  {
-    title: "Quote",
-    description: "Create a quote block",
-    icon: <Quote size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).toggleBlockquote().run();
-    },
-  },
-  {
-    title: "Code Block",
-    description: "Create a code block",
-    icon: <Code size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
-    },
-  },
-  {
-    title: "Bold",
-    description: "Make text bold",
-    icon: <Bold size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).toggleBold().run();
-    },
-  },
-  {
-    title: "Italic",
-    description: "Make text italic",
-    icon: <Italic size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).toggleItalic().run();
-    },
-  },
-  {
-    title: "Underline",
-    description: "Make text underlined",
-    icon: <Underline size={18} />,
-    command: ({ editor, range }: any) => {
-      editor.chain().focus().deleteRange(range).toggleUnderline().run();
-    },
-  },
-];
 
 export function ModuleEditorModal({
   learningPath,
@@ -157,6 +78,108 @@ export function ModuleEditorModal({
     // Return default empty doc structure for new modules
     return defaultContent;
   }, [module?.id, module?.content]);
+
+  // Create suggestion items for slash commands - MUST use createSuggestionItems
+  const suggestionItems = createSuggestionItems([
+    {
+      title: "Heading 1",
+      description: "Big section heading",
+      searchTerms: ["h1", "heading", "title"],
+      icon: <Heading1 size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).setNode("heading", { level: 1 }).run();
+      },
+    },
+    {
+      title: "Heading 2",
+      description: "Medium section heading",
+      searchTerms: ["h2", "heading", "subtitle"],
+      icon: <Heading2 size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).setNode("heading", { level: 2 }).run();
+      },
+    },
+    {
+      title: "Heading 3",
+      description: "Small section heading",
+      searchTerms: ["h3", "heading"],
+      icon: <Heading3 size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).setNode("heading", { level: 3 }).run();
+      },
+    },
+    {
+      title: "Bullet List",
+      description: "Create a bullet list",
+      searchTerms: ["ul", "bullet", "list"],
+      icon: <List size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).toggleBulletList().run();
+      },
+    },
+    {
+      title: "Numbered List",
+      description: "Create a numbered list",
+      searchTerms: ["ol", "numbered", "list"],
+      icon: <ListOrdered size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).toggleOrderedList().run();
+      },
+    },
+    {
+      title: "Quote",
+      description: "Create a quote block",
+      searchTerms: ["quote", "blockquote"],
+      icon: <Quote size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+      },
+    },
+    {
+      title: "Code Block",
+      description: "Create a code block",
+      searchTerms: ["code", "pre"],
+      icon: <Code size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+      },
+    },
+    {
+      title: "Bold",
+      description: "Make text bold",
+      searchTerms: ["bold", "strong"],
+      icon: <Bold size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).toggleBold().run();
+      },
+    },
+    {
+      title: "Italic",
+      description: "Make text italic",
+      searchTerms: ["italic", "em"],
+      icon: <Italic size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).toggleItalic().run();
+      },
+    },
+    {
+      title: "Underline",
+      description: "Make text underlined",
+      searchTerms: ["underline", "u"],
+      icon: <Underline size={18} />,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).toggleUnderline().run();
+      },
+    },
+  ]);
+
+  // Configure Command extension with renderItems - THIS IS CRITICAL
+  const slashCommand = Command.configure({
+    suggestion: {
+      items: () => suggestionItems,
+      render: renderItems,
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -311,6 +334,8 @@ export function ModuleEditorModal({
                           Placeholder.configure({
                             placeholder: "Type '/' for formatting options...",
                           }),
+                          TiptapUnderline,
+                          slashCommand,
                           TiptapLink.configure({
                             openOnClick: false,
                             HTMLAttributes: {
@@ -341,10 +366,14 @@ export function ModuleEditorModal({
                             No results found
                           </EditorCommandEmpty>
                           <EditorCommandList>
-                            {slashCommands.map((item) => (
+                            {suggestionItems.map((item) => (
                               <EditorCommandItem
                                 value={item.title}
-                                onCommand={item.command}
+                                onCommand={(val) => {
+                                  if (item.command) {
+                                    item.command(val);
+                                  }
+                                }}
                                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100 aria-selected:bg-slate-100 cursor-pointer"
                                 key={item.title}
                               >
