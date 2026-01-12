@@ -127,4 +127,86 @@ export const learningPathService = {
       `/admin/learning-paths/${learningPathId}/modules/${moduleId}`
     );
   },
+
+  // Student endpoints
+  /**
+   * Get all learning paths available to students
+   */
+  async getStudentPaths(): Promise<LearningPath[]> {
+    const { data } = await apiClient.get<LearningPath[]>("/learning-paths");
+    return data;
+  },
+
+  /**
+   * Get learning path by ID (student view)
+   */
+  async getStudentPathById(id: string): Promise<LearningPath> {
+    const { data } = await apiClient.get<LearningPath>(`/learning-paths/${id}`);
+    return data;
+  },
+
+  /**
+   * Enroll in a learning path
+   */
+  async enrollInPath(pathId: string): Promise<{ id: string; userId: string; learningPathId: string; enrolledAt: string; isAutoEnrolled: boolean }> {
+    const { data } = await apiClient.post<{ success: boolean; message: string; data: any }>(`/learning-paths/${pathId}/enroll`);
+    return data.data;
+  },
+
+  /**
+   * Submit quiz answers for a module
+   */
+  async submitQuiz(pathId: string, moduleId: string, answers: number[]): Promise<{
+    id?: string;
+    userId?: string;
+    moduleId: string;
+    completedAt?: string;
+    quizScore: number;
+    quizAnswers: number[];
+    pointsAwarded: number;
+    passed: boolean;
+  }> {
+    const { data } = await apiClient.post<{ success: boolean; message: string; data: any }>(
+      `/learning-paths/${pathId}/modules/${moduleId}/submit-quiz`,
+      { answers }
+    );
+    return data.data;
+  },
+
+  /**
+   * Complete a module (without quiz)
+   */
+  async completeModule(pathId: string, moduleId: string): Promise<{
+    id: string;
+    moduleId: string;
+    completedAt: string;
+    pointsAwarded: number;
+  }> {
+    const { data } = await apiClient.post<{ success: boolean; message: string; data: any }>(
+      `/learning-paths/${pathId}/modules/${moduleId}/complete`
+    );
+    return data.data;
+  },
+
+  /**
+   * Get user progress for a learning path
+   */
+  async getProgress(pathId: string): Promise<{
+    pathId: string;
+    completedModules: number;
+    totalModules: number;
+    percentComplete: number;
+    averageScore?: number;
+    modules: Array<{
+      moduleId: string;
+      title: string;
+      isCompleted: boolean;
+      completedAt?: string;
+      quizScore?: number;
+      pointsEarned?: number;
+    }>;
+  }> {
+    const { data } = await apiClient.get<{ success: boolean; data: any }>(`/learning-paths/${pathId}/progress`);
+    return data.data;
+  },
 };
