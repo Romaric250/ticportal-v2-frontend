@@ -1,9 +1,21 @@
 "use client";
 
 import { useState, useRef, useMemo } from "react";
-import { X, FileText, HelpCircle, Plus, Trash2 } from "lucide-react";
+import { X, FileText, HelpCircle, Plus, Trash2, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code, Bold, Italic, Underline, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
 import type { LearningPath, Module, QuizQuestion } from "../../../src/lib/services/learningPathService";
-import { EditorRoot, EditorContent, StarterKit, type JSONContent } from "novel";
+import { 
+  EditorRoot, 
+  EditorContent, 
+  EditorCommand,
+  EditorCommandList,
+  EditorCommandItem,
+  EditorCommandEmpty,
+  StarterKit,
+  Placeholder,
+  type JSONContent
+} from "novel";
+import { TiptapLink } from "novel";
+import { TiptapImage } from "novel";
 
 interface ModuleEditorModalProps {
   learningPath: LearningPath;
@@ -17,6 +29,90 @@ interface ModuleEditorModalProps {
   }) => void;
   loading: boolean;
 }
+
+// Slash command items for formatting options
+const slashCommands = [
+  {
+    title: "Heading 1",
+    description: "Big section heading",
+    icon: <Heading1 size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).setNode("heading", { level: 1 }).run();
+    },
+  },
+  {
+    title: "Heading 2",
+    description: "Medium section heading",
+    icon: <Heading2 size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).setNode("heading", { level: 2 }).run();
+    },
+  },
+  {
+    title: "Heading 3",
+    description: "Small section heading",
+    icon: <Heading3 size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).setNode("heading", { level: 3 }).run();
+    },
+  },
+  {
+    title: "Bullet List",
+    description: "Create a bullet list",
+    icon: <List size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).toggleBulletList().run();
+    },
+  },
+  {
+    title: "Numbered List",
+    description: "Create a numbered list",
+    icon: <ListOrdered size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).toggleOrderedList().run();
+    },
+  },
+  {
+    title: "Quote",
+    description: "Create a quote block",
+    icon: <Quote size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+    },
+  },
+  {
+    title: "Code Block",
+    description: "Create a code block",
+    icon: <Code size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+    },
+  },
+  {
+    title: "Bold",
+    description: "Make text bold",
+    icon: <Bold size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).toggleBold().run();
+    },
+  },
+  {
+    title: "Italic",
+    description: "Make text italic",
+    icon: <Italic size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).toggleItalic().run();
+    },
+  },
+  {
+    title: "Underline",
+    description: "Make text underlined",
+    icon: <Underline size={18} />,
+    command: ({ editor, range }: any) => {
+      editor.chain().focus().deleteRange(range).toggleUnderline().run();
+    },
+  },
+];
 
 export function ModuleEditorModal({
   learningPath,
@@ -203,22 +299,71 @@ export function ModuleEditorModal({
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Module Content <span className="text-red-500">*</span>
                   </label>
-                  <div className="rounded-lg border border-slate-300 bg-white overflow-hidden min-h-[400px]">
+                  <div className="rounded-lg border border-slate-300 bg-white overflow-hidden min-h-[500px] shadow-sm">
                     <EditorRoot key={module?.id || "new-module"}>
                       <EditorContent
-                        extensions={[StarterKit]}
+                        extensions={[
+                          StarterKit.configure({
+                            heading: {
+                              levels: [1, 2, 3],
+                            },
+                          }),
+                          Placeholder.configure({
+                            placeholder: "Type '/' for formatting options...",
+                          }),
+                          TiptapLink.configure({
+                            openOnClick: false,
+                            HTMLAttributes: {
+                              class: "text-[#111827] underline cursor-pointer",
+                            },
+                          }),
+                          TiptapImage.configure({
+                            HTMLAttributes: {
+                              class: "rounded-lg max-w-full",
+                            },
+                          }),
+                        ]}
                         initialContent={initialContent}
-                        className="min-h-[400px] w-full prose prose-slate max-w-none focus:outline-none"
+                        className="min-h-[500px] w-full prose prose-slate max-w-none focus:outline-none px-4 py-3"
+                        editorProps={{
+                          attributes: {
+                            class: "prose prose-slate max-w-none focus:outline-none min-h-[500px] px-4 py-3",
+                          },
+                        }}
                         onUpdate={({ editor }) => {
                           if (editor) {
                             editorInstanceRef.current = editor;
                           }
                         }}
-                      />
+                      >
+                        <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-slate-200 bg-white px-1 py-2 shadow-md transition-all">
+                          <EditorCommandEmpty className="px-2 text-sm text-slate-500">
+                            No results found
+                          </EditorCommandEmpty>
+                          <EditorCommandList>
+                            {slashCommands.map((item) => (
+                              <EditorCommandItem
+                                value={item.title}
+                                onCommand={item.command}
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100 aria-selected:bg-slate-100 cursor-pointer"
+                                key={item.title}
+                              >
+                                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600">
+                                  {item.icon}
+                                </div>
+                                <div className="flex flex-col">
+                                  <p className="font-medium">{item.title}</p>
+                                  <p className="text-xs text-slate-500">{item.description}</p>
+                                </div>
+                              </EditorCommandItem>
+                            ))}
+                          </EditorCommandList>
+                        </EditorCommand>
+                      </EditorContent>
                     </EditorRoot>
                   </div>
                   <p className="mt-2 text-xs text-slate-500">
-                    Use the editor above to create rich, formatted content with styles. The content is automatically saved as JSON.
+                    Type <kbd className="px-1.5 py-0.5 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded">/</kbd> to see formatting options. Use the editor to create rich, formatted content with styles.
                   </p>
                 </div>
               )}
