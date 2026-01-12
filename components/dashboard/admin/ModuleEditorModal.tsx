@@ -1,26 +1,9 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
-import { X, FileText, HelpCircle, Plus, Trash2, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code, Bold, Italic, Underline } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, FileText, HelpCircle, Plus, Trash2 } from "lucide-react";
 import type { LearningPath, Module, QuizQuestion } from "../../../src/lib/services/learningPathService";
-import { 
-  EditorRoot, 
-  EditorContent, 
-  EditorCommand,
-  EditorCommandList,
-  EditorCommandItem,
-  EditorCommandEmpty,
-  StarterKit,
-  Placeholder,
-  Command,
-  createSuggestionItems,
-  renderItems,
-  type JSONContent,
-  type SuggestionItem
-} from "novel";
-import { TiptapLink } from "novel";
-import { TiptapImage } from "novel";
-import { TiptapUnderline } from "novel";
+import { ModuleEditorWrapper } from "./ModuleEditorWrapper";
 
 interface ModuleEditorModalProps {
   learningPath: LearningPath;
@@ -46,158 +29,15 @@ export function ModuleEditorModal({
   const [order, setOrder] = useState(module?.order || (learningPath.modules?.length || 0));
   const [quiz, setQuiz] = useState<QuizQuestion[]>(module?.quiz || []);
   const [activeTab, setActiveTab] = useState<"content" | "quiz">("content");
-  const editorInstanceRef = useRef<any>(null);
-
-  // Parse and memoize initial content for editor - always return valid doc structure
-  const initialContent = useMemo<JSONContent>(() => {
-    // Default empty doc structure that novel editor expects
-    const defaultContent: JSONContent = {
-      type: 'doc',
-      content: []
-    };
-
-    if (module?.content) {
-      try {
-        const parsed = JSON.parse(module.content);
-        // Validate it's a proper doc structure with correct schema
-        if (
-          parsed && 
-          typeof parsed === 'object' && 
-          parsed.type === 'doc' && 
-          Array.isArray(parsed.content)
-        ) {
-          return parsed as JSONContent;
-        }
-        // If parsed but invalid structure, return default
-        return defaultContent;
-      } catch (e) {
-        console.error('Failed to parse module content:', e);
-        return defaultContent;
-      }
-    }
-    // Return default empty doc structure for new modules
-    return defaultContent;
-  }, [module?.id, module?.content]);
-
-  // Create suggestion items for slash commands - MUST use createSuggestionItems
-  const suggestionItems = createSuggestionItems([
-    {
-      title: "Heading 1",
-      description: "Big section heading",
-      searchTerms: ["h1", "heading", "title"],
-      icon: <Heading1 size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).setNode("heading", { level: 1 }).run();
-      },
-    },
-    {
-      title: "Heading 2",
-      description: "Medium section heading",
-      searchTerms: ["h2", "heading", "subtitle"],
-      icon: <Heading2 size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).setNode("heading", { level: 2 }).run();
-      },
-    },
-    {
-      title: "Heading 3",
-      description: "Small section heading",
-      searchTerms: ["h3", "heading"],
-      icon: <Heading3 size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).setNode("heading", { level: 3 }).run();
-      },
-    },
-    {
-      title: "Bullet List",
-      description: "Create a bullet list",
-      searchTerms: ["ul", "bullet", "list"],
-      icon: <List size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleBulletList().run();
-      },
-    },
-    {
-      title: "Numbered List",
-      description: "Create a numbered list",
-      searchTerms: ["ol", "numbered", "list"],
-      icon: <ListOrdered size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleOrderedList().run();
-      },
-    },
-    {
-      title: "Quote",
-      description: "Create a quote block",
-      searchTerms: ["quote", "blockquote"],
-      icon: <Quote size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleBlockquote().run();
-      },
-    },
-    {
-      title: "Code Block",
-      description: "Create a code block",
-      searchTerms: ["code", "pre"],
-      icon: <Code size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
-      },
-    },
-    {
-      title: "Bold",
-      description: "Make text bold",
-      searchTerms: ["bold", "strong"],
-      icon: <Bold size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleBold().run();
-      },
-    },
-    {
-      title: "Italic",
-      description: "Make text italic",
-      searchTerms: ["italic", "em"],
-      icon: <Italic size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleItalic().run();
-      },
-    },
-    {
-      title: "Underline",
-      description: "Make text underlined",
-      searchTerms: ["underline", "u"],
-      icon: <Underline size={18} />,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleUnderline().run();
-      },
-    },
-  ]);
-
-  // Configure Command extension with renderItems - THIS IS CRITICAL
-  const slashCommand = Command.configure({
-    suggestion: {
-      items: () => suggestionItems,
-      render: renderItems,
-    },
-  });
+  const [content, setContent] = useState<string>(module?.content || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    
-    // Get content from editor
-    let editorContent = "";
-    if (editorInstanceRef.current) {
-      const json = editorInstanceRef.current.getJSON();
-      editorContent = JSON.stringify(json);
-    } else if (module?.content) {
-      // Fallback to existing content if editor not initialized
-      editorContent = module.content;
-    }
-    
+
     onSubmit({
       title: title.trim(),
-      content: editorContent,
+      content: content,
       order,
       quiz,
     });
@@ -323,73 +163,13 @@ export function ModuleEditorModal({
                     Module Content <span className="text-red-500">*</span>
                   </label>
                   <div className="rounded-lg border border-slate-300 bg-white overflow-hidden min-h-[500px] shadow-sm">
-                    <EditorRoot key={module?.id || "new-module"}>
-                      <EditorContent
-                        extensions={[
-                          StarterKit.configure({
-                            heading: {
-                              levels: [1, 2, 3],
-                            },
-                          }),
-                          Placeholder.configure({
-                            placeholder: "Type '/' for formatting options...",
-                          }),
-                          TiptapUnderline,
-                          slashCommand,
-                          TiptapLink.configure({
-                            openOnClick: false,
-                            HTMLAttributes: {
-                              class: "text-[#111827] underline cursor-pointer",
-                            },
-                          }),
-                          TiptapImage.configure({
-                            HTMLAttributes: {
-                              class: "rounded-lg max-w-full",
-                            },
-                          }),
-                        ]}
-                        initialContent={initialContent}
-                        className="min-h-[500px] w-full prose prose-slate max-w-none focus:outline-none px-4 py-3"
-                        editorProps={{
-                          attributes: {
-                            class: "prose prose-slate max-w-none focus:outline-none min-h-[500px] px-4 py-3",
-                          },
-                        }}
-                        onUpdate={({ editor }) => {
-                          if (editor) {
-                            editorInstanceRef.current = editor;
-                          }
-                        }}
-                      >
-                        <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-slate-200 bg-white px-1 py-2 shadow-md transition-all">
-                          <EditorCommandEmpty className="px-2 text-sm text-slate-500">
-                            No results found
-                          </EditorCommandEmpty>
-                          <EditorCommandList>
-                            {suggestionItems.map((item) => (
-                              <EditorCommandItem
-                                value={item.title}
-                                onCommand={(val) => {
-                                  if (item.command) {
-                                    item.command(val);
-                                  }
-                                }}
-                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100 aria-selected:bg-slate-100 cursor-pointer"
-                                key={item.title}
-                              >
-                                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600">
-                                  {item.icon}
-                                </div>
-                                <div className="flex flex-col">
-                                  <p className="font-medium">{item.title}</p>
-                                  <p className="text-xs text-slate-500">{item.description}</p>
-                                </div>
-                              </EditorCommandItem>
-                            ))}
-                          </EditorCommandList>
-                        </EditorCommand>
-                      </EditorContent>
-                    </EditorRoot>
+                    <ModuleEditorWrapper
+                      key={module?.id || `new-module`}
+                      content={module?.content}
+                      onChange={(content) => setContent(content)}
+                      placeholder="Type '/' for formatting options..."
+                      moduleId={module?.id}
+                    />
                   </div>
                   <p className="mt-2 text-xs text-slate-500">
                     Type <kbd className="px-1.5 py-0.5 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded">/</kbd> to see formatting options. Use the editor to create rich, formatted content with styles.
