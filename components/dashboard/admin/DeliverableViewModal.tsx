@@ -25,23 +25,29 @@ export function DeliverableViewModal({ deliverable, onClose }: DeliverableViewMo
   const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
 
   const renderContent = () => {
-    if (deliverable.contentType === "FILE" && deliverable.fileUrl) {
+    // Normalize file URL: backend may store it in `content` (new API) or `fileUrl` (legacy)
+    const normalizedFileUrl =
+      deliverable.contentType === "FILE"
+        ? deliverable.content || deliverable.fileUrl
+        : deliverable.fileUrl;
+
+    if (deliverable.contentType === "FILE" && normalizedFileUrl) {
       return (
         <div className="space-y-3">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <p className="text-xs font-medium text-slate-500 mb-1">File URL</p>
             <a
-              href={deliverable.fileUrl}
+              href={normalizedFileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
             >
-              {deliverable.fileUrl}
+              {normalizedFileUrl}
               <ExternalLink size={14} />
             </a>
           </div>
           <button
-            onClick={() => window.open(deliverable.fileUrl, "_blank")}
+            onClick={() => window.open(normalizedFileUrl, "_blank")}
             className="cursor-pointer w-full rounded-lg bg-[#111827] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1f2937] transition-colors flex items-center justify-center gap-2"
           >
             <ExternalLink size={16} />
@@ -87,23 +93,23 @@ export function DeliverableViewModal({ deliverable, onClose }: DeliverableViewMo
       );
     }
 
-    if (deliverable.fileUrl) {
+    if (normalizedFileUrl) {
       return (
         <div className="space-y-3">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <p className="text-xs font-medium text-slate-500 mb-1">File URL</p>
             <a
-              href={deliverable.fileUrl}
+              href={normalizedFileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
             >
-              {deliverable.fileUrl}
+              {normalizedFileUrl}
               <ExternalLink size={14} />
             </a>
           </div>
           <button
-            onClick={() => window.open(deliverable.fileUrl, "_blank")}
+            onClick={() => window.open(normalizedFileUrl, "_blank")}
             className="cursor-pointer w-full rounded-lg bg-[#111827] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1f2937] transition-colors flex items-center justify-center gap-2"
           >
             <ExternalLink size={16} />

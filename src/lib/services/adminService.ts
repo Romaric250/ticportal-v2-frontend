@@ -337,23 +337,58 @@ export const adminService = {
   ): Promise<TeamDeliverable> {
     const token = tokenStorage.getAccessToken();
 
-    // If contentType is FILE, use FormData
+    // If contentType is FILE, convert to base64 and upload first
     if (payload.contentType === "FILE" && payload.file) {
-      const formData = new FormData();
-      formData.append("templateId", payload.templateId);
-      formData.append("contentType", payload.contentType);
-      formData.append("file", payload.file);
-      if (payload.description) {
-        formData.append("description", payload.description);
-      }
+      // Convert file to base64 data URL
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === "string") {
+            resolve(reader.result);
+          } else {
+            reject(new Error("Failed to convert file to base64"));
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(payload.file!);
+      });
 
-      const response = await axios.post<TeamDeliverable>(
-        `${apiBaseUrl}/admin/teams/${teamId}/deliverables`,
-        formData,
+      // Upload file to get URL
+      const uploadResponse = await axios.post<{
+        success: boolean;
+        data: {
+          url: string;
+          key: string;
+          name: string;
+          size: number;
+        };
+      }>(
+        `${apiBaseUrl}/f/upload`,
+        {
+          file: base64Data,
+          fileName: payload.file.name,
+        },
         {
           headers: {
             Authorization: token ? `Bearer ${token}` : undefined,
-            "Content-Type": "multipart/form-data",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Now submit the deliverable with the file URL
+      const response = await axios.post<TeamDeliverable>(
+        `${apiBaseUrl}/admin/teams/${teamId}/deliverables`,
+        {
+          templateId: payload.templateId,
+          contentType: payload.contentType,
+          content: uploadResponse.data.data.url,
+          description: payload.description,
+        },
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : undefined,
+            "Content-Type": "application/json",
           },
         }
       );
