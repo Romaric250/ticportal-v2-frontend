@@ -126,7 +126,22 @@ export const NovelModuleEditor = ({
       searchTerms: ["h1", "heading", "title"],
       icon: <Heading1 size={18} />,
       command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).setNode("heading", { level: 1 }).run();
+        const { from, to } = range;
+        // Delete range and ensure we have a paragraph, then convert to heading
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from, to })
+          .run();
+        
+        // Check if current node is a paragraph, if not insert one
+        const { $from } = editor.state.selection;
+        if ($from.parent.type.name !== "paragraph") {
+          editor.chain().focus().insertContent({ type: "paragraph", content: [] }).run();
+        }
+        
+        // Now convert to heading
+        editor.chain().focus().setHeading({ level: 1 }).run();
       },
     },
     {
@@ -135,7 +150,19 @@ export const NovelModuleEditor = ({
       searchTerms: ["h2", "heading", "subtitle"],
       icon: <Heading2 size={18} />,
       command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).setNode("heading", { level: 2 }).run();
+        const { from, to } = range;
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from, to })
+          .run();
+        
+        const { $from } = editor.state.selection;
+        if ($from.parent.type.name !== "paragraph") {
+          editor.chain().focus().insertContent({ type: "paragraph", content: [] }).run();
+        }
+        
+        editor.chain().focus().setHeading({ level: 2 }).run();
       },
     },
     {
@@ -144,7 +171,19 @@ export const NovelModuleEditor = ({
       searchTerms: ["h3", "heading"],
       icon: <Heading3 size={18} />,
       command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).setNode("heading", { level: 3 }).run();
+        const { from, to } = range;
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from, to })
+          .run();
+        
+        const { $from } = editor.state.selection;
+        if ($from.parent.type.name !== "paragraph") {
+          editor.chain().focus().insertContent({ type: "paragraph", content: [] }).run();
+        }
+        
+        editor.chain().focus().setHeading({ level: 3 }).run();
       },
     },
     {
@@ -153,7 +192,19 @@ export const NovelModuleEditor = ({
       searchTerms: ["ul", "bullet", "list"],
       icon: <List size={18} />,
       command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleBulletList().run();
+        const { from, to } = range;
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from, to })
+          .run();
+        
+        const { $from } = editor.state.selection;
+        if ($from.parent.type.name !== "paragraph") {
+          editor.chain().focus().insertContent({ type: "paragraph", content: [] }).run();
+        }
+        
+        editor.chain().focus().toggleBulletList().run();
       },
     },
     {
@@ -310,6 +361,7 @@ export const NovelModuleEditor = ({
           initialContent={initialContent}
           extensions={allExtensions as any}
           immediatelyRender={false}
+          editable={true}
           className="novel-editor-content relative min-h-[500px] w-full border-slate-300 bg-white rounded-lg border"
           editorProps={{
             handleDOMEvents: {
@@ -333,8 +385,20 @@ export const NovelModuleEditor = ({
                 <EditorCommandItem
                   value={item.title}
                   onCommand={(val) => {
-                    if (item.command) {
-                      item.command(val);
+                    if (item.command && val) {
+                      // val contains { editor, range } from novel's command system
+                      console.log("Executing command:", item.title, val);
+                      try {
+                        item.command(val);
+                        // Force a small delay to ensure the command completes
+                        setTimeout(() => {
+                          val.editor.view.dom.dispatchEvent(new Event('input', { bubbles: true }));
+                        }, 0);
+                      } catch (error) {
+                        console.error("Command error:", error);
+                      console.error("Command details:", { item: item.title, val });
+                      toast.error(`Failed to execute ${item.title} command`);
+                      }
                     }
                   }}
                   className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm hover:bg-slate-100 aria-selected:bg-slate-100 text-slate-900 cursor-pointer"

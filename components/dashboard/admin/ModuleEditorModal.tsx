@@ -223,27 +223,54 @@ export function ModuleEditorModal({
                             onChange={(e) => updateQuizQuestion(qIndex, "question", e.target.value)}
                             className="mb-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#111827] focus:outline-none focus:ring-2 focus:ring-[#111827]/10"
                           />
+                          <div className="mb-2">
+                            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                              Select Correct Answer:
+                            </label>
+                          </div>
                           <div className="space-y-2">
                             {question.options.map((option, oIndex) => (
-                              <div key={oIndex} className="flex items-center gap-2">
+                              <div
+                                key={oIndex}
+                                className={`flex items-center gap-3 rounded-lg border-2 p-3 transition-all ${
+                                  question.correctAnswer === oIndex
+                                    ? "border-emerald-500 bg-emerald-50"
+                                    : "border-slate-200 bg-white hover:border-slate-300"
+                                }`}
+                              >
                                 <input
                                   type="radio"
                                   name={`correct-${qIndex}`}
+                                  id={`option-${qIndex}-${oIndex}`}
                                   checked={question.correctAnswer === oIndex}
                                   onChange={() => updateQuizQuestion(qIndex, "correctAnswer", oIndex)}
-                                  className="h-4 w-4 cursor-pointer border-slate-300 text-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                                  className="h-4 w-4 cursor-pointer border-slate-300 text-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                                 />
-                                <input
-                                  type="text"
-                                  placeholder={`Option ${oIndex + 1}`}
-                                  value={option}
-                                  onChange={(e) => {
-                                    const newOptions = [...question.options];
-                                    newOptions[oIndex] = e.target.value;
-                                    updateQuizQuestion(qIndex, "options", newOptions);
-                                  }}
-                                  className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#111827] focus:outline-none focus:ring-2 focus:ring-[#111827]/10"
-                                />
+                                <label
+                                  htmlFor={`option-${qIndex}-${oIndex}`}
+                                  className="flex-1 cursor-pointer"
+                                >
+                                  <input
+                                    type="text"
+                                    placeholder={`Option ${oIndex + 1}`}
+                                    value={option}
+                                    onChange={(e) => {
+                                      const newOptions = [...question.options];
+                                      newOptions[oIndex] = e.target.value;
+                                      updateQuizQuestion(qIndex, "options", newOptions);
+                                    }}
+                                    onClick={(e) => {
+                                      // Select this option when clicking on the input
+                                      updateQuizQuestion(qIndex, "correctAnswer", oIndex);
+                                    }}
+                                    className="w-full rounded-lg border-0 bg-transparent px-0 py-1 text-sm focus:outline-none focus:ring-0"
+                                  />
+                                </label>
+                                {question.correctAnswer === oIndex && (
+                                  <span className="flex-shrink-0 rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-semibold text-white">
+                                    Correct
+                                  </span>
+                                )}
                               </div>
                             ))}
                           </div>

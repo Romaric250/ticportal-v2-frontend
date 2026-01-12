@@ -3,6 +3,21 @@
 import { useState, useEffect } from "react";
 import { Plus, BookOpen, Users, X, Trash2, Edit2, Eye, ChevronRight, GraduationCap, CheckCircle2, FileText, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { learningPathService, type LearningPath, type Module, type QuizQuestion } from "../../../../../src/lib/services/learningPathService";
 import { CreateLearningPathModal } from "../../../../../components/dashboard/admin/CreateLearningPathModal";
 import { ModuleEditorModal } from "../../../../../components/dashboard/admin/ModuleEditorModal";
@@ -16,6 +31,14 @@ export default function AdminLearningPathPage() {
   const [showModuleModal, setShowModuleModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
+  const [modules, setModules] = useState<Module[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     loadLearningPaths();
@@ -110,6 +133,7 @@ export default function AdminLearningPathPage() {
       // Reload selected path
       const updated = await learningPathService.getById(selectedPath.id);
       setSelectedPath(updated);
+      setModules(updated.modules?.sort((a, b) => a.order - b.order) || []);
     } catch (error: any) {
       toast.error(error?.message || "Failed to add module");
     } finally {
@@ -135,6 +159,7 @@ export default function AdminLearningPathPage() {
       // Reload selected path
       const updated = await learningPathService.getById(selectedPath.id);
       setSelectedPath(updated);
+      setModules(updated.modules?.sort((a, b) => a.order - b.order) || []);
     } catch (error: any) {
       toast.error(error?.message || "Failed to update module");
     } finally {
@@ -153,6 +178,7 @@ export default function AdminLearningPathPage() {
       // Reload selected path
       const updated = await learningPathService.getById(selectedPath.id);
       setSelectedPath(updated);
+      setModules(updated.modules?.sort((a, b) => a.order - b.order) || []);
     } catch (error: any) {
       toast.error(error?.message || "Failed to delete module");
     }
@@ -162,8 +188,59 @@ export default function AdminLearningPathPage() {
     try {
       const fullPath = await learningPathService.getById(path.id);
       setSelectedPath(fullPath);
+      setModules(fullPath.modules?.sort((a, b) => a.order - b.order) || []);
     } catch (error: any) {
       toast.error(error?.message || "Failed to load learning path details");
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id || !selectedPath) {
+      return;
+    }
+
+    const oldIndex = modules.findIndex((m) => m.id === active.id);
+    const newIndex = modules.findIndex((m) => m.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+
+    // Update local state immediately for better UX
+    const newModules = arrayMove(modules, oldIndex, newIndex);
+    setModules(newModules);
+
+    // Update order values
+    const updatedModules = newModules.map((module, index) => ({
+      ...module,
+      order: index + 1,
+    }));
+
+    // Update each module's order on the backend
+    try {
+      setLoading(true);
+      const updatePromises = updatedModules.map((module, index) => {
+        return learningPathService.updateModule(selectedPath.id, module.id, {
+          order: index + 1,
+        });
+      });
+
+      await Promise.all(updatePromises);
+      
+      // Update selected path with new order
+      const updatedPath = await learningPathService.getById(selectedPath.id);
+      setSelectedPath(updatedPath);
+      setModules(updatedPath.modules?.sort((a, b) => a.order - b.order) || []);
+      
+      toast.success("Module order updated successfully");
+    } catch (error: any) {
+      // Revert on error
+      setModules(modules);
+      toast.error(error?.message || "Failed to update module order");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -271,20 +348,29 @@ export default function AdminLearningPathPage() {
 
                 {/* Modules List */}
                 <div className="p-6">
-                  {selectedPath.modules && selectedPath.modules.length > 0 ? (
-                    <div className="space-y-4">
-                      {selectedPath.modules
-                        .sort((a, b) => a.order - b.order)
-                        .map((module, index) => (
-                          <ModuleCard
-                            key={module.id}
-                            module={module}
-                            index={index}
-                            onEdit={() => handleOpenModuleEditor(module)}
-                            onDelete={() => handleDeleteModule(module.id)}
-                          />
-                        ))}
-                    </div>
+                  {modules.length > 0 ? (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext
+                        items={modules.map((m) => m.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-4">
+                          {modules.map((module, index) => (
+                            <ModuleCard
+                              key={module.id}
+                              module={module}
+                              index={index}
+                              onEdit={() => handleOpenModuleEditor(module)}
+                              onDelete={() => handleDeleteModule(module.id)}
+                            />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-16">
                       <FileText size={64} className="text-slate-300" />
