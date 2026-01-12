@@ -8,13 +8,14 @@ import {
   StarterKit,
   Placeholder,
   AIHighlight,
+  UploadImagesPlugin,
 } from "novel";
 import { Youtube } from "@tiptap/extension-youtube";
-import { UploadImagesPlugin } from "novel";
 import { cx } from "class-variance-authority";
 import { Typography } from "@tiptap/extension-typography";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
+import { uploadFn } from "./image-upload";
 
 const aiHighlight = AIHighlight;
 const placeholder = Placeholder.configure({
@@ -32,6 +33,7 @@ const tiptapImage = TiptapImage.extend({
     return [
       UploadImagesPlugin({
         imageClass: cx("opacity-40 rounded-lg border border-slate-200"),
+        uploadFn: uploadFn,
       }),
     ];
   },

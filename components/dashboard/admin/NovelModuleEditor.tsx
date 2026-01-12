@@ -96,9 +96,35 @@ export const NovelModuleEditor = ({
 
   return (
     <div className="relative w-full">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .novel-editor-content h1 {
+            font-size: 2.25rem !important;
+            line-height: 2.5rem !important;
+            font-weight: 700 !important;
+            margin-top: 2rem !important;
+            margin-bottom: 1.5rem !important;
+          }
+          .novel-editor-content h2 {
+            font-size: 1.875rem !important;
+            line-height: 2.25rem !important;
+            font-weight: 700 !important;
+            margin-top: 1.5rem !important;
+            margin-bottom: 1rem !important;
+          }
+          .novel-editor-content h3 {
+            font-size: 1.5rem !important;
+            line-height: 2rem !important;
+            font-weight: 700 !important;
+            margin-top: 1.25rem !important;
+            margin-bottom: 0.75rem !important;
+          }
+        `
+      }} />
       <EditorRoot>
         <EditorContent
           className={cn(
+            "novel-editor-content",
             "bg-white shadow-sm rounded-lg overflow-hidden transition-all duration-300 relative",
             "border border-slate-300"
           )}
@@ -111,7 +137,7 @@ export const NovelModuleEditor = ({
             },
             attributes: {
               class: cn(
-                "prose prose-lg prose-slate dark:prose-invert prose-headings:font-bold prose-p:mb-4 prose-p:leading-relaxed font-default focus:outline-none max-w-none p-8 min-h-[500px]"
+                "prose prose-lg prose-slate dark:prose-invert prose-p:mb-4 prose-p:leading-relaxed font-default focus:outline-none max-w-none p-8 min-h-[500px]"
               ),
             },
           }}

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { createSuggestionItems, Command, renderItems } from "novel";
 import { toast } from "sonner";
+import { uploadFn } from "./image-upload";
 
 export const suggestionItems = createSuggestionItems([
   {
@@ -126,10 +127,23 @@ export const suggestionItems = createSuggestionItems([
     searchTerms: ["photo", "picture", "media"],
     icon: <ImageIcon size={18} />,
     command: ({ editor, range }) => {
-      const url = window.prompt("Enter image URL");
-      if (url) {
-        editor.chain().focus().deleteRange(range).setImage({ src: url }).run();
-      }
+      editor.chain().focus().deleteRange(range).run();
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = async () => {
+        if (input.files?.length) {
+          const file = input.files[0];
+          const pos = editor.view.state.selection.from;
+          try {
+            await uploadFn(file, editor.view, pos);
+            toast.success("Image uploaded successfully");
+          } catch (error) {
+            console.error("Image upload error:", error);
+          }
+        }
+      };
+      input.click();
     },
   },
   {

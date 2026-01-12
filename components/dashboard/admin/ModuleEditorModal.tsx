@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { X, FileText, HelpCircle, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import type { LearningPath, Module, QuizQuestion } from "../../../src/lib/services/learningPathService";
 import { ModuleEditorWrapper } from "./ModuleEditorWrapper";
 
@@ -33,13 +34,63 @@ export function ModuleEditorModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      toast.error("Module title is required");
+      return;
+    }
+
+    // Validate content is not empty
+    if (!content || content.trim() === "" || content === '{"type":"doc","content":[{"type":"paragraph","content":[]}]}') {
+      toast.error("Module content is required");
+      return;
+    }
+
+    // Validate quiz questions if any exist
+    if (quiz.length > 0) {
+      for (let i = 0; i < quiz.length; i++) {
+        const question = quiz[i];
+        if (!question.question.trim()) {
+          toast.error(`Question ${i + 1} must have a question text`);
+          return;
+        }
+        
+        // Count filled options
+        const filledOptions = question.options.filter(opt => opt.trim() !== "").length;
+        if (filledOptions < 2) {
+          toast.error(`Question ${i + 1} must have at least 2 filled options`);
+          return;
+        }
+
+        // Validate correct answer is within filled options
+        const filledOptionIndices = question.options
+          .map((opt, idx) => opt.trim() !== "" ? idx : -1)
+          .filter(idx => idx !== -1);
+        
+        if (!filledOptionIndices.includes(question.correctAnswer)) {
+          toast.error(`Question ${i + 1} must have a correct answer selected from filled options`);
+          return;
+        }
+      }
+    }
+
+    // Filter out empty quiz questions
+    const validQuiz = quiz.filter(q => q.question.trim() !== "");
+
+    // Ensure content is valid JSON string
+    let finalContent = content.trim();
+    if (!finalContent || finalContent === "" || finalContent === '{"type":"doc","content":[{"type":"paragraph","content":[]}]}') {
+      toast.error("Module content is required");
+      return;
+    }
+
+    // Ensure order is a valid number
+    const finalOrder = typeof order === "number" && !isNaN(order) ? order : (learningPath.modules?.length || 0);
 
     onSubmit({
       title: title.trim(),
-      content: content,
-      order,
-      quiz,
+      content: finalContent,
+      order: finalOrder,
+      quiz: validQuiz.length > 0 ? validQuiz : [],
     });
   };
 
@@ -67,7 +118,7 @@ export function ModuleEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div
         className="w-full max-w-5xl max-h-[90vh] rounded-xl border border-slate-200 bg-white shadow-xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
