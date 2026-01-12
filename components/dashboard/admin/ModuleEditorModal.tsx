@@ -39,9 +39,23 @@ export function ModuleEditorModal({
       return;
     }
 
-    // Validate content is not empty
-    if (!content || content.trim() === "" || content === '{"type":"doc","content":[{"type":"paragraph","content":[]}]}') {
-      toast.error("Module content is required");
+    // Validate content is valid and not empty
+    if (!content || content.trim() === "") {
+      toast.error("Module content is required. Please add some content to the module.");
+      return;
+    }
+    
+    // Check if it's valid JSON and not the default empty structure
+    try {
+      const parsed = JSON.parse(content);
+      const emptyContent = { type: "doc", content: [{ type: "paragraph", content: [] }] };
+      // Compare stringified versions to check if it's the default empty structure
+      if (JSON.stringify(parsed) === JSON.stringify(emptyContent)) {
+        toast.error("Module content is required. Please add some content to the module.");
+        return;
+      }
+    } catch (error) {
+      toast.error("Invalid content format. Please try again.");
       return;
     }
 
@@ -78,8 +92,8 @@ export function ModuleEditorModal({
 
     // Ensure content is valid JSON string
     let finalContent = content.trim();
-    if (!finalContent || finalContent === "" || finalContent === '{"type":"doc","content":[{"type":"paragraph","content":[]}]}') {
-      toast.error("Module content is required");
+    if (!finalContent) {
+      toast.error("Module content is required. Please add some content to the module.");
       return;
     }
 
@@ -216,8 +230,10 @@ export function ModuleEditorModal({
                   <div className="rounded-lg border border-slate-300 bg-white overflow-hidden min-h-[500px] shadow-sm">
                     <ModuleEditorWrapper
                       key={module?.id || `new-module`}
-                      content={module?.content}
-                      onChange={(content) => setContent(content)}
+                      content={content || module?.content}
+                      onChange={(newContent) => {
+                        setContent(newContent);
+                      }}
                       placeholder="Type '/' for formatting options..."
                       moduleId={module?.id}
                     />

@@ -63,15 +63,23 @@ export const NovelModuleEditor = ({
 
   const [initialContent, setInitialContent] = useState<JSONContent>(() => parseContent(content));
   const isInternalUpdateRef = useRef(false);
-
+  const editorRef = useRef<EditorInstance | null>(null);
+  
+  // Immediate update for form validation - no debounce
+  const updateContentImmediately = ({ editor }: { editor: EditorInstance }) => {
+    editorRef.current = editor;
+    const json = editor.getJSON();
+    const jsonString = JSON.stringify(json);
+    
+    if (onChange && !isInternalUpdateRef.current) {
+      onChange(jsonString);
+    }
+  };
+  
+  // Debounced update for performance (optional, for save status, etc.)
   const debouncedUpdates = useDebouncedCallback(
     ({ editor }: { editor: EditorInstance }) => {
-      const json = editor.getJSON();
-      const jsonString = JSON.stringify(json);
-      
-      if (onChange && !isInternalUpdateRef.current) {
-        onChange(jsonString);
-      }
+      // This can be used for save status, word count, etc. if needed
     },
     500
   );
@@ -142,7 +150,9 @@ export const NovelModuleEditor = ({
             },
           }}
           onUpdate={({ editor }) => {
-            isInternalUpdateRef.current = true;
+            // Update immediately for form validation
+            updateContentImmediately({ editor });
+            // Also debounce for performance metrics
             debouncedUpdates({ editor });
           }}
           slotAfter={<ImageResizer />}
