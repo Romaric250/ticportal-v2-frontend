@@ -118,7 +118,6 @@ export const notificationService = {
    * Get unread notification count
    */
   async getUnreadCount(): Promise<number> {
-    // Use axios directly to preserve response structure
     const token = tokenStorage.getAccessToken();
     
     if (!token) {
@@ -126,25 +125,30 @@ export const notificationService = {
     }
     
     try {
-      const response = await axios.get<UnreadCountResponse>(
-        `${apiBaseUrl}/notifications/unread-count`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+      // Use apiClient which handles token refresh automatically
+      const response = await apiClient.get<UnreadCountResponse | { count: number }>(
+        "/notifications/unread-count"
       );
       
-      // Handle response format: { success: true, count: 5 }
-      if (response.data?.success) {
-        return response.data.count;
+      // Handle response format: { success: true, count: 5 } or { count: 5 } (if unwrapped by apiClient)
+      if (response.data) {
+        // Check if response was unwrapped by apiClient interceptor
+        if ('count' in response.data && typeof response.data.count === 'number') {
+          return response.data.count;
+        }
+        // Check if response has success wrapper
+        if ('success' in response.data && response.data.success && 'count' in response.data) {
+          return (response.data as UnreadCountResponse).count;
+        }
       }
       
       return 0;
     } catch (error: any) {
       // Silently fail for unread count - don't show errors
-      console.error("Error loading unread count:", error);
+      // 401 errors are handled by apiClient's token refresh interceptor
+      if (error.response?.status !== 401) {
+        console.error("Error loading unread count:", error);
+      }
       return 0;
     }
   },
