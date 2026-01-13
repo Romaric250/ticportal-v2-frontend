@@ -17,6 +17,7 @@ interface LearningPathDetailProps {
 
 export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetailProps) => {
   const [selectedModule, setSelectedModule] = useState<Module | null>(null);
+  const [modules, setModules] = useState<Module[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
@@ -34,8 +35,6 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
   const loadPathDetails = async () => {
     try {
       setLoading(true);
-      // Load full path details
-      const fullPath = await learningPathService.getStudentPathById(path.id);
       
       // Check enrollment status first
       let enrollmentChecked = false;
@@ -57,21 +56,67 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
         enrollmentChecked = true;
       }
 
-      // Load progress if enrolled
+      // Load modules with completion status if enrolled
       if (enrollmentChecked || isEnrolled) {
         try {
-          const progressData = await learningPathService.getProgress(path.id);
-          setProgress(progressData);
+          // Use the new endpoint that returns modules with completion status
+          const studentModules = await learningPathService.getStudentModules(path.id);
+          console.log("📦 Student Modules Data:", studentModules);
+          console.log("📦 Student Modules Count:", studentModules.length);
+          
+          const sortedModules = [...studentModules].sort((a, b) => a.order - b.order);
+          console.log("📦 Sorted Modules:", sortedModules);
+          
+          // Log each module's details
+          sortedModules.forEach((module, index) => {
+            console.log(`📦 Module ${index + 1}:`, {
+              id: module.id,
+              title: module.title,
+              hasQuiz: module.hasQuiz,
+              isCompleted: module.isCompleted,
+              completedAt: module.completedAt,
+              quizScore: module.quizScore,
+              quiz: module.quiz,
+            });
+          });
+          
+          setModules(sortedModules);
+          
+          // Also load progress for the progress bar
+          try {
+            const progressData = await learningPathService.getProgress(path.id);
+            console.log("📊 Progress Data:", progressData);
+            setProgress(progressData);
+          } catch (error: any) {
+            // Progress might not be available yet
+            console.error("Error loading progress:", error);
+          }
+          
+          // Select first module immediately if available
+          if (sortedModules.length > 0) {
+            console.log("📦 Setting selected module:", sortedModules[0]);
+            setSelectedModule(sortedModules[0]);
+          }
         } catch (error: any) {
-          // Progress might not be available yet
-          console.error("Error loading progress:", error);
+          // Fallback to regular path details if student modules endpoint fails
+          console.error("❌ Error loading student modules:", error);
+          const fullPath = await learningPathService.getStudentPathById(path.id);
+          console.log("📦 Fallback - Full Path Data:", fullPath);
+          if (fullPath.modules && fullPath.modules.length > 0) {
+            const sortedModules = [...fullPath.modules].sort((a, b) => a.order - b.order);
+            setModules(sortedModules);
+            setSelectedModule(sortedModules[0]);
+          }
         }
-      }
-
-      // Select first module immediately if available
-      if (fullPath.modules && fullPath.modules.length > 0) {
-        const sortedModules = [...fullPath.modules].sort((a, b) => a.order - b.order);
-        setSelectedModule(sortedModules[0]);
+      } else {
+        // Not enrolled, just load basic path details
+        const fullPath = await learningPathService.getStudentPathById(path.id);
+        console.log("📦 Not Enrolled - Full Path Data:", fullPath);
+        if (fullPath.modules && fullPath.modules.length > 0) {
+          const sortedModules = [...fullPath.modules].sort((a, b) => a.order - b.order);
+          setModules(sortedModules);
+          setSelectedModule(sortedModules[0]);
+        }
       }
     } catch (error: any) {
       toast.error(error?.message || "Failed to load learning path");
@@ -113,14 +158,25 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
     setContentLoading(false);
   };
 
+  // Get module completion status
+  const getModuleCompletionStatus = async (moduleId: string) => {
+    try {
+      const status = await learningPathService.getModuleStatus(path.id, moduleId);
+      return status.isCompleted;
+    } catch (error) {
+      // Fallback to progress data
+      return progressModules.find((p: any) => p.moduleId === moduleId)?.isCompleted || false;
+    }
+  };
+
   const handleModuleComplete = () => {
-    // Reload progress after module completion
+    // Reload modules and progress after module completion
     loadPathDetails();
   };
 
-  const sortedModules = path.modules
-    ? [...path.modules].sort((a, b) => a.order - b.order)
-    : [];
+  const sortedModules = modules.length > 0 
+    ? modules 
+    : (path.modules ? [...path.modules].sort((a, b) => a.order - b.order) : []);
 
   const progressModules = progress?.modules || [];
   const currentIsEnrolled = enrolledPaths.includes(path.id);
@@ -195,11 +251,11 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
       )}
 
       {/* Main Content - Modules on the RIGHT */}
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_280px]">
+      <div className="flex flex-col lg:grid lg:grid-cols-[1fr_280px] gap-4 sm:gap-6">
         {/* Main Content - LEFT */}
-        <div className="space-y-4 sm:space-y-6 order-2 lg:order-1 min-w-0">
+        <div className="space-y-4 sm:space-y-6 min-w-0 order-2 lg:order-1">
           {contentLoading ? (
-            <div className="flex h-[400px] items-center justify-center rounded-lg border border-slate-200 bg-white">
+            <div className="flex h-[300px] sm:h-[400px] items-center justify-center rounded-lg border border-slate-200 bg-white">
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="h-6 w-6 animate-spin text-[#111827]" />
                 <p className="text-xs sm:text-sm text-slate-600">Loading module...</p>
@@ -209,12 +265,12 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
             <ModuleContentSection
               pathId={path.id}
               module={selectedModule}
-              isCompleted={progressModules.find((p: any) => p.moduleId === selectedModule.id)?.isCompleted || false}
+              isCompleted={selectedModule.isCompleted ?? progressModules.find((p: any) => p.moduleId === selectedModule.id)?.isCompleted ?? false}
               onComplete={handleModuleComplete}
             />
           ) : (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 sm:p-8 text-center">
-              <p className="text-sm text-slate-500">Select a module to view its content</p>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 lg:p-8 text-center">
+              <p className="text-xs sm:text-sm text-slate-500">Select a module to view its content</p>
             </div>
           )}
         </div>

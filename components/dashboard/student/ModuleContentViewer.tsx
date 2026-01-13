@@ -61,26 +61,97 @@ export const ModuleContentViewer = ({ content }: ModuleContentViewerProps) => {
     <div className="relative w-full">
       <style dangerouslySetInnerHTML={{
         __html: `
-          .module-content-viewer h1 {
-            font-size: 2.25rem !important;
-            line-height: 2.5rem !important;
-            font-weight: 700 !important;
-            margin-top: 2rem !important;
-            margin-bottom: 1.5rem !important;
+          .module-content-viewer {
+            font-size: 14px;
           }
-          .module-content-viewer h2 {
-            font-size: 1.875rem !important;
-            line-height: 2.25rem !important;
+          @media (min-width: 640px) {
+            .module-content-viewer {
+              font-size: 16px;
+            }
+          }
+          .module-content-viewer h1 {
+            font-size: 1.75rem !important;
+            line-height: 2rem !important;
             font-weight: 700 !important;
             margin-top: 1.5rem !important;
             margin-bottom: 1rem !important;
           }
-          .module-content-viewer h3 {
+          @media (min-width: 640px) {
+            .module-content-viewer h1 {
+              font-size: 2.25rem !important;
+              line-height: 2.5rem !important;
+              margin-top: 2rem !important;
+              margin-bottom: 1.5rem !important;
+            }
+          }
+          .module-content-viewer h2 {
             font-size: 1.5rem !important;
-            line-height: 2rem !important;
+            line-height: 1.75rem !important;
             font-weight: 700 !important;
             margin-top: 1.25rem !important;
             margin-bottom: 0.75rem !important;
+          }
+          @media (min-width: 640px) {
+            .module-content-viewer h2 {
+              font-size: 1.875rem !important;
+              line-height: 2.25rem !important;
+              margin-top: 1.5rem !important;
+              margin-bottom: 1rem !important;
+            }
+          }
+          .module-content-viewer h3 {
+            font-size: 1.25rem !important;
+            line-height: 1.5rem !important;
+            font-weight: 700 !important;
+            margin-top: 1rem !important;
+            margin-bottom: 0.5rem !important;
+          }
+          @media (min-width: 640px) {
+            .module-content-viewer h3 {
+              font-size: 1.5rem !important;
+              line-height: 2rem !important;
+              margin-top: 1.25rem !important;
+              margin-bottom: 0.75rem !important;
+            }
+          }
+          .module-content-viewer p {
+            margin-bottom: 1rem !important;
+            line-height: 1.75 !important;
+          }
+          .module-content-viewer img {
+            max-width: 100% !important;
+            height: auto !important;
+          }
+          .module-content-viewer iframe,
+          .module-content-viewer iframe[src*="youtube"],
+          .module-content-viewer iframe[src*="youtu.be"],
+          .module-content-viewer div[data-youtube-video] iframe {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            aspect-ratio: 16 / 9 !important;
+            min-height: 200px !important;
+            border-radius: 0.5rem !important;
+          }
+          @media (max-width: 640px) {
+            .module-content-viewer iframe,
+            .module-content-viewer iframe[src*="youtube"],
+            .module-content-viewer iframe[src*="youtu.be"],
+            .module-content-viewer div[data-youtube-video] iframe {
+              min-height: 180px !important;
+            }
+          }
+          .module-content-viewer div[data-youtube-video] {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 1rem 0 !important;
+          }
+          .module-content-viewer ul, .module-content-viewer ol {
+            padding-left: 1.5rem !important;
+            margin-bottom: 1rem !important;
+          }
+          .module-content-viewer li {
+            margin-bottom: 0.5rem !important;
           }
         `
       }} />
@@ -89,7 +160,7 @@ export const ModuleContentViewer = ({ content }: ModuleContentViewerProps) => {
           className={cn(
             "module-content-viewer",
             "bg-white rounded-lg overflow-hidden",
-            "prose prose-lg prose-slate dark:prose-invert prose-p:mb-4 prose-p:leading-relaxed font-default max-w-none p-8"
+            "prose prose-sm sm:prose-lg prose-slate dark:prose-invert prose-p:mb-4 prose-p:leading-relaxed font-default max-w-none p-4 sm:p-6 lg:p-8"
           )}
           initialContent={initialContent}
           extensions={extensions as any}
@@ -97,7 +168,7 @@ export const ModuleContentViewer = ({ content }: ModuleContentViewerProps) => {
           editorProps={{
             attributes: {
               class: cn(
-                "prose prose-lg prose-slate dark:prose-invert prose-p:mb-4 prose-p:leading-relaxed font-default focus:outline-none max-w-none"
+                "prose prose-sm sm:prose-lg prose-slate dark:prose-invert prose-p:mb-4 prose-p:leading-relaxed font-default focus:outline-none max-w-none"
               ),
             },
           }}
@@ -106,4 +177,3 @@ export const ModuleContentViewer = ({ content }: ModuleContentViewerProps) => {
     </div>
   );
 };
-

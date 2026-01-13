@@ -42,7 +42,16 @@ export const ModuleSidebar = ({
           {modules.map((module, index) => {
             const isSelected = selectedModuleId === module.id;
             const moduleProgress = getModuleProgress(module.id);
-            const isCompleted = moduleProgress?.isCompleted || false;
+            // Check module.isCompleted first (from getStudentModules), then fall back to progress
+            const isCompleted = module.isCompleted ?? moduleProgress?.isCompleted ?? false;
+            
+            console.log("📋 ModuleSidebar - Module:", {
+              id: module.id,
+              title: module.title,
+              moduleIsCompleted: module.isCompleted,
+              moduleProgressIsCompleted: moduleProgress?.isCompleted,
+              finalIsCompleted: isCompleted,
+            });
 
             return (
               <button
@@ -64,8 +73,8 @@ export const ModuleSidebar = ({
                       <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-600">
                         <CheckCircle2 size={12} />
                         <span>Completed</span>
-                        {moduleProgress?.quizScore !== undefined && (
-                          <span className="text-slate-500">• {moduleProgress.quizScore}%</span>
+                        {(module.quizScore ?? moduleProgress?.quizScore) !== undefined && (
+                          <span className="text-slate-500">• {(module.quizScore ?? moduleProgress?.quizScore)}%</span>
                         )}
                       </div>
                     )}

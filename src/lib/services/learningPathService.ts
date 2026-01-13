@@ -16,6 +16,11 @@ export type Module = {
   quiz?: QuizQuestion[];
   createdAt: string;
   updatedAt: string;
+  // Student-specific fields
+  hasQuiz?: boolean;
+  isCompleted?: boolean;
+  completedAt?: string | null;
+  quizScore?: number | null;
 };
 
 export type LearningPath = {
@@ -177,15 +182,50 @@ export const learningPathService = {
    * Complete a module (without quiz)
    */
   async completeModule(pathId: string, moduleId: string): Promise<{
-    id: string;
+    id?: string;
     moduleId: string;
     completedAt: string;
-    pointsAwarded: number;
+    pointsAwarded?: number;
   }> {
-    const { data } = await apiClient.post<{ success: boolean; message: string; data: any }>(
-      `/learning-paths/${pathId}/modules/${moduleId}/complete`
-    );
-    return data.data;
+    console.log("📡 API Call: completeModule", { pathId, moduleId });
+    try {
+      const { data } = await apiClient.post<{ success: boolean; message: string; data: any }>(
+        `/learning-paths/${pathId}/modules/${moduleId}/complete`
+      );
+      console.log("📡 API Response: completeModule", data);
+      
+      // Ensure we return a valid structure without quizScore
+      const result = data.data || {};
+      console.log("📦 Parsed Result:", result);
+      
+      const returnValue = {
+        id: result.id,
+        moduleId: result.moduleId || moduleId,
+        completedAt: result.completedAt || new Date().toISOString(),
+        pointsAwarded: result.pointsAwarded,
+        // Explicitly exclude quizScore if it exists
+      };
+      console.log("✅ Returning:", returnValue);
+      return returnValue;
+    } catch (error: any) {
+      console.error("❌ API Error: completeModule", error);
+      console.error("❌ Error Response:", {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        message: error?.message,
+      });
+      
+      // If the error is 409 (already completed), return a valid structure
+      if (error?.response?.status === 409) {
+        console.log("⚠️ Module already completed, returning default structure");
+        return {
+          moduleId,
+          completedAt: new Date().toISOString(),
+          pointsAwarded: 50,
+        };
+      }
+      throw error;
+    }
   },
 
   /**
@@ -208,5 +248,54 @@ export const learningPathService = {
   }> {
     const { data } = await apiClient.get<{ success: boolean; data: any }>(`/learning-paths/${pathId}/progress`);
     return data.data;
+  },
+
+  /**
+   * Get module completion status
+   */
+  async getModuleStatus(pathId: string, moduleId: string): Promise<{
+    isCompleted: boolean;
+    completedAt: string | null;
+    quizScore: number | null;
+  }> {
+    console.log("📡 API Call: getModuleStatus", { pathId, moduleId });
+    const { data } = await apiClient.get<{
+      isCompleted: boolean;
+      completedAt: string | null;
+      quizScore: number | null;
+    }>(`/learning-paths/${pathId}/modules/${moduleId}/status`);
+    
+    console.log("📡 API Response Data (from axios):", data);
+    
+    // The API returns the status object directly: { isCompleted, completedAt, quizScore }
+    // Axios wraps it, so data = { isCompleted, completedAt, quizScore }
+    if (!data || typeof data !== 'object') {
+      console.error("❌ No status data found in response. Full response:", data);
+      throw new Error("Failed to get module status: No data in response");
+    }
+    
+    // Ensure all required fields are present with defaults
+    const statusData = {
+      isCompleted: data.isCompleted ?? false,
+      completedAt: data.completedAt ?? null,
+      quizScore: data.quizScore ?? null,
+    };
+    
+    console.log("📦 Parsed Status Data:", statusData);
+    return statusData;
+  },
+
+  /**
+   * Get student modules with completion status for a learning path
+   */
+  async getStudentModules(pathId: string): Promise<Module[]> {
+    console.log("📡 API Call: getStudentModules", { pathId });
+    const { data } = await apiClient.get<{ success: boolean; data: Module[] }>(
+      `/learning-paths/${pathId}/modules`
+    );
+    console.log("📡 API Response: getStudentModules", data);
+    const modules = data.data || [];
+    console.log("📦 Parsed Modules:", modules);
+    return modules;
   },
 };
