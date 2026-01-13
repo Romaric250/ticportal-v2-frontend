@@ -252,13 +252,14 @@ export default function LoginPage() {
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white px-6 py-4">
         <div className="mx-auto max-w-7xl text-center text-xs text-slate-500">
-          © 2024 TIC Summit. All rights reserved.{" "}
+          © 2026 TIC Summit. All rights reserved.{" "}
           <Link href="#" className="hover:text-[#111827] hover:underline">
             Privacy Policy
           </Link>{" "}
-          •{" "}
-          <Link href="#" className="hover:text-[#111827] hover:underline">
-            Terms of Service
+          
+          {" "}
+          <Link href="https://ticsummit.org"  target="_blank" className="text-[#111827] underline">
+            ticsummit.org
           </Link>
         </div>
       </footer>
