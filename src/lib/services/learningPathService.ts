@@ -159,6 +159,28 @@ export const learningPathService = {
   },
 
   /**
+   * Unenroll from a learning path
+   */
+  async unenrollFromPath(pathId: string): Promise<void> {
+    await apiClient.delete(`/learning-paths/${pathId}/unenroll`);
+  },
+
+  /**
+   * Complete a learning path
+   */
+  async completePath(pathId: string): Promise<{
+    id: string;
+    pathId: string;
+    completedAt: string;
+    pointsAwarded?: number;
+  }> {
+    const { data } = await apiClient.post<{ success: boolean; message: string; data: any }>(
+      `/learning-paths/${pathId}/complete`
+    );
+    return data.data;
+  },
+
+  /**
    * Submit quiz answers for a module
    */
   async submitQuiz(pathId: string, moduleId: string, answers: number[]): Promise<{

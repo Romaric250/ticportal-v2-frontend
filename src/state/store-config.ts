@@ -34,16 +34,19 @@ export function createPersistedStore<T>(
 ) {
   const shouldEncrypt = options?.encrypt !== false; // Default to true
   
-  return create<T>()(
-    persist(storeCreator, {
-      name,
-      storage: shouldEncrypt 
-        ? createJSONStorage(() => encryptedStorage)
-        : createJSONStorage(() => localStorage),
-      partialize: options?.partialize,
-      version: options?.version || 0,
-    })
-  );
+  const persistConfig: any = {
+    name,
+    storage: shouldEncrypt 
+      ? createJSONStorage(() => encryptedStorage)
+      : createJSONStorage(() => localStorage),
+    version: options?.version || 0,
+  };
+  
+  if (options?.partialize) {
+    persistConfig.partialize = options.partialize;
+  }
+  
+  return create<T>()(persist(storeCreator, persistConfig));
 }
 
 /**

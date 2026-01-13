@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { BookOpen, Loader2, CheckCircle2 } from "lucide-react";
+import { BookOpen, Loader2, CheckCircle2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { LearningPath } from "../../../src/lib/services/learningPathService";
 import { learningPathService } from "../../../src/lib/services/learningPathService";
@@ -15,7 +15,7 @@ interface LearningPathListProps {
 
 export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: LearningPathListProps) => {
   const enrolledPaths = useLearningPathStore((state) => state.enrolledPaths);
-  const { setEnrolled, setLoadingEnrollment } = useLearningPathStore();
+  const { setEnrolled, setUnenrolled, setLoadingEnrollment } = useLearningPathStore();
   const isLoadingEnrollment = useLearningPathStore((state) => state.isLoadingEnrollment);
 
   // Check enrollment status for all paths on mount
@@ -69,6 +69,26 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
     }
   };
 
+  const handleUnenroll = async (e: React.MouseEvent, path: LearningPath) => {
+    e.stopPropagation();
+    
+    if (!enrolledPaths.includes(path.id)) {
+      return;
+    }
+
+    try {
+      setLoadingEnrollment(path.id, true);
+      await learningPathService.unenrollFromPath(path.id);
+      setUnenrolled(path.id);
+      toast.success("Successfully unenrolled!");
+      onEnrollChange?.();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || "Failed to unenroll");
+    } finally {
+      setLoadingEnrollment(path.id, false);
+    }
+  };
+
   const PathCard = ({ path }: { path: LearningPath }) => {
     const moduleCount = path.modules?.length || 0;
     const isEnrolled = enrolledPaths.includes(path.id);
@@ -99,30 +119,51 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
           <span className="capitalize">{path.audience.toLowerCase()}</span>
         </div>
 
-        {/* Enroll/Enrolled Button */}
-        <button
-          onClick={(e) => handleEnroll(e, path)}
-          disabled={isEnrolled || isEnrolling}
-          className={`w-full rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition-colors ${
-            isEnrolled
-              ? "bg-emerald-50 text-emerald-700 cursor-default"
-              : "bg-[#111827] text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
-          }`}
-        >
-          {isEnrolling ? (
-            <span className="flex items-center justify-center gap-2">
-              <Loader2 size={14} className="animate-spin" />
-              <span className="hidden sm:inline">Enrolling...</span>
-            </span>
-          ) : isEnrolled ? (
-            <span className="flex items-center justify-center gap-2">
-              <CheckCircle2 size={14} />
-              Enrolled
-            </span>
-          ) : (
-            "Enroll"
+        {/* Enroll/Enrolled/Unenroll Buttons */}
+        <div className="flex gap-2">
+          {isEnrolled && !path.isCore && (
+            <button
+              onClick={(e) => handleUnenroll(e, path)}
+              disabled={isEnrolling}
+              className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:border-red-300 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isEnrolling ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="hidden sm:inline">Unenrolling...</span>
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  <X size={14} />
+                  <span>Unenroll</span>
+                </span>
+              )}
+            </button>
           )}
-        </button>
+          <button
+            onClick={(e) => handleEnroll(e, path)}
+            disabled={isEnrolled || isEnrolling}
+            className={`${isEnrolled && !path.isCore ? "flex-1" : "w-full"} rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition-colors ${
+              isEnrolled
+                ? "bg-emerald-50 text-emerald-700 cursor-default"
+                : "bg-[#111827] text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+            }`}
+          >
+            {isEnrolling ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 size={14} className="animate-spin" />
+                <span className="hidden sm:inline">Enrolling...</span>
+              </span>
+            ) : isEnrolled ? (
+              <span className="flex items-center justify-center gap-2">
+                <CheckCircle2 size={14} />
+                <span>Enrolled</span>
+              </span>
+            ) : (
+              <span>Enroll</span>
+            )}
+          </button>
+        </div>
       </div>
     );
   };
