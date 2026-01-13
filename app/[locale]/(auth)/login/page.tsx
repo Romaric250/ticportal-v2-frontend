@@ -118,9 +118,32 @@ export default function LoginPage() {
       <header className="border-b border-slate-200 bg-white px-6 py-3">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#111827] text-white text-sm font-bold">
-              T
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/ticsummit-logo.png" 
+              alt="TIC Summit" 
+              className="h-8 w-auto"
+              style={{ 
+                maxWidth: '200px', 
+                height: '32px', 
+                width: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+                opacity: 1,
+                visibility: 'visible',
+                filter: 'none',
+                mixBlendMode: 'normal',
+                position: 'relative',
+                zIndex: 10
+              }}
+              onError={(e) => {
+                console.error("Logo image failed to load. Check if /ticsummit-logo.png exists in public folder.");
+                (e.target as HTMLImageElement).style.border = '2px solid red';
+              }}
+              onLoad={() => {
+                console.log("Logo loaded successfully");
+              }}
+            />
           </div>
           <Link
             href="#"

@@ -8,7 +8,10 @@ import { Toaster } from "../../components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "TIC Summit Portal",
-  description: "TIC Summit Portal V2 frontend",
+  description: "TIC Summit",
+  icons: {
+    icon: "/tic.ico",
+  },
 };
 
 type Props = {
