@@ -28,13 +28,15 @@ export default function LoginPage() {
 
     try {
       const response = await authService.login({ email, password });
+
+      console.log("Login response:", response);
       
       // Store tokens
       setTokens(response.accessToken, response.refreshToken);
       
       // Map API user to AuthUser type
       const user = {
-        id: response.user.id || response.user._id || "",
+        id: response.user.id || "",
         name: response.user.name || `${response.user.firstName || ""} ${response.user.lastName || ""}`.trim() || email.split("@")[0],
         email: response.user.email,
         role: (response.user.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | null,
