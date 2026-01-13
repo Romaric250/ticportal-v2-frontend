@@ -10,7 +10,29 @@ export const metadata: Metadata = {
   title: "TIC Summit Portal",
   description: "TIC Summit",
   icons: {
-    icon: "/tic.ico",
+    icon: [
+      { url: "/tic.ico", sizes: "any" },
+      { url: "/tic.ico", type: "image/x-icon" },
+    ],
+    apple: "/tic.ico",
+  },
+  openGraph: {
+    title: "TIC Summit Portal",
+    description: "TIC Summit",
+    images: [
+      {
+        url: "/ticsummit-logo.png",
+        width: 1200,
+        height: 630,
+        alt: "TIC Summit",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TIC Summit Portal",
+    description: "TIC Summit",
+    images: ["/ticsummit-logo.png"],
   },
 };
 
