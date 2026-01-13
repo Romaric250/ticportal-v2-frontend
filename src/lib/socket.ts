@@ -8,13 +8,16 @@ export type SocketStatus = "disconnected" | "connecting" | "connected";
 export function getSocket(token?: string) {
   if (!socket) {
     // Derive WebSocket URL from API URL if WS_URL is not set
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    let wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    const apiUrl = "https://ticportal-v2-backend.onrender.com/api";
+    let wsUrl = "wss://ticportal-v2-backend.onrender.com";
     
-    if (!wsUrl && apiUrl) {
-      // Remove /api suffix and convert http to ws, https to wss
-      wsUrl = apiUrl.replace(/\/api$/, "").replace(/^http:/, "ws:").replace(/^https:/, "wss:");
-    }
+    // if (!wsUrl && apiUrl) {
+    //   // Remove /api suffix and convert http to ws, https to wss
+    //   wsUrl = apiUrl.replace(/\/api$/, "").replace(/^http:/, "ws:").replace(/^https:/, "wss:");
+    // }
+
+    console.log("apiUrl", apiUrl);
+    console.log("wsUrl", wsUrl);
     
     wsUrl = wsUrl ?? "http://localhost:5000";
     console.log("Socket: Creating new socket connection", { wsUrl, hasToken: !!token });
