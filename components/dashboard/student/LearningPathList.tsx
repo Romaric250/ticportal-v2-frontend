@@ -47,7 +47,7 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
   const handleEnroll = async (e: React.MouseEvent, path: LearningPath) => {
     e.stopPropagation();
     
-    if (enrolledPaths.has(path.id)) {
+    if (enrolledPaths.includes(path.id)) {
       return;
     }
 

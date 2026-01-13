@@ -51,9 +51,9 @@ export function UserProfileMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="cursor-pointer flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50 transition"
+        className="cursor-pointer flex items-center gap-1.5 sm:gap-2 rounded-lg border border-slate-200 bg-white px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-slate-50 transition"
       >
-        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#111827] to-slate-500 flex items-center justify-center text-white text-xs font-semibold">
+        <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-[#111827] to-slate-500 flex items-center justify-center text-white text-[10px] sm:text-xs font-semibold flex-shrink-0">
           {user?.name?.charAt(0).toUpperCase() || "U"}
         </div>
         <div className="hidden sm:block text-left">
@@ -65,8 +65,8 @@ export function UserProfileMenu() {
           </p>
         </div>
         <ChevronDown
-          size={14}
-          className={`text-slate-500 transition-transform ${
+          size={12}
+          className={`hidden sm:block text-slate-500 transition-transform flex-shrink-0 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
