@@ -1,7 +1,7 @@
 "use client";
 
 import { X, AlertTriangle, Trash2 } from "lucide-react";
-import { type TeamDeliverable } from "../../../../src/lib/services/teamService";
+import { type TeamDeliverable } from "@/src/lib/services/teamService";
 
 interface DeleteDeliverableModalProps {
   deliverable: TeamDeliverable;

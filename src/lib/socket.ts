@@ -28,7 +28,7 @@ export function getSocket(token?: string) {
     socket.on("disconnect", (reason) => {
       console.log("Socket: Disconnected", { reason });
     });
-  } else if (token && socket.auth) {
+  } else if (token && socket.auth && typeof socket.auth === "object" && !Array.isArray(socket.auth)) {
     // Update auth if token is provided and socket exists
     console.log("Socket: Updating auth token");
     socket.auth.token = token;
@@ -40,9 +40,9 @@ export function connectSocket(token: string) {
   const s = getSocket(token);
   
   // Ensure auth is set before connecting
-  if (token && s.auth) {
+  if (token && s.auth && typeof s.auth === "object" && !Array.isArray(s.auth)) {
     s.auth.token = token;
-    console.log("Socket: Auth token set", { hasToken: !!s.auth.token });
+    console.log("Socket: Auth token set", { hasToken: !!(s.auth as { token?: string }).token });
   }
   
   if (!s.connected) {

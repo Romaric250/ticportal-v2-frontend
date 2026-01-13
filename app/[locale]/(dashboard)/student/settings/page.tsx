@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { User, GraduationCap, Mail, Bell, Check, Upload, Globe, Search, X } from "lucide-react";
 import { useAuthStore } from "../../../../../src/state/auth-store";
-import { userService } from "../../../../../src/lib/services/userService";
+import { userService, type UpdateProfilePayload } from "../../../../../src/lib/services/userService";
 import { defaultsService } from "../../../../../src/lib/services/defaultsService";
 import { toast } from "sonner";
 
@@ -233,14 +233,7 @@ export default function SettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const payload: {
-        username?: string;
-        bio?: string;
-        school?: string;
-        grade?: string;
-        country?: string;
-        gradDate?: string;
-      } = {};
+      const payload: UpdateProfilePayload = {};
 
       if (formData.username) payload.username = formData.username;
       if (formData.bio) payload.bio = formData.bio;

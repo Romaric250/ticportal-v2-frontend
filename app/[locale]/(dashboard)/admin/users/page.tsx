@@ -9,7 +9,13 @@ import { cn } from "../../../../../src/utils/cn";
 export default function UserManagementPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    totalUsers: number;
+    pendingApprovals: number;
+    mentorsAndLeads: number;
+    unassignedJudges: number;
+    totalUsersChange?: number;
+  }>({
     totalUsers: 0,
     pendingApprovals: 0,
     mentorsAndLeads: 0,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Upload, FileText, CheckCircle, XCircle, Clock, AlertCircle, Edit2, Eye, Trash2, ExternalLink } from "lucide-react";
-import { type TeamDeliverable, type DeliverableDeadlineStatus } from "../../../../src/lib/services/teamService";
+import { type TeamDeliverable, type DeliverableDeadlineStatus } from "@/src/lib/services/teamService";
 
 interface DeliverableCardProps {
   deliverable: TeamDeliverable;
@@ -66,7 +66,7 @@ export function DeliverableCard({ deliverable, deadlineStatus, onSubmit, onUpdat
               </span>
             )}
           </div>
-          {getStatusBadge(isSubmitted ? deliverable.status : "NOT_SUBMITTED")}
+          {getStatusBadge(isSubmitted ? deliverable.status || "NOT_SUBMITTED" : "NOT_SUBMITTED")}
         </div>
         <p className="text-sm text-slate-600 line-clamp-2 mt-2">
           {deliverable.template.description}

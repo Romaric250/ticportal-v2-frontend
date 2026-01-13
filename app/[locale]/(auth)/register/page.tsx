@@ -98,7 +98,7 @@ export default function RegisterPage() {
       });
       
       toast.success("Registration successful! Please check your email for the verification code.");
-      router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
+      router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role.toUpperCase())}`);
     } catch (error: any) {
       console.error(error);
       const errorMessage = error?.message || "Registration failed. Please try again.";

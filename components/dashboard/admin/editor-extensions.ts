@@ -33,7 +33,6 @@ const tiptapImage = TiptapImage.extend({
     return [
       UploadImagesPlugin({
         imageClass: cx("opacity-40 rounded-lg border border-slate-200"),
-        uploadFn: uploadFn,
       }),
     ];
   },

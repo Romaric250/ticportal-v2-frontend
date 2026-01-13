@@ -59,7 +59,7 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
     try {
       setEnrolling(true);
       const result = await learningPathService.enrollInPath(path.id);
-      toast.success(result.message || "Successfully enrolled in learning path!");
+      toast.success("Success");
       setIsEnrolled(true);
       onEnroll?.();
       // Load progress after enrollment

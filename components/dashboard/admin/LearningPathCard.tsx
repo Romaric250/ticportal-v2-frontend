@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, Users, FileText, Trash2, Edit2, X, Save } from "lucide-react";
-import type { LearningPath } from "../../../../src/lib/services/learningPathService";
+import type { LearningPath } from "@/src/lib/services/learningPathService";
 
 interface LearningPathCardProps {
   path: LearningPath;

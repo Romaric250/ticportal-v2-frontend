@@ -1,7 +1,7 @@
 "use client";
 
 import { X, CheckCircle, XCircle, Clock, ExternalLink } from "lucide-react";
-import { type TeamDeliverable } from "../../../../src/lib/services/adminService";
+import { type TeamDeliverable } from "@/src/lib/services/adminService";
 
 interface DeliverableViewModalProps {
   deliverable: TeamDeliverable;

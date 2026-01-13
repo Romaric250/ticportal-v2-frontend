@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Edit2, Trash2 } from "lucide-react";
-import { type DeliverableTemplate } from "../../../../src/lib/services/adminService";
+import { type DeliverableTemplate } from "@/src/lib/services/adminService";
 
 interface DeliverableTemplatesTabProps {
   templates: DeliverableTemplate[];

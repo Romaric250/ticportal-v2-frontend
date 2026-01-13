@@ -1,7 +1,7 @@
 "use client";
 
 import { X, CheckCircle, XCircle, Clock, ExternalLink, FileText, Link as LinkIcon, Type } from "lucide-react";
-import { type TeamDeliverable } from "../../../../src/lib/services/teamService";
+import { type TeamDeliverable } from "@/src/lib/services/teamService";
 
 interface ViewDeliverableModalProps {
   deliverable: TeamDeliverable;
@@ -162,7 +162,7 @@ export function ViewDeliverableModal({ deliverable, onClose }: ViewDeliverableMo
                 </label>
                 <div className="rounded-lg border border-slate-200 bg-white p-4">
                   <div className="flex items-center gap-2">
-                    {getStatusIcon(deliverable.status)}
+                    {getStatusIcon(deliverable.status  as string)}
                     <span className="text-sm font-medium text-slate-900">{deliverable.status}</span>
                   </div>
                 </div>

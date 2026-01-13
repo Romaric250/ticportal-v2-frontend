@@ -22,6 +22,7 @@ interface NovelModuleEditorProps {
   content?: string; // JSON string content
   onChange?: (content: string) => void;
   placeholder?: string;
+  onEditorReady?: (getContent: () => string) => void;
 }
 
 const extensions = [...defaultExtensions, slashCommand];
@@ -30,6 +31,7 @@ export const NovelModuleEditor = ({
   content = "",
   onChange,
   placeholder = "Type / for commands...",
+  onEditorReady,
 }: NovelModuleEditorProps) => {
   const getDefaultContent = (): JSONContent => ({
     type: "doc",
@@ -67,12 +69,23 @@ export const NovelModuleEditor = ({
   
   // Immediate update for form validation - no debounce
   const updateContentImmediately = ({ editor }: { editor: EditorInstance }) => {
+    const wasFirstTime = editorRef.current === null;
     editorRef.current = editor;
     const json = editor.getJSON();
     const jsonString = JSON.stringify(json);
     
     if (onChange && !isInternalUpdateRef.current) {
       onChange(jsonString);
+    }
+    
+    // Call onEditorReady when editor is first available
+    if (wasFirstTime && onEditorReady) {
+      onEditorReady(() => {
+        if (editorRef.current) {
+          return JSON.stringify(editorRef.current.getJSON());
+        }
+        return content;
+      });
     }
   };
   

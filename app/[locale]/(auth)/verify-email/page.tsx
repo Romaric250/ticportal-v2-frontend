@@ -17,6 +17,9 @@ export default function VerifyEmailPage() {
   // But keeping the hook call to avoid errors if needed in the future
   const { setUser, setTokens } = useAuthStore();
   const email = searchParams.get("email") || "";
+  const roleParam = searchParams.get("role") || "STUDENT";
+  const role: "STUDENT" | "MENTOR" | "JUDGE" | "SQUAD_LEAD" | "ADMIN" | "SUPER_ADMIN" = 
+    roleParam as "STUDENT" | "MENTOR" | "JUDGE" | "SQUAD_LEAD" | "ADMIN" | "SUPER_ADMIN";
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(9 * 60 + 42); // 9:42 in seconds
@@ -111,6 +114,7 @@ export default function VerifyEmailPage() {
         password: "", // We don't have the password here, but the API might allow resending OTP
         firstName: "",
         lastName: "",
+        role,
       });
       toast.success("Verification code sent to your email");
       setTimeLeft(10 * 60); // Reset timer to 10 minutes

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, Upload, FileText, Link as LinkIcon, Type } from "lucide-react";
-import { type TeamDeliverable } from "../../../../src/lib/services/teamService";
+import { type TeamDeliverable } from "@/src/lib/services/teamService";
 
 interface SubmitDeliverableModalProps {
   deliverable: TeamDeliverable;

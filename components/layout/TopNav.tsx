@@ -102,21 +102,21 @@ export function TopNav() {
         subtitle: "Oversee users, approve registrations, and manage roles for your jurisdiction",
         icon: <User size={20} className="text-[#111827]" />,
       },
-      hackathons: {
-        title: "Hackathons",
-        subtitle: "Manage hackathon events, create new hackathons, and oversee submissions",
-        icon: <Flag size={20} className="text-[#111827]" />,
-      },
+      // hackathons: {
+      //   title: "Hackathons",
+      //   subtitle: "Manage hackathon events, create new hackathons, and oversee submissions",
+      //   icon: <Flag size={20} className="text-[#111827]" />,
+      // },
       teams: {
         title: "Teams",
         subtitle: "View all teams, manage team members, and oversee team activities",
         icon: <Users size={20} className="text-[#111827]" />,
       },
-      "learning-path": {
-        title: "Learning Path",
-        subtitle: "Manage learning paths, courses, and track student progress",
-        icon: <BookOpen size={20} className="text-[#111827]" />,
-      },
+      // "learning-path": {
+      //   title: "Learning Path",
+      //   subtitle: "Manage learning paths, courses, and track student progress",
+      //   icon: <BookOpen size={20} className="text-[#111827]" />,
+      // },
       mentorship: {
         title: "Mentorship",
         subtitle: "Manage mentorship requests, assign mentors, and track mentorship sessions",

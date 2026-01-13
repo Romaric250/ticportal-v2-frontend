@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
-import { type TeamDeliverable } from "../../../../src/lib/services/adminService";
+import { type TeamDeliverable } from "@/src/lib/services/adminService";
 
 interface DeliverableSubmissionsTabProps {
   deliverables: TeamDeliverable[];

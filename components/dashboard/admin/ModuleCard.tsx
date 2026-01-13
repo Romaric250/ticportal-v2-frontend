@@ -3,7 +3,7 @@
 import { FileText, Edit2, Trash2, HelpCircle, GripVertical } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Module } from "../../../../src/lib/services/learningPathService";
+import type { Module } from "../../../src/lib/services/learningPathService";
 
 interface ModuleCardProps {
   module: Module;
