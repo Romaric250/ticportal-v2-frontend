@@ -65,15 +65,19 @@ export default function LearningPathPage() {
 
   // Show learning paths list
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Learning Paths</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">Learning Paths</h1>
+        <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-600">
           Explore available learning paths and enhance your skills
         </p>
       </div>
 
-      <LearningPathList paths={learningPaths} onPathSelect={handlePathSelect} />
+      <LearningPathList 
+        paths={learningPaths} 
+        onPathSelect={handlePathSelect}
+        onEnrollChange={loadLearningPaths}
+      />
     </div>
   );
 }

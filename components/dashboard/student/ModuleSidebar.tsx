@@ -26,11 +26,19 @@ export const ModuleSidebar = ({
     return progress.find((p) => p.moduleId === moduleId);
   };
 
+  if (modules.length === 0) {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <p className="text-xs text-slate-500">No modules available</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Modules</h2>
-        <div className="space-y-1">
+      <div className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
+        <h2 className="mb-3 text-xs sm:text-sm font-semibold text-slate-900">Modules</h2>
+        <div className="space-y-1.5 sm:space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
           {modules.map((module, index) => {
             const isSelected = selectedModuleId === module.id;
             const moduleProgress = getModuleProgress(module.id);
@@ -40,18 +48,18 @@ export const ModuleSidebar = ({
               <button
                 key={module.id}
                 onClick={() => onModuleSelect(module)}
-                className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+                className={`w-full rounded-lg border-2 p-2.5 sm:p-3 text-left transition-all ${
                   isSelected
                     ? "border-[#111827] bg-slate-50"
                     : "border-slate-200 bg-white hover:border-slate-300"
                 }`}
               >
                 <div className="flex items-start gap-2">
-                  <span className="flex-shrink-0 rounded-full bg-[#111827] px-2 py-0.5 text-xs font-semibold text-white">
+                  <span className="flex-shrink-0 rounded-full bg-[#111827] px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-white">
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-900 truncate">{module.title}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{module.title}</p>
                     {isCompleted && (
                       <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-600">
                         <CheckCircle2 size={12} />
@@ -63,9 +71,9 @@ export const ModuleSidebar = ({
                     )}
                   </div>
                   {isCompleted ? (
-                    <CheckCircle2 size={16} className="flex-shrink-0 text-emerald-600" />
+                    <CheckCircle2 size={14} className="flex-shrink-0 text-emerald-600 sm:w-4 sm:h-4" />
                   ) : (
-                    <Circle size={16} className="flex-shrink-0 text-slate-300" />
+                    <Circle size={14} className="flex-shrink-0 text-slate-300 sm:w-4 sm:h-4" />
                   )}
                 </div>
               </button>
@@ -76,4 +84,3 @@ export const ModuleSidebar = ({
     </div>
   );
 };
-
