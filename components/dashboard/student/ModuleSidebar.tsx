@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Check, Circle } from "lucide-react";
 import type { Module } from "../../../src/lib/services/learningPathService";
 
 interface ModuleProgress {
@@ -43,7 +43,8 @@ export const ModuleSidebar = ({
             const isSelected = selectedModuleId === module.id;
             const moduleProgress = getModuleProgress(module.id);
             // Check module.isCompleted first (from getStudentModules), then fall back to progress
-            const isCompleted = module.isCompleted ?? moduleProgress?.isCompleted ?? false;
+            // Explicitly check for true since module.isCompleted might be undefined
+            const isCompleted = module.isCompleted === true || moduleProgress?.isCompleted === true;
             
             console.log("📋 ModuleSidebar - Module:", {
               id: module.id,
@@ -51,6 +52,7 @@ export const ModuleSidebar = ({
               moduleIsCompleted: module.isCompleted,
               moduleProgressIsCompleted: moduleProgress?.isCompleted,
               finalIsCompleted: isCompleted,
+              typeofModuleIsCompleted: typeof module.isCompleted,
             });
 
             return (
@@ -80,7 +82,9 @@ export const ModuleSidebar = ({
                     )}
                   </div>
                   {isCompleted ? (
-                    <CheckCircle2 size={14} className="flex-shrink-0 text-emerald-600 sm:w-4 sm:h-4" />
+                    <div className="flex-shrink-0 flex items-center justify-center rounded bg-[#111827] p-0.5">
+                      <Check size={12} className="text-white sm:w-3 sm:h-3" />
+                    </div>
                   ) : (
                     <Circle size={14} className="flex-shrink-0 text-slate-300 sm:w-4 sm:h-4" />
                   )}
