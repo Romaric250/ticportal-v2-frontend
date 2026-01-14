@@ -357,7 +357,6 @@ export const learningPathService = {
       }>
     >("/learning-paths/enrollments");
 
-    console.log("📡 API Response: getEnrollments", response);
     return response?.data || [];
   },
 };
