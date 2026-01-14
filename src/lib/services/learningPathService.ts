@@ -324,22 +324,40 @@ export const learningPathService = {
   /**
    * Get all learning path enrollments for the current user
    */
-  async getEnrollments(): Promise<Array<{
-    pathId: string;
-    pathTitle: string;
-    pathDescription: string;
-    audience: LearningPathAudience;
-    isCore: boolean;
-    isEnrolled: boolean;
-    isAutoEnrolled: boolean;
-    enrolledAt: string | null;
-    isCompleted: boolean;
-    completedAt: string | null;
-    totalScore: number | null;
-  }>> {
-    const { data } = await apiClient.get<{ success: boolean; data: any[] }>(
-      "/learning-paths/enrollments"
-    );
-    return data.data || [];
+  async getEnrollments(): Promise<
+    Array<{
+      pathId: string;
+      pathTitle: string;
+      pathDescription: string;
+      audience: LearningPathAudience;
+      isCore: boolean;
+      isEnrolled: boolean;
+      isAutoEnrolled: boolean;
+      enrolledAt: string | null;
+      isCompleted: boolean;
+      completedAt: string | null;
+      totalScore: number | null;
+    }>
+  > {
+    // The /learning-paths/enrollments endpoint returns the array directly,
+    // so we type the client call as an array and return response.data.
+    const response = await apiClient.get<
+      Array<{
+        pathId: string;
+        pathTitle: string;
+        pathDescription: string;
+        audience: LearningPathAudience;
+        isCore: boolean;
+        isEnrolled: boolean;
+        isAutoEnrolled: boolean;
+        enrolledAt: string | null;
+        isCompleted: boolean;
+        completedAt: string | null;
+        totalScore: number | null;
+      }>
+    >("/learning-paths/enrollments");
+
+    console.log("📡 API Response: getEnrollments", response);
+    return response?.data || [];
   },
 };

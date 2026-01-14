@@ -6,11 +6,35 @@ import { toast } from "sonner";
 import { learningPathService, type LearningPath } from "../../../../../src/lib/services/learningPathService";
 import { LearningPathList } from "../../../../../components/dashboard/student/LearningPathList";
 import { LearningPathDetail } from "../../../../../components/dashboard/student/LearningPathDetail";
+import { useLearningPathStore } from "../../../../../src/state/learning-path-store";
 
 export default function LearningPathPage() {
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [selectedPath, setSelectedPath] = useState<LearningPath | null>(null);
   const [loading, setLoading] = useState(true);
+  const { setEnrolled, setUnenrolled } = useLearningPathStore();
+
+  // Pre-fetch enrollments as soon as component mounts, before paths are loaded
+  useEffect(() => {
+    const preloadEnrollments = async () => {
+      try {
+        const enrollments = await learningPathService.getEnrollments();
+        enrollments.forEach((enrollment) => {
+          if (enrollment.isEnrolled) {
+            setEnrolled(enrollment.pathId);
+          } else {
+            setUnenrolled(enrollment.pathId);
+          }
+        });
+      } catch (error: any) {
+        console.error("Error preloading enrollments:", error);
+        // Don't show error toast here, let LearningPathList handle it
+      }
+    };
+    
+    preloadEnrollments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     loadLearningPaths();
