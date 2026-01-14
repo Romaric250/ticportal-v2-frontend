@@ -283,6 +283,7 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
               selectedModuleId={selectedModule?.id || null}
               progress={progressModules}
               onModuleSelect={handleModuleSelect}
+              disabled={!currentIsEnrolled}
             />
           </div>
         </div>

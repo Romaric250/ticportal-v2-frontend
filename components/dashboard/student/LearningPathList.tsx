@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen, Loader2, CheckCircle2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { LearningPath } from "../../../src/lib/services/learningPathService";
@@ -17,37 +17,43 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
   const enrolledPaths = useLearningPathStore((state) => state.enrolledPaths);
   const { setEnrolled, setUnenrolled, setLoadingEnrollment } = useLearningPathStore();
   const isLoadingEnrollment = useLearningPathStore((state) => state.isLoadingEnrollment);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<Record<string, boolean>>({});
 
-  // Check enrollment status for all paths on mount
+  // Check enrollment status for all paths using the enrollments endpoint
   useEffect(() => {
     const checkAllEnrollments = async () => {
-      for (const path of paths) {
-        // Only check if not already in store
-        if (!enrolledPaths.includes(path.id)) {
-          setLoadingEnrollment(path.id, true);
-          try {
-            await learningPathService.getProgress(path.id);
-            setEnrolled(path.id);
-          } catch (error: any) {
-            // Not enrolled, that's fine
-            if (error?.response?.status !== 404) {
-              console.error(`Error checking enrollment for ${path.id}:`, error);
-            }
-          } finally {
-            setLoadingEnrollment(path.id, false);
+      if (paths.length === 0) return;
+      
+      try {
+        const enrollments = await learningPathService.getEnrollments();
+        const statusMap: Record<string, boolean> = {};
+        
+        enrollments.forEach((enrollment) => {
+          statusMap[enrollment.pathId] = enrollment.isEnrolled;
+          if (enrollment.isEnrolled) {
+            setEnrolled(enrollment.pathId);
+          } else {
+            setUnenrolled(enrollment.pathId);
           }
-        }
+        });
+        
+        setEnrollmentStatus(statusMap);
+      } catch (error: any) {
+        console.error("Error checking enrollments:", error);
+        // Fallback: clear all enrollments if API fails
+        paths.forEach((path) => setUnenrolled(path.id));
       }
     };
 
     checkAllEnrollments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [paths.length]);
 
   const handleEnroll = async (e: React.MouseEvent, path: LearningPath) => {
     e.stopPropagation();
     
-    if (enrolledPaths.includes(path.id)) {
+    // Check if already enrolled using API data
+    if (enrollmentStatus[path.id] === true) {
       return;
     }
 
@@ -55,12 +61,14 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
       setLoadingEnrollment(path.id, true);
       await learningPathService.enrollInPath(path.id);
       setEnrolled(path.id);
+      setEnrollmentStatus((prev) => ({ ...prev, [path.id]: true }));
       toast.success("Successfully enrolled!");
       onEnrollChange?.();
     } catch (error: any) {
       if (error?.response?.status === 409) {
         toast.info("You are already enrolled in this learning path");
         setEnrolled(path.id);
+        setEnrollmentStatus((prev) => ({ ...prev, [path.id]: true }));
       } else {
         toast.error(error?.response?.data?.message || error?.message || "Failed to enroll");
       }
@@ -72,7 +80,8 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
   const handleUnenroll = async (e: React.MouseEvent, path: LearningPath) => {
     e.stopPropagation();
     
-    if (!enrolledPaths.includes(path.id)) {
+    const currentlyEnrolled = enrollmentStatus[path.id] ?? enrolledPaths.includes(path.id);
+    if (!currentlyEnrolled) {
       return;
     }
 
@@ -80,6 +89,7 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
       setLoadingEnrollment(path.id, true);
       await learningPathService.unenrollFromPath(path.id);
       setUnenrolled(path.id);
+      setEnrollmentStatus((prev) => ({ ...prev, [path.id]: false }));
       toast.success("Successfully unenrolled!");
       onEnrollChange?.();
     } catch (error: any) {
@@ -91,7 +101,8 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
 
   const PathCard = ({ path }: { path: LearningPath }) => {
     const moduleCount = path.modules?.length || 0;
-    const isEnrolled = enrolledPaths.includes(path.id);
+    // Only use enrollmentStatus from API - if path is in the map, use that value; otherwise assume not enrolled
+    const isEnrolled = enrollmentStatus[path.id] === true;
     const isEnrolling = isLoadingEnrollment[path.id] || false;
 
     return (

@@ -14,6 +14,7 @@ interface ModuleSidebarProps {
   selectedModuleId: string | null;
   progress?: ModuleProgress[];
   onModuleSelect: (module: Module) => void;
+  disabled?: boolean;
 }
 
 export const ModuleSidebar = ({
@@ -21,6 +22,7 @@ export const ModuleSidebar = ({
   selectedModuleId,
   progress = [],
   onModuleSelect,
+  disabled = false,
 }: ModuleSidebarProps) => {
   const getModuleProgress = (moduleId: string) => {
     return progress.find((p) => p.moduleId === moduleId);
@@ -58,9 +60,12 @@ export const ModuleSidebar = ({
             return (
               <button
                 key={module.id}
-                onClick={() => onModuleSelect(module)}
+                onClick={() => !disabled && onModuleSelect(module)}
+                disabled={disabled}
                 className={`w-full rounded-lg border-2 p-2.5 sm:p-3 text-left transition-all ${
-                  isSelected
+                  disabled
+                    ? "border-slate-200 bg-slate-50 cursor-not-allowed opacity-60"
+                    : isSelected
                     ? "border-[#111827] bg-slate-50"
                     : "border-slate-200 bg-white hover:border-slate-300"
                 }`}

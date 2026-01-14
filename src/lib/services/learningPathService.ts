@@ -320,4 +320,26 @@ export const learningPathService = {
     console.log("📦 Parsed Modules:", modules);
     return modules;
   },
+
+  /**
+   * Get all learning path enrollments for the current user
+   */
+  async getEnrollments(): Promise<Array<{
+    pathId: string;
+    pathTitle: string;
+    pathDescription: string;
+    audience: LearningPathAudience;
+    isCore: boolean;
+    isEnrolled: boolean;
+    isAutoEnrolled: boolean;
+    enrolledAt: string | null;
+    isCompleted: boolean;
+    completedAt: string | null;
+    totalScore: number | null;
+  }>> {
+    const { data } = await apiClient.get<{ success: boolean; data: any[] }>(
+      "/learning-paths/enrollments"
+    );
+    return data.data || [];
+  },
 };
