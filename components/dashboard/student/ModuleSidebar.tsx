@@ -47,20 +47,15 @@ export const ModuleSidebar = ({
             // Check module.isCompleted first (from getStudentModules), then fall back to progress
             // Explicitly check for true since module.isCompleted might be undefined
             const isCompleted = module.isCompleted === true || moduleProgress?.isCompleted === true;
-            
-            console.log("📋 ModuleSidebar - Module:", {
-              id: module.id,
-              title: module.title,
-              moduleIsCompleted: module.isCompleted,
-              moduleProgressIsCompleted: moduleProgress?.isCompleted,
-              finalIsCompleted: isCompleted,
-              typeofModuleIsCompleted: typeof module.isCompleted,
-            });
 
             return (
               <button
                 key={module.id}
-                onClick={() => !disabled && onModuleSelect(module)}
+                onClick={() => {
+                  if (!disabled) {
+                    onModuleSelect(module);
+                  }
+                }}
                 disabled={disabled}
                 className={`w-full rounded-lg border-2 p-2.5 sm:p-3 text-left transition-all ${
                   disabled
@@ -88,7 +83,7 @@ export const ModuleSidebar = ({
                   </div>
                   {isCompleted ? (
                     <div className="flex-shrink-0 flex items-center justify-center rounded bg-[#111827] p-0.5">
-                      <Check size={12} className="text-white sm:w-3 sm:h-3" />
+                      <Check size={12} className="text-white sm:w-3 sm:h-3" /> xx
                     </div>
                   ) : (
                     <Circle size={14} className="flex-shrink-0 text-slate-300 sm:w-4 sm:h-4" />

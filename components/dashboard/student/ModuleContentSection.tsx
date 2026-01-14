@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Loader2, HelpCircle } from "lucide-react";
+import { CheckCircle2, Loader2, HelpCircle, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { learningPathService } from "../../../src/lib/services/learningPathService";
 import { ModuleContentViewer } from "./ModuleContentViewer";
@@ -13,6 +13,10 @@ interface ModuleContentSectionProps {
   module: Module;
   isCompleted?: boolean;
   onComplete?: () => void;
+  modules?: Module[];
+  currentModuleId?: string;
+  onModuleChange?: (module: Module) => void;
+  isEnrolled?: boolean;
 }
 
 export const ModuleContentSection = ({
@@ -20,6 +24,10 @@ export const ModuleContentSection = ({
   module,
   isCompleted = false,
   onComplete,
+  modules = [],
+  currentModuleId,
+  onModuleChange,
+  isEnrolled = true,
 }: ModuleContentSectionProps) => {
   const [completing, setCompleting] = useState(false);
   const [showQuizModal, setShowQuizModal] = useState(false);
@@ -274,6 +282,127 @@ export const ModuleContentSection = ({
           isCompleted={moduleCompleted}
           onComplete={handleQuizComplete}
         />
+      )}
+
+      {/* Mobile Module Navigation - Bottom */}
+      {modules.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-slate-700 shadow-lg z-50">
+          {/* Module Selector - Horizontal Scroll */}
+          <div className="px-2 py-1.5 overflow-x-auto">
+            <div className="flex gap-1.5 min-w-max">
+              {modules.map((m, index) => {
+                const isSelected = m.id === currentModuleId;
+                const isModuleCompleted = m.isCompleted === true;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      if (isEnrolled && onModuleChange) {
+                        onModuleChange(m);
+                      }
+                    }}
+                    disabled={!isEnrolled}
+                    className={`flex-shrink-0 rounded-lg border-2 px-2 py-1.5 text-left transition-all ${
+                      !isEnrolled
+                        ? "border-slate-600 bg-slate-800 cursor-not-allowed opacity-50"
+                        : isSelected
+                        ? "border-white bg-slate-800"
+                        : "border-slate-600 bg-slate-900 hover:border-slate-500"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {isModuleCompleted ? (
+                        <div className="flex-shrink-0 flex items-center justify-center rounded bg-white p-0.5">
+                          <Check size={10} className="text-[#111827]" />
+                        </div>
+                      ) : (
+                        <span className="flex-shrink-0 text-[10px] font-semibold text-white">{index + 1}</span>
+                      )}
+                      <p className="text-[10px] font-medium text-white truncate max-w-[60px]">
+                        {m.title}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Navigation and Complete Buttons */}
+          <div className="px-4 py-2.5 flex items-center justify-between gap-3 border-t border-slate-700">
+            {/* Previous/Next Navigation */}
+            <div className="flex items-center gap-2 flex-1">
+              {(() => {
+                const currentIndex = modules.findIndex((m) => m.id === currentModuleId);
+                const hasPrevious = currentIndex > 0;
+                const hasNext = currentIndex < modules.length - 1;
+                const previousModule = hasPrevious ? modules[currentIndex - 1] : null;
+                const nextModule = hasNext ? modules[currentIndex + 1] : null;
+
+                return (
+                  <>
+                    <button
+                      onClick={() => {
+                        if (previousModule && isEnrolled && onModuleChange) {
+                          onModuleChange(previousModule);
+                        }
+                      }}
+                      disabled={!hasPrevious || !isEnrolled}
+                      className="flex items-center justify-center gap-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft size={14} />
+                      <span className="hidden xs:inline">Prev</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (nextModule && isEnrolled && onModuleChange) {
+                          onModuleChange(nextModule);
+                        }
+                      }}
+                      disabled={!hasNext || !isEnrolled}
+                      className="flex items-center justify-center gap-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="hidden xs:inline">Next</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Complete Button - Opposite Side */}
+            {!(moduleCompleted || module.isCompleted) && (
+              <button
+                onClick={() => {
+                  if (module.hasQuiz ?? (module.quiz && module.quiz.length > 0)) {
+                    setShowQuizModal(true);
+                  } else {
+                    handleCompleteModule();
+                  }
+                }}
+                disabled={completing || !isEnrolled}
+                className="flex items-center justify-center gap-2 rounded-lg bg-[#111827] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                {completing ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Completing...</span>
+                  </>
+                ) : (module.hasQuiz ?? (module.quiz && module.quiz.length > 0)) ? (
+                  <>
+                    <HelpCircle size={14} />
+                    <span>Quiz</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} />
+                    <span>Complete</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </>
   );

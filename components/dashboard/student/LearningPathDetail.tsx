@@ -22,42 +22,43 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [contentLoading, setContentLoading] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const enrolledPaths = useLearningPathStore((state) => state.enrolledPaths);
   const { setEnrolled, setLoadingEnrollment } = useLearningPathStore();
 
-  // Check enrollment status immediately
-  const isEnrolled = enrolledPaths.includes(path.id);
+  useEffect(() => {
+    checkEnrollmentStatus();
+  }, [path.id]);
+
+  const checkEnrollmentStatus = async () => {
+    try {
+      // Check enrollment status from API
+      const enrollments = await learningPathService.getEnrollments();
+      const enrollment = enrollments.find(e => e.pathId === path.id);
+      const enrolled = enrollment?.isEnrolled === true;
+      setIsEnrolled(enrolled);
+      
+      if (enrolled) {
+        setEnrolled(path.id);
+      }
+    } catch (error: any) {
+      console.error("Error checking enrollment:", error);
+      setIsEnrolled(false);
+    }
+  };
 
   useEffect(() => {
-    loadPathDetails();
-  }, [path.id]);
+    if (isEnrolled !== undefined) {
+      loadPathDetails();
+    }
+  }, [path.id, isEnrolled]);
 
   const loadPathDetails = async () => {
     try {
       setLoading(true);
-      
-      // Check enrollment status first
-      let enrollmentChecked = false;
-      if (!isEnrolled) {
-        setLoadingEnrollment(path.id, true);
-        try {
-          await learningPathService.getProgress(path.id);
-          setEnrolled(path.id);
-          enrollmentChecked = true;
-        } catch (error: any) {
-          // Not enrolled, that's fine
-          if (error?.response?.status !== 404) {
-            console.error("Error loading progress:", error);
-          }
-        } finally {
-          setLoadingEnrollment(path.id, false);
-        }
-      } else {
-        enrollmentChecked = true;
-      }
 
       // Load modules with completion status if enrolled
-      if (enrollmentChecked || isEnrolled) {
+      if (isEnrolled) {
         try {
           // Use the new endpoint that returns modules with completion status
           const studentModules = await learningPathService.getStudentModules(path.id);
@@ -92,8 +93,8 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
             console.error("Error loading progress:", error);
           }
           
-          // Select first module immediately if available
-          if (sortedModules.length > 0) {
+          // Select first module immediately if available and enrolled
+          if (sortedModules.length > 0 && isEnrolled) {
             console.log("📦 Setting selected module:", sortedModules[0]);
             setSelectedModule(sortedModules[0]);
           }
@@ -115,7 +116,10 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
         if (fullPath.modules && fullPath.modules.length > 0) {
           const sortedModules = [...fullPath.modules].sort((a, b) => a.order - b.order);
           setModules(sortedModules);
-          setSelectedModule(sortedModules[0]);
+          // Don't auto-select module if not enrolled
+          if (isEnrolled && sortedModules.length > 0) {
+            setSelectedModule(sortedModules[0]);
+          }
         }
       }
     } catch (error: any) {
@@ -149,6 +153,10 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
   };
 
   const handleModuleSelect = async (module: Module) => {
+    // Prevent module selection if not enrolled
+    if (!isEnrolled) {
+      return;
+    }
     setContentLoading(true);
     // Clear previous content immediately
     setSelectedModule(null);
@@ -179,7 +187,7 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
     : (path.modules ? [...path.modules].sort((a, b) => a.order - b.order) : []);
 
   const progressModules = progress?.modules || [];
-  const currentIsEnrolled = enrolledPaths.includes(path.id);
+  const currentIsEnrolled = isEnrolled;
 
   if (loading) {
     return (
@@ -253,7 +261,7 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
       {/* Main Content - Modules on the RIGHT */}
       <div className="flex flex-col lg:grid lg:grid-cols-[1fr_280px] gap-4 sm:gap-6">
         {/* Main Content - LEFT */}
-        <div className="space-y-4 sm:space-y-6 min-w-0 order-2 lg:order-1">
+        <div className="space-y-4 sm:space-y-6 min-w-0 order-2 lg:order-1 pb-24 lg:pb-0">
           {contentLoading ? (
             <div className="flex h-[300px] sm:h-[400px] items-center justify-center rounded-lg border border-slate-200 bg-white">
               <div className="flex flex-col items-center gap-3">
@@ -267,6 +275,10 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
               module={selectedModule}
               isCompleted={selectedModule.isCompleted ?? progressModules.find((p: any) => p.moduleId === selectedModule.id)?.isCompleted ?? false}
               onComplete={handleModuleComplete}
+              modules={sortedModules}
+              currentModuleId={selectedModule.id}
+              onModuleChange={handleModuleSelect}
+              isEnrolled={currentIsEnrolled}
             />
           ) : (
             <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 lg:p-8 text-center">
@@ -275,8 +287,8 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
           )}
         </div>
 
-        {/* Sidebar - Module List - RIGHT - Sticky */}
-        <div className="order-1 lg:order-2">
+        {/* Sidebar - Module List - RIGHT - Sticky - Hidden on mobile */}
+        <div className="hidden lg:block order-1 lg:order-2">
           <div className="lg:sticky lg:top-4">
             <ModuleSidebar
               modules={sortedModules}
