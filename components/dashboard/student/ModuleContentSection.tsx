@@ -294,9 +294,9 @@ export const ModuleContentSection = ({
         />
       )}
 
-      {/* Mobile Module Navigation - Bottom */}
+      {/* Mobile Module Navigation - Bottom - Always visible on mobile when modules exist */}
       {modules.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-slate-700 shadow-lg z-50">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-slate-700 shadow-lg z-50 safe-area-inset-bottom">
           {/* Module Selector - Horizontal Scroll */}
           <div className="px-2 py-1.5 overflow-x-auto">
             <div className="flex gap-1.5 min-w-max">
