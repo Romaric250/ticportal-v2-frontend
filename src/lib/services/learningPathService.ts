@@ -273,6 +273,31 @@ export const learningPathService = {
   },
 
   /**
+   * Calculate progress for all learning paths
+   * Returns an array of progress data for all paths
+   */
+  async calculateAllProgress(): Promise<Array<{
+    pathId: string;
+    pathTitle: string;
+    totalModules: number;
+    completedModules: number;
+    progressPercentage: number;
+    isCompleted: boolean;
+  }>> {
+    // The apiClient interceptor automatically unwraps { success: true, data: [...] } to just [...]
+    // So response.data is already the array
+    const { data } = await apiClient.get<Array<{
+      pathId: string;
+      pathTitle: string;
+      totalModules: number;
+      completedModules: number;
+      progressPercentage: number;
+      isCompleted: boolean;
+    }>>("/learning-paths/calculate-progress");
+    return data || [];
+  },
+
+  /**
    * Get module completion status
    */
   async getModuleStatus(pathId: string, moduleId: string): Promise<{

@@ -22,7 +22,7 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [contentLoading, setContentLoading] = useState(false);
-  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState<boolean | undefined>(undefined);
   const enrolledPaths = useLearningPathStore((state) => state.enrolledPaths);
   const { setEnrolled, setLoadingEnrollment } = useLearningPathStore();
 
@@ -48,10 +48,28 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
   };
 
   useEffect(() => {
+    // Only load path details after enrollment status is checked
     if (isEnrolled !== undefined) {
       loadPathDetails();
     }
   }, [path.id, isEnrolled]);
+
+  // CRITICAL: Ensure first module is selected when modules are loaded and enrolled
+  // This is critical for mobile navigation to work - content must load immediately
+  useEffect(() => {
+    if (isEnrolled === true && modules.length > 0) {
+      const sortedModules = [...modules].sort((a, b) => a.order - b.order);
+      // Always select first module if enrolled and modules are available
+      if (sortedModules.length > 0) {
+        const firstModule = sortedModules[0];
+        // Only update if no module selected or different first module
+        if (!selectedModule || selectedModule.id !== firstModule.id) {
+          setSelectedModule(firstModule);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEnrolled, modules.length, modules.map(m => m.id).join(',')]);
 
   const loadPathDetails = async () => {
     try {
@@ -62,47 +80,25 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
         try {
           // Use the new endpoint that returns modules with completion status
           const studentModules = await learningPathService.getStudentModules(path.id);
-          console.log("📦 Student Modules Data:", studentModules);
-          console.log("📦 Student Modules Count:", studentModules.length);
-          
           const sortedModules = [...studentModules].sort((a, b) => a.order - b.order);
-          console.log("📦 Sorted Modules:", sortedModules);
-          
-          // Log each module's details
-          sortedModules.forEach((module, index) => {
-            console.log(`📦 Module ${index + 1}:`, {
-              id: module.id,
-              title: module.title,
-              hasQuiz: module.hasQuiz,
-              isCompleted: module.isCompleted,
-              completedAt: module.completedAt,
-              quizScore: module.quizScore,
-              quiz: module.quiz,
-            });
-          });
-          
           setModules(sortedModules);
           
           // Also load progress for the progress bar
           try {
             const progressData = await learningPathService.getProgress(path.id);
-            console.log("📊 Progress Data:", progressData);
             setProgress(progressData);
           } catch (error: any) {
             // Progress might not be available yet
-            console.error("Error loading progress:", error);
           }
           
-          // Select first module immediately if available and enrolled (required for mobile navigation)
+          // CRITICAL: Select first module immediately if available and enrolled (required for mobile navigation)
+          // This ensures content loads immediately when path opens
           if (sortedModules.length > 0 && isEnrolled) {
-            console.log("📦 Setting selected module:", sortedModules[0]);
             setSelectedModule(sortedModules[0]);
           }
         } catch (error: any) {
           // Fallback to regular path details if student modules endpoint fails
-          console.error("❌ Error loading student modules:", error);
           const fullPath = await learningPathService.getStudentPathById(path.id);
-          console.log("📦 Fallback - Full Path Data:", fullPath);
           if (fullPath.modules && fullPath.modules.length > 0) {
             const sortedModules = [...fullPath.modules].sort((a, b) => a.order - b.order);
             setModules(sortedModules);

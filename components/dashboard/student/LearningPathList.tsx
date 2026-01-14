@@ -26,6 +26,7 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
     totalModules: number;
     percentComplete: number;
     averageScore?: number;
+    isCompleted?: boolean;
   }>>({});
 
   // Check enrollment status for all paths using the enrollments endpoint.
@@ -53,48 +54,118 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
           statusMap[path.id] = false;
         });
 
-        // 2) Apply the API data directly by pathId and fetch progress for enrolled paths
-        const progressMap: Record<string, {
-          completedModules: number;
-          totalModules: number;
-          percentComplete: number;
-          averageScore?: number;
-        }> = {};
-
-        // Process enrollments and fetch progress in parallel
-        const progressPromises = enrollments.map(async (enrollment) => {
+        // 2) Apply the API data directly by pathId
+        enrollments.forEach((enrollment) => {
           statusMap[enrollment.pathId] = enrollment.isEnrolled === true;
 
           if (enrollment.isEnrolled) {
             setEnrolled(enrollment.pathId);
-            // Fetch progress for enrolled paths
-            try {
-              const progress = await learningPathService.getProgress(enrollment.pathId);
-              progressMap[enrollment.pathId] = {
-                completedModules: progress.completedModules,
-                totalModules: progress.totalModules,
-                percentComplete: progress.percentComplete,
-                averageScore: progress.averageScore,
-              };
-            } catch (error: any) {
-              // If progress fetch fails, calculate from modules if available
-              const path = paths.find(p => p.id === enrollment.pathId);
-              if (path?.modules) {
-                const totalModules = path.modules.length;
-                progressMap[enrollment.pathId] = {
-                  completedModules: 0,
-                  totalModules,
-                  percentComplete: 0,
-                };
-              }
-            }
           } else {
             setUnenrolled(enrollment.pathId);
           }
         });
 
-        // Wait for all progress fetches to complete
-        await Promise.all(progressPromises);
+        // 3) Fetch progress for all paths at once using calculate-progress endpoint
+        const progressMap: Record<string, {
+          completedModules: number;
+          totalModules: number;
+          percentComplete: number;
+          isCompleted: boolean;
+        }> = {};
+
+        // Get list of enrolled path IDs
+        const enrolledPathIds = enrollments.filter(e => e.isEnrolled).map(e => e.pathId);
+
+        try {
+          const allProgress = await learningPathService.calculateAllProgress();
+          console.log("📊 API Response - calculateAllProgress:", allProgress);
+          
+          // Map progress data by pathId
+          allProgress.forEach((progress) => {
+            // If API returns totalModules: 0, check if path has modules and use that instead
+            const path = paths.find(p => p.id === progress.pathId);
+            const pathModuleCount = path?.modules?.length || 0;
+            const apiTotalModules = progress.totalModules || 0;
+            // Use API totalModules if > 0, otherwise use path's module count
+            const totalModules = apiTotalModules > 0 ? apiTotalModules : pathModuleCount;
+            
+            const progressData = {
+              completedModules: progress.completedModules ?? 0,
+              totalModules: totalModules,
+              // CRITICAL: Use ?? instead of || to handle 0 as a valid value
+              percentComplete: progress.progressPercentage ?? (totalModules > 0 ? Math.round((progress.completedModules ?? 0) / totalModules * 100) : 0),
+              isCompleted: progress.isCompleted ?? false,
+            };
+            
+            console.log(`📊 Processing progress for pathId: ${progress.pathId}`, {
+              apiData: progress,
+              pathModuleCount,
+              apiTotalModules,
+              finalTotalModules: totalModules,
+              finalProgressData: progressData,
+            });
+            
+            progressMap[progress.pathId] = progressData;
+          });
+          
+          console.log("📊 Final progressMap:", progressMap);
+        } catch (error: any) {
+          console.error("❌ Error fetching progress:", error);
+        }
+
+        // CRITICAL: Ensure ALL enrolled paths have progress data, even if API didn't return it
+        // This ensures the progress bar shows for all enrolled paths
+        for (const pathId of enrolledPathIds) {
+          // Only initialize if progress data doesn't exist
+          if (!progressMap[pathId]) {
+            try {
+              // Try to get modules to calculate progress
+              const studentModules = await learningPathService.getStudentModules(pathId);
+              const totalModules = studentModules.length;
+              const completedModules = studentModules.filter(m => m.isCompleted === true).length;
+              const percentComplete = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+              
+              progressMap[pathId] = {
+                completedModules,
+                totalModules,
+                percentComplete,
+                isCompleted: false,
+              };
+            } catch (moduleError: any) {
+              // Fallback: use path modules if available, or initialize with 0
+              const path = paths.find(p => p.id === pathId);
+              if (path?.modules) {
+                const totalModules = path.modules.length;
+                progressMap[pathId] = {
+                  completedModules: 0,
+                  totalModules,
+                  percentComplete: 0,
+                  isCompleted: false,
+                };
+              } else {
+                // Last resort: use path from props to get module count
+                const path = paths.find(p => p.id === pathId);
+                if (path?.modules) {
+                  const totalModules = path.modules.length;
+                  progressMap[pathId] = {
+                    completedModules: 0,
+                    totalModules,
+                    percentComplete: 0,
+                    isCompleted: false,
+                  };
+                } else {
+                  // Absolute last resort: initialize with 0
+                  progressMap[pathId] = {
+                    completedModules: 0,
+                    totalModules: 0,
+                    percentComplete: 0,
+                    isCompleted: false,
+                  };
+                }
+              }
+            }
+          }
+        }
 
         setEnrollmentStatus(statusMap);
         setPathProgress(progressMap);
@@ -168,6 +239,40 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
     // Use enrollmentStatus from API as the only source of truth
     const isEnrolled = enrollmentStatus[path.id] === true;
     const isEnrolling = isLoadingEnrollment[path.id] || false;
+    const isCompleted = pathProgress[path.id]?.isCompleted === true;
+    // Progress bar should show if enrolled - use progress data or fallback to path modules
+    const progressData = pathProgress[path.id];
+    
+    // CRITICAL: If API returns totalModules: 0, use path's module count instead
+    // This handles cases where API hasn't calculated modules yet but path has modules
+    const apiTotalModules = progressData?.totalModules ?? 0;
+    const totalModules = apiTotalModules > 0 ? apiTotalModules : (moduleCount > 0 ? moduleCount : 0);
+    const completedModules = progressData?.completedModules ?? 0;
+    
+    // CRITICAL: Use progressData.percentComplete if available (from API), otherwise calculate
+    // Use ?? instead of || to handle 0 as a valid percentage value
+    const percentComplete = progressData?.percentComplete !== undefined 
+      ? progressData.percentComplete 
+      : (totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0);
+    
+    // Show progress bar if enrolled AND we have at least one module (from either source)
+    const shouldShowProgress = isEnrolled && totalModules > 0;
+    
+    // Debug logging for enrolled paths
+    if (isEnrolled) {
+      console.log(`🎴 [PathCard:${path.title}]`, {
+        pathId: path.id,
+        isEnrolled,
+        progressData,
+        moduleCount,
+        apiTotalModules,
+        totalModules,
+        completedModules,
+        percentComplete,
+        shouldShowProgress,
+        isCompleted,
+      });
+    }
 
     return (
       <div
@@ -194,20 +299,20 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
           <span className="capitalize">{path.audience.toLowerCase()}</span>
         </div>
 
-        {/* Progress Bar - Only show if enrolled */}
-        {isEnrolled && pathProgress[path.id] && (
+        {/* Progress Bar - ALWAYS show if enrolled and has modules */}
+        {shouldShowProgress && (
           <div className="mb-3" onClick={(e) => e.stopPropagation()}>
             <ProgressBar
-              completedModules={pathProgress[path.id].completedModules}
-              totalModules={pathProgress[path.id].totalModules}
-              percentComplete={pathProgress[path.id].percentComplete}
-              averageScore={pathProgress[path.id].averageScore}
+              completedModules={completedModules}
+              totalModules={totalModules}
+              percentComplete={percentComplete}
+              averageScore={progressData?.averageScore}
               size="sm"
             />
           </div>
         )}
 
-        {/* Enroll/Enrolled/Unenroll Buttons */}
+        {/* Enroll/Enrolled/Unenroll/Completed Buttons */}
         <div className="flex gap-2">
           {/* While enrollments are still loading, show a neutral disabled button to avoid flicker */}
           {isLoadingEnrollments ? (
@@ -216,6 +321,17 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
               className="w-full rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-slate-500 bg-slate-100 cursor-default"
             >
               Checking status...
+            </button>
+          ) : isCompleted ? (
+            /* Show "Completed" badge when path is completed */
+            <button
+              disabled
+              className="w-full rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold bg-emerald-100 text-emerald-700 cursor-default"
+            >
+              <span className="flex items-center justify-center gap-2">
+                <CheckCircle2 size={14} />
+                <span>Completed</span>
+              </span>
             </button>
           ) : (
             <>
@@ -301,7 +417,7 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
       {/* Other Courses */}
       {otherCourses.length > 0 && (
         <div>
-          <h2 className="mb-4 text-base sm:text-lg lg:text-xl font-bold text-slate-900">Other Courses</h2>
+          <h2 className="mb-4 text-base sm:text-lg lg:text-xl font-bold text-slate-900">Other Pathways</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {otherCourses.map((path) => (
               <PathCard key={path.id} path={path} />

@@ -63,20 +63,13 @@ export const ModuleContentSection = ({
       // Also try to fetch status for accuracy (but don't block on it if we have module.isCompleted)
       try {
         setLoadingStatus(true);
-        console.log("🔍 Fetching module status from API...");
         const status = await learningPathService.getModuleStatus(pathId, module.id);
-        console.log("📊 Module Status from API:", status);
         
         if (status && typeof status === 'object' && 'isCompleted' in status) {
           setModuleCompleted(status.isCompleted);
-        } else {
-          console.warn("⚠️ Invalid status response:", status);
-          // Keep current state
         }
       } catch (error: any) {
         // If status check fails, keep current state (from module.isCompleted or prop)
-        console.error("❌ Error checking module status:", error);
-        console.log("🔄 Keeping current state, not overriding");
       } finally {
         setLoadingStatus(false);
       }
@@ -89,83 +82,46 @@ export const ModuleContentSection = ({
   useEffect(() => {
     // Prioritize module.isCompleted if available, then use prop
     const shouldBeCompleted = module.isCompleted ?? isCompleted;
-    console.log("🔄 Updating moduleCompleted from prop/module:", {
-      moduleIsCompleted: module.isCompleted,
-      propIsCompleted: isCompleted,
-      finalIsCompleted: shouldBeCompleted,
-    });
     setModuleCompleted(shouldBeCompleted);
   }, [module.isCompleted, isCompleted]);
 
   const handleCompleteModule = async () => {
-    console.log("🎯 handleCompleteModule called:", {
-      moduleId: module.id,
-      moduleTitle: module.title,
-      moduleHasQuiz: module.hasQuiz,
-      moduleQuiz: module.quiz,
-      moduleIsCompleted: module.isCompleted,
-    });
-    
     // Check if module has quiz using hasQuiz field or quiz array
     const hasQuiz = module.hasQuiz ?? (module.quiz && module.quiz.length > 0);
-    console.log("🔍 Has Quiz Check:", {
-      moduleHasQuiz: module.hasQuiz,
-      moduleQuizLength: module.quiz?.length,
-      hasQuiz: hasQuiz,
-    });
     
     if (hasQuiz) {
       // Module has quiz, show quiz modal
-      console.log("📝 Module has quiz, showing quiz modal");
       setShowQuizModal(true);
       return;
     }
 
-    console.log("✅ Module has no quiz, proceeding with completion...");
     try {
       setCompleting(true);
-      console.log("📤 Calling completeModule API...");
       const result = await learningPathService.completeModule(pathId, module.id);
-      console.log("📥 Complete Module Result:", result);
-      
       const pointsAwarded = result?.pointsAwarded ?? 50; // Default to 50 if not provided
-      console.log("💰 Points Awarded:", pointsAwarded);
       
       toast.success(`Module completed! You earned ${pointsAwarded} points!`);
       setModuleCompleted(true);
       
       // Refresh status after completion
       try {
-        console.log("🔄 Refreshing module status...");
         const status = await learningPathService.getModuleStatus(pathId, module.id);
-        console.log("📊 Updated Module Status:", status);
         setModuleCompleted(status.isCompleted);
       } catch (statusError) {
-        console.error("❌ Error refreshing status:", statusError);
         // Still mark as completed locally
         setModuleCompleted(true);
       }
       onComplete?.();
     } catch (error: any) {
-      console.error("❌ Error completing module:", error);
-      console.error("❌ Error details:", {
-        message: error?.message,
-        response: error?.response,
-        status: error?.response?.status,
-        data: error?.response?.data,
-      });
-      
       if (error?.response?.status === 409) {
-        console.log("⚠️ Module already completed (409)");
         toast.info("Module already completed");
         setModuleCompleted(true);
         // Refresh status
         try {
           const status = await learningPathService.getModuleStatus(pathId, module.id);
-          console.log("📊 Module Status after 409:", status);
           setModuleCompleted(status.isCompleted);
         } catch (statusError) {
-          console.error("❌ Error refreshing status:", statusError);
+          // Ignore refresh errors
         }
         onComplete?.();
       } else {
