@@ -197,6 +197,60 @@ export const ModuleContentSection = ({
     onComplete?.();
   };
 
+  // Check if this is the "Complete Path" module
+  const isCompletePathModule = (module as any).isCompletePathModule === true;
+
+  if (isCompletePathModule) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div className="rounded-lg border-2 border-emerald-200 bg-emerald-50 p-4 sm:p-6">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-base sm:text-lg lg:text-xl font-bold text-emerald-900 break-words">
+              Complete Learning Path
+            </h2>
+          </div>
+          <div className="space-y-4">
+            <p className="text-sm sm:text-base text-emerald-800">
+              Congratulations! You have completed all modules in this learning path. Click the button below to mark the entire path as complete and earn your final reward.
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  setCompleting(true);
+                  const result = await learningPathService.completePath(pathId);
+                  toast.success(`Learning path completed! You earned ${result.pointsAwarded || 100} points!`);
+                  onComplete?.();
+                } catch (error: any) {
+                  if (error?.response?.status === 409) {
+                    toast.info("Learning path is already completed");
+                  } else {
+                    toast.error(error?.response?.data?.message || error?.message || "Failed to complete learning path");
+                  }
+                } finally {
+                  setCompleting(false);
+                }
+              }}
+              disabled={completing}
+              className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm sm:text-base font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {completing ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Completing...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={16} />
+                  <span>Complete Learning Path</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-4 sm:space-y-6">
@@ -293,6 +347,7 @@ export const ModuleContentSection = ({
               {modules.map((m, index) => {
                 const isSelected = m.id === currentModuleId;
                 const isModuleCompleted = m.isCompleted === true;
+                const isCompletePathModule = (m as any).isCompletePathModule === true;
                 return (
                   <button
                     key={m.id}
@@ -305,20 +360,28 @@ export const ModuleContentSection = ({
                     className={`flex-shrink-0 rounded-lg border-2 px-2 py-1.5 text-left transition-all ${
                       !isEnrolled
                         ? "border-slate-600 bg-slate-800 cursor-not-allowed opacity-50"
+                        : isCompletePathModule
+                        ? isSelected
+                          ? "border-emerald-400 bg-emerald-900"
+                          : "border-emerald-600 bg-emerald-800 hover:border-emerald-500"
                         : isSelected
                         ? "border-white bg-slate-800"
                         : "border-slate-600 bg-slate-900 hover:border-slate-500"
                     }`}
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {isModuleCompleted ? (
+                      {isCompletePathModule ? (
+                        <span className="flex-shrink-0 text-[10px] font-semibold text-emerald-300">✓</span>
+                      ) : isModuleCompleted ? (
                         <div className="flex-shrink-0 flex items-center justify-center rounded bg-white p-0.5">
                           <Check size={10} className="text-[#111827]" />
                         </div>
                       ) : (
                         <span className="flex-shrink-0 text-[10px] font-semibold text-white">{index + 1}</span>
                       )}
-                      <p className="text-[10px] font-medium text-white truncate max-w-[60px]">
+                      <p className={`text-[10px] font-medium truncate max-w-[60px] ${
+                        isCompletePathModule ? "text-emerald-200" : "text-white"
+                      }`}>
                         {m.title}
                       </p>
                     </div>

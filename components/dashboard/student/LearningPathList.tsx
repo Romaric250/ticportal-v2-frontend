@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { LearningPath } from "../../../src/lib/services/learningPathService";
 import { learningPathService } from "../../../src/lib/services/learningPathService";
 import { useLearningPathStore } from "../../../src/state/learning-path-store";
+import { ProgressBar } from "./ProgressBar";
 
 interface LearningPathListProps {
   paths: LearningPath[];
@@ -20,6 +21,12 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
   // Single source of truth for UI: enrollmentStatus loaded from API
   const [enrollmentStatus, setEnrollmentStatus] = useState<Record<string, boolean>>({});
   const [isLoadingEnrollments, setIsLoadingEnrollments] = useState(true);
+  const [pathProgress, setPathProgress] = useState<Record<string, {
+    completedModules: number;
+    totalModules: number;
+    percentComplete: number;
+    averageScore?: number;
+  }>>({});
 
   // Check enrollment status for all paths using the enrollments endpoint.
   // We trust the API as the single source of truth and map directly by pathId.
@@ -46,18 +53,51 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
           statusMap[path.id] = false;
         });
 
-        // 2) Apply the API data directly by pathId
-        enrollments.forEach((enrollment) => {
+        // 2) Apply the API data directly by pathId and fetch progress for enrolled paths
+        const progressMap: Record<string, {
+          completedModules: number;
+          totalModules: number;
+          percentComplete: number;
+          averageScore?: number;
+        }> = {};
+
+        // Process enrollments and fetch progress in parallel
+        const progressPromises = enrollments.map(async (enrollment) => {
           statusMap[enrollment.pathId] = enrollment.isEnrolled === true;
 
           if (enrollment.isEnrolled) {
             setEnrolled(enrollment.pathId);
+            // Fetch progress for enrolled paths
+            try {
+              const progress = await learningPathService.getProgress(enrollment.pathId);
+              progressMap[enrollment.pathId] = {
+                completedModules: progress.completedModules,
+                totalModules: progress.totalModules,
+                percentComplete: progress.percentComplete,
+                averageScore: progress.averageScore,
+              };
+            } catch (error: any) {
+              // If progress fetch fails, calculate from modules if available
+              const path = paths.find(p => p.id === enrollment.pathId);
+              if (path?.modules) {
+                const totalModules = path.modules.length;
+                progressMap[enrollment.pathId] = {
+                  completedModules: 0,
+                  totalModules,
+                  percentComplete: 0,
+                };
+              }
+            }
           } else {
             setUnenrolled(enrollment.pathId);
           }
         });
 
+        // Wait for all progress fetches to complete
+        await Promise.all(progressPromises);
+
         setEnrollmentStatus(statusMap);
+        setPathProgress(progressMap);
         setIsLoadingEnrollments(false);
       } catch (error: any) {
         if (!isMounted) return;
@@ -153,6 +193,19 @@ export const LearningPathList = ({ paths, onPathSelect, onEnrollChange }: Learni
           <span>•</span>
           <span className="capitalize">{path.audience.toLowerCase()}</span>
         </div>
+
+        {/* Progress Bar - Only show if enrolled */}
+        {isEnrolled && pathProgress[path.id] && (
+          <div className="mb-3" onClick={(e) => e.stopPropagation()}>
+            <ProgressBar
+              completedModules={pathProgress[path.id].completedModules}
+              totalModules={pathProgress[path.id].totalModules}
+              percentComplete={pathProgress[path.id].percentComplete}
+              averageScore={pathProgress[path.id].averageScore}
+              size="sm"
+            />
+          </div>
+        )}
 
         {/* Enroll/Enrolled/Unenroll Buttons */}
         <div className="flex gap-2">

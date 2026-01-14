@@ -93,7 +93,7 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
             console.error("Error loading progress:", error);
           }
           
-          // Select first module immediately if available and enrolled
+          // Select first module immediately if available and enrolled (required for mobile navigation)
           if (sortedModules.length > 0 && isEnrolled) {
             console.log("📦 Setting selected module:", sortedModules[0]);
             setSelectedModule(sortedModules[0]);
@@ -106,7 +106,10 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
           if (fullPath.modules && fullPath.modules.length > 0) {
             const sortedModules = [...fullPath.modules].sort((a, b) => a.order - b.order);
             setModules(sortedModules);
-            setSelectedModule(sortedModules[0]);
+            // Select first module if enrolled (required for mobile navigation)
+            if (isEnrolled && sortedModules.length > 0) {
+              setSelectedModule(sortedModules[0]);
+            }
           }
         }
       } else {
@@ -152,11 +155,32 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
     }
   };
 
-  const handleModuleSelect = async (module: Module) => {
+  const handleModuleSelect = async (module: Module & { isCompletePathModule?: boolean }) => {
     // Prevent module selection if not enrolled
     if (!isEnrolled) {
       return;
     }
+
+    // Handle "Complete Path" module
+    if ((module as any).isCompletePathModule) {
+      try {
+        setLoading(true);
+        const result = await learningPathService.completePath(path.id);
+        toast.success(`Learning path completed! You earned ${result.pointsAwarded || 100} points!`);
+        // Reload path details to update progress
+        await loadPathDetails();
+      } catch (error: any) {
+        if (error?.response?.status === 409) {
+          toast.info("Learning path is already completed");
+        } else {
+          toast.error(error?.response?.data?.message || error?.message || "Failed to complete learning path");
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     setContentLoading(true);
     // Clear previous content immediately
     setSelectedModule(null);
@@ -188,6 +212,27 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
 
   const progressModules = progress?.modules || [];
   const currentIsEnrolled = isEnrolled;
+
+  // Check if all modules are completed
+  const allModulesCompleted = sortedModules.length > 0 && sortedModules.every(
+    (module) => module.isCompleted === true || progressModules.find((p: any) => p.moduleId === module.id)?.isCompleted === true
+  );
+
+  // Add "Complete Path" module at the end if all modules are completed
+  const modulesWithComplete = allModulesCompleted && currentIsEnrolled
+    ? [
+        ...sortedModules,
+        {
+          id: `complete-path-${path.id}`,
+          title: "Complete Learning Path",
+          content: "",
+          order: sortedModules.length + 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isCompletePathModule: true,
+        } as Module & { isCompletePathModule?: boolean },
+      ]
+    : sortedModules;
 
   if (loading) {
     return (
@@ -235,28 +280,6 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
         )}
       </div>
 
-      {/* Progress Bar */}
-      {progress && currentIsEnrolled && (
-        <div className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
-          <div className="mb-2 flex items-center justify-between text-xs sm:text-sm">
-            <span className="font-semibold text-slate-900">Progress</span>
-            <span className="font-semibold text-[#111827]">
-              {progress.completedModules} / {progress.totalModules} modules
-            </span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-            <div
-              className="h-full rounded-full bg-[#111827] transition-all"
-              style={{ width: `${progress.percentComplete}%` }}
-            />
-          </div>
-          {progress.averageScore !== undefined && (
-            <p className="mt-2 text-xs text-slate-600">
-              Average Score: <span className="font-semibold">{progress.averageScore}%</span>
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Main Content - Modules on the RIGHT */}
       <div className="flex flex-col lg:grid lg:grid-cols-[1fr_280px] gap-4 sm:gap-6">
@@ -291,7 +314,7 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
         <div className="hidden lg:block order-1 lg:order-2">
           <div className="lg:sticky lg:top-4">
             <ModuleSidebar
-              modules={sortedModules}
+              modules={modulesWithComplete}
               selectedModuleId={selectedModule?.id || null}
               progress={progressModules}
               onModuleSelect={handleModuleSelect}
