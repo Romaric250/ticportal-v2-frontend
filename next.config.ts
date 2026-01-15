@@ -9,7 +9,16 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
     unoptimized: false,
-    remotePatterns: [],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "utfs.io",
+      },
+      {
+        protocol: "https",
+        hostname: "*.utfs.io",
+      },
+    ],
   },
   webpack: (config) => {
     config.resolve.alias = {
