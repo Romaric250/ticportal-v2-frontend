@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronRight, Loader2, CheckCircle2, Check } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { learningPathService } from "../../../src/lib/services/learningPathService";
 import { ModuleSidebar } from "./ModuleSidebar";
@@ -230,6 +230,12 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
       ]
     : sortedModules;
 
+  // Ensure we always have a current module on mobile when enrolled
+  const currentModule: Module | null =
+    currentIsEnrolled && modulesWithComplete.length > 0
+      ? selectedModule ?? modulesWithComplete[0]
+      : selectedModule;
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -288,14 +294,18 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
                 <p className="text-xs sm:text-sm text-slate-600">Loading module...</p>
               </div>
             </div>
-          ) : selectedModule ? (
+          ) : currentModule ? (
             <ModuleContentSection
               pathId={path.id}
-              module={selectedModule}
-              isCompleted={selectedModule.isCompleted ?? progressModules.find((p: any) => p.moduleId === selectedModule.id)?.isCompleted ?? false}
+              module={currentModule}
+              isCompleted={
+                currentModule.isCompleted ??
+                progressModules.find((p: any) => p.moduleId === currentModule.id)?.isCompleted ??
+                false
+              }
               onComplete={handleModuleComplete}
               modules={sortedModules}
-              currentModuleId={selectedModule.id}
+              currentModuleId={currentModule.id}
               onModuleChange={handleModuleSelect}
               isEnrolled={currentIsEnrolled}
             />
