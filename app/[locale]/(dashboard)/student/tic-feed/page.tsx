@@ -88,27 +88,51 @@ export default function TICFeedPage() {
   // Initialize socket connection - ensure it stays connected
   useEffect(() => {
     if (accessToken) {
+      console.log("Feed: Initializing socket connection with token");
       socketRef.current = connectSocket(accessToken);
       
       // Ensure socket stays connected
       const socket = socketRef.current;
       if (socket) {
-        socket.on("connect", () => {
-          console.log("Feed socket connected");
+        const handleConnect = () => {
+          console.log("Feed: Socket connected successfully", { socketId: socket.id });
           const category = getCategoryForTab(activeTab);
           socket.emit("feed:join", {
             category: category || "all",
           });
-        });
+          console.log("Feed: Joined feed room", { category: category || "all" });
+        };
 
-        socket.on("disconnect", () => {
-          console.log("Feed socket disconnected, reconnecting...");
+        const handleDisconnect = (reason: string) => {
+          console.log("Feed: Socket disconnected", { reason });
           // Socket.IO will auto-reconnect
-        });
+        };
+
+        const handleError = (error: Error) => {
+          console.error("Feed: Socket connection error", error);
+        };
+
+        if (socket.connected) {
+          handleConnect();
+        } else {
+          socket.on("connect", handleConnect);
+        }
+
+        socket.on("disconnect", handleDisconnect);
+        socket.on("connect_error", handleError);
+
+        return () => {
+          socket.off("connect", handleConnect);
+          socket.off("disconnect", handleDisconnect);
+          socket.off("connect_error", handleError);
+          if (socket.connected) {
+            socket.emit("feed:leave");
+          }
+        };
       }
     }
     return () => {
-      if (socketRef.current) {
+      if (socketRef.current?.connected) {
         socketRef.current.emit("feed:leave");
       }
     };
@@ -238,6 +262,7 @@ export default function TICFeedPage() {
 
   // Real-time: Post liked
   useSocketEvent("feed:post:liked", (data: any) => {
+    console.log("Feed: Received feed:post:liked event", data);
     setPosts((prev) =>
       prev.map((post) =>
         post.id === data.postId
@@ -253,6 +278,7 @@ export default function TICFeedPage() {
 
   // Real-time: Comment created (update comment count)
   useSocketEvent("feed:comment:created", (data: any) => {
+    console.log("Feed: Received feed:comment:created event", data);
     setPosts((prev) =>
       prev.map((post) =>
         post.id === data.postId

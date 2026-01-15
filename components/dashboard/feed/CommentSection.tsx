@@ -59,15 +59,16 @@ export function CommentSection({
   }, [postId]);
 
   // Listen for real-time comment updates
-  useSocketEvent("feed:comment:created", (data) => {
+  useSocketEvent("feed:comment:created", (data: any) => {
     if (data.postId === postId) {
+      console.log("CommentSection: Received feed:comment:created event", data);
       setComments((prev) => {
         // Check if comment already exists
-        if (prev.some((c) => c.id === data.comment.id)) {
+        if (prev.some((c) => c.id === data.comment?.id)) {
           return prev;
         }
         // Add new comment or reply
-        if (data.comment.parentId) {
+        if (data.comment?.parentId) {
           return prev.map((comment) =>
             comment.id === data.comment.parentId
               ? { ...comment, replies: [...(comment.replies || []), data.comment] }
@@ -80,7 +81,7 @@ export function CommentSection({
     }
   });
 
-  useSocketEvent("feed:comment:updated", (data) => {
+  useSocketEvent("feed:comment:updated", (data: any) => {
     if (data.postId === postId) {
       setComments((prev) =>
         prev.map((comment) => {
@@ -104,7 +105,7 @@ export function CommentSection({
     }
   });
 
-  useSocketEvent("feed:comment:deleted", (data) => {
+  useSocketEvent("feed:comment:deleted", (data: any) => {
     if (data.postId === postId) {
       setComments((prev) => {
         // Remove comment or reply
@@ -119,7 +120,7 @@ export function CommentSection({
     }
   });
 
-  useSocketEvent("feed:comment:liked", (data) => {
+  useSocketEvent("feed:comment:liked", (data: any) => {
     if (data.postId === postId) {
       setComments((prev) =>
         prev.map((comment) => {

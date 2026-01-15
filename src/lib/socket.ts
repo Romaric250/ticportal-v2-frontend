@@ -104,9 +104,26 @@ export function useSocketEvent<T = unknown>(
 ) {
   useEffect(() => {
     const s = getSocket();
-    s.on(event, handler);
+    
+    // Only listen if socket is connected or will connect
+    const setupListener = () => {
+      if (s.connected) {
+        console.log(`Socket: Listening to event "${event}"`);
+        s.on(event, handler);
+      }
+    };
+
+    // Set up listener if already connected
+    if (s.connected) {
+      setupListener();
+    } else {
+      // Wait for connection
+      s.once("connect", setupListener);
+    }
+
     return () => {
       s.off(event, handler);
+      s.off("connect", setupListener);
     };
   }, [event, handler]);
 }

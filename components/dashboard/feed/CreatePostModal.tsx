@@ -20,7 +20,6 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
   const [category, setCategory] = useState<FeedCategory>(defaultCategory || "GENERAL");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageAttachments, setImageAttachments] = useState<FeedAttachment[]>([]);
   const [attachments, setAttachments] = useState<FeedAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -88,12 +87,6 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       });
 
       const uploadedImages = await Promise.all(uploadPromises);
-      
-      // If it's the first image, also set imageUrl for backward compatibility
-      if (uploadedImages.length > 0 && !imageUrl) {
-        setImageUrl(uploadedImages[0].fileUrl);
-      }
-      
       setImageAttachments((prev) => [...prev, ...uploadedImages]);
       toast.success(`${uploadedImages.length} image(s) uploaded successfully`);
     } catch (error: any) {
@@ -176,12 +169,18 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
 
     try {
       setSubmitting(true);
+      // Extract image URLs from image attachments
+      const imageUrls = imageAttachments.map((img) => img.fileUrl);
+      
+      // Non-image attachments only
+      const allAttachments = attachments;
+      
       const payload: CreatePostPayload = {
         content: content.trim(),
         category,
         tags: tags.length > 0 ? tags : undefined,
-        imageUrl,
-        attachments: attachments.length > 0 ? attachments : undefined,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+        attachments: allAttachments.length > 0 ? allAttachments : undefined,
       };
 
       if (title.trim()) {
@@ -196,7 +195,6 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       setTitle("");
       setCategory(defaultCategory || "GENERAL");
       setTags([]);
-      setImageUrl(null);
       setImageAttachments([]);
       setAttachments([]);
       
@@ -348,30 +346,12 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
             </div>
 
             {/* Images Preview */}
-            {(imageAttachments.length > 0 || imageUrl) && (
+            {imageAttachments.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
-                  Images ({imageAttachments.length + (imageUrl && !imageAttachments.some(img => img.fileUrl === imageUrl) ? 1 : 0)})
+                  Images ({imageAttachments.length})
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {/* Show imageUrl if it exists and is not in imageAttachments */}
-                  {imageUrl && !imageAttachments.some(img => img.fileUrl === imageUrl) && (
-                    <div className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
-                      <img
-                        src={imageUrl}
-                        alt="Post preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setImageUrl(null)}
-                        disabled={submitting}
-                        className="absolute top-1 right-1 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )}
                   {/* Show all image attachments */}
                   {imageAttachments.map((img, index) => (
                     <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
@@ -383,14 +363,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
                       <button
                         type="button"
                         onClick={() => {
-                          const newImages = imageAttachments.filter((_, i) => i !== index);
-                          setImageAttachments(newImages);
-                          // Update imageUrl if this was the first image
-                          if (index === 0 && newImages.length > 0) {
-                            setImageUrl(newImages[0].fileUrl);
-                          } else if (newImages.length === 0 && imageUrl === img.fileUrl) {
-                            setImageUrl(null);
-                          }
+                          setImageAttachments((prev) => prev.filter((_, i) => i !== index));
                         }}
                         disabled={submitting}
                         className="absolute top-1 right-1 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"

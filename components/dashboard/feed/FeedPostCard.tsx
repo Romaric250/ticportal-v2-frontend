@@ -19,6 +19,7 @@ import { feedService, type FeedPost, type FeedAuthor } from "@/src/lib/services/
 import { DeleteConfirmationModal } from "@/components/dashboard/admin/DeleteConfirmationModal";
 import { EditPostModal } from "./EditPostModal";
 import { ImageCarousel } from "./ImageCarousel";
+import { useSocketEvent } from "@/src/lib/socket";
 // Date formatting helper
 const formatTimeAgo = (dateString: string) => {
   try {
@@ -70,6 +71,7 @@ export function FeedPostCard({
   const [showImageCarousel, setShowImageCarousel] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [deleting, setDeleting] = useState(false);
+  const [expandedContent, setExpandedContent] = useState(false);
 
   const isAuthor = currentUserId === post.author.id;
   const isAdmin = currentUserRole === "ADMIN";
@@ -78,9 +80,11 @@ export function FeedPostCard({
 
   // Collect all images for carousel
   const allImages: string[] = [];
-  if (post.imageUrl) {
-    allImages.push(post.imageUrl);
+  // Use imageUrls array from post
+  if (post.imageUrls && post.imageUrls.length > 0) {
+    allImages.push(...post.imageUrls);
   }
+  // Also include image attachments if any
   if (post.attachments) {
     const imageAttachments = post.attachments
       .filter((att) => att.fileType === "image" || att.mimeType?.startsWith("image/"))
@@ -88,6 +92,38 @@ export function FeedPostCard({
     allImages.push(...imageAttachments);
   }
   const hasMultipleImages = allImages.length > 1;
+  
+  // Content truncation
+  const MAX_CONTENT_LENGTH = 200;
+  const shouldTruncate = post.content.length > MAX_CONTENT_LENGTH;
+  const displayContent = expandedContent || !shouldTruncate 
+    ? post.content 
+    : post.content.substring(0, MAX_CONTENT_LENGTH) + "...";
+
+  // Real-time: Post liked
+  useSocketEvent("feed:post:liked", (data: any) => {
+    if (data.postId === post.id) {
+      console.log("FeedPostCard: Received feed:post:liked event", data);
+      setIsLiked(data.isLiked);
+      setLikesCount(data.likesCount);
+    }
+  });
+
+  // Real-time: Comment created (update comment count)
+  useSocketEvent("feed:comment:created", (data: any) => {
+    if (data.postId === post.id) {
+      console.log("FeedPostCard: Received feed:comment:created event", data);
+      setCommentsCount(data.commentsCount);
+    }
+  });
+
+  // Real-time: Comment deleted (update comment count)
+  useSocketEvent("feed:comment:deleted", (data: any) => {
+    if (data.postId === post.id) {
+      console.log("FeedPostCard: Received feed:comment:deleted event", data);
+      setCommentsCount(data.commentsCount);
+    }
+  });
 
   // Track view once when post is visible
   useEffect(() => {
@@ -356,9 +392,19 @@ export function FeedPostCard({
       )}
 
       {/* Content */}
-      <p className="mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-wrap break-words">
-        {post.content}
-      </p>
+      <div className="mb-3 sm:mb-4">
+        <p className="text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-wrap break-words">
+          {displayContent}
+        </p>
+        {shouldTruncate && (
+          <button
+            onClick={() => setExpandedContent(!expandedContent)}
+            className="mt-1 text-xs sm:text-sm font-semibold text-[#111827] hover:underline"
+          >
+            {expandedContent ? "See less" : "See more"}
+          </button>
+        )}
+      </div>
 
       {/* Tags */}
       {post.tags && post.tags.length > 0 && (
@@ -374,53 +420,85 @@ export function FeedPostCard({
         </div>
       )}
 
-      {/* Images */}
+      {/* Images - LinkedIn/Instagram style layout */}
       {allImages.length > 0 && (
         <div className="mb-3 sm:mb-4 rounded-xl overflow-hidden">
-          {/* Show first image by default */}
-          <div
-            className={`relative ${hasMultipleImages ? "cursor-pointer" : ""}`}
-            onClick={() => hasMultipleImages && handleImageClick(0)}
-          >
-            <img
-              src={allImages[0]}
-              alt="Post image"
-              className="w-full h-auto max-h-[400px] sm:max-h-[500px] object-contain bg-slate-50 rounded-lg"
-              loading="lazy"
-            />
-            {hasMultipleImages && (
-              <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg text-xs sm:text-sm font-medium">
-                {allImages.length} {allImages.length === 1 ? "photo" : "photos"}
+          {hasMultipleImages ? (
+            <div className="flex gap-2">
+              {/* Main image on left */}
+              <div
+                className="flex-1 relative cursor-pointer group"
+                onClick={() => handleImageClick(0)}
+              >
+                <img
+                  src={allImages[0]}
+                  alt="Post image"
+                  className="w-full h-full min-h-[300px] sm:min-h-[400px] object-cover rounded-l-lg"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-l-lg" />
               </div>
-            )}
-          </div>
-          {/* Show thumbnail strip if multiple images */}
-          {hasMultipleImages && allImages.length > 1 && (
-            <div className="flex gap-2 mt-2 overflow-x-auto pb-2 scrollbar-hide">
-              {allImages.slice(0, 6).map((img, index) => (
-                <div
-                  key={index}
-                  className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-[#111827] transition"
-                  onClick={() => handleImageClick(index)}
-                >
-                  <img
-                    src={img}
-                    alt={`Thumbnail ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-              {allImages.length > 6 && (
-                <div
-                  className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-slate-200 flex items-center justify-center cursor-pointer border-2 border-transparent hover:border-[#111827] transition"
-                  onClick={() => handleImageClick(0)}
-                >
-                  <span className="text-xs font-semibold text-slate-600">
-                    +{allImages.length - 6}
-                  </span>
-                </div>
-              )}
+              
+              {/* Thumbnails on right */}
+              <div className="flex flex-col gap-2 w-24 sm:w-32">
+                {allImages.slice(1, 4).map((img, index) => (
+                  <div
+                    key={index + 1}
+                    className="relative flex-1 cursor-pointer group overflow-hidden rounded-r-lg"
+                    onClick={() => handleImageClick(index + 1)}
+                  >
+                    <img
+                      src={img}
+                      alt={`Thumbnail ${index + 2}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                    {index === 2 && allImages.length > 4 && (
+                      <div
+                        className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleImageClick(0);
+                        }}
+                      >
+                        <span className="text-white text-xs sm:text-sm font-semibold">
+                          +{allImages.length - 4}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {/* If only 2 images, show second one full height */}
+                {allImages.length === 2 && (
+                  <div
+                    className="relative flex-1 cursor-pointer group overflow-hidden rounded-r-lg"
+                    onClick={() => handleImageClick(1)}
+                  >
+                    <img
+                      src={allImages[1]}
+                      alt="Thumbnail 2"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Single image
+            <div
+              className="relative cursor-pointer group"
+              onClick={() => handleImageClick(0)}
+            >
+              <img
+                src={allImages[0]}
+                alt="Post image"
+                className="w-full h-auto max-h-[400px] sm:max-h-[500px] object-contain bg-slate-50 rounded-lg"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors rounded-lg" />
             </div>
           )}
         </div>
@@ -536,19 +614,21 @@ export function FeedPostCard({
 
       {/* Comments Section */}
       {showComments && (
-        <CommentSection
-          postId={post.id}
-          currentUserId={currentUserId}
-          currentUserRole={currentUserRole}
-          onCommentAdded={() => {
-            setCommentsCount((prev) => prev + 1);
-            onUpdate?.();
-          }}
-          onCommentDeleted={() => {
-            setCommentsCount((prev) => Math.max(0, prev - 1));
-            onUpdate?.();
-          }}
-        />
+        <div id={`comments-${post.id}`} className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-100">
+          <CommentSection
+            postId={post.id}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            onCommentAdded={() => {
+              setCommentsCount((prev) => prev + 1);
+              onUpdate?.();
+            }}
+            onCommentDeleted={() => {
+              setCommentsCount((prev) => Math.max(0, prev - 1));
+              onUpdate?.();
+            }}
+          />
+        </div>
       )}
 
       {/* Delete Confirmation Modal */}

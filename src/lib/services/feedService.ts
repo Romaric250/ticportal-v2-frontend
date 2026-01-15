@@ -50,7 +50,7 @@ export interface FeedPost {
   content: string;
   category: FeedCategory;
   tags?: string[];
-  imageUrl: string | null;
+  imageUrls: string[];
   videoUrl: string | null;
   attachments: FeedAttachment[];
   visibility: FeedVisibility;
@@ -85,7 +85,7 @@ export interface CreatePostPayload {
   content: string;
   category: FeedCategory;
   tags?: string[];
-  imageUrl?: string | null;
+  imageUrls?: string[];
   videoUrl?: string | null;
   visibility?: FeedVisibility;
   teamId?: string | null;

@@ -19,7 +19,7 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
   const [category, setCategory] = useState<FeedCategory>(post.category);
   const [tags, setTags] = useState<string[]>(post.tags || []);
   const [tagInput, setTagInput] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(post.imageUrl);
+  const [imageUrls, setImageUrls] = useState<string[]>(post.imageUrls || []);
   const [attachments, setAttachments] = useState<FeedAttachment[]>(post.attachments || []);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -33,7 +33,7 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
       setTitle(post.title || "");
       setCategory(post.category);
       setTags(post.tags || []);
-      setImageUrl(post.imageUrl);
+      setImageUrls(post.imageUrls || []);
       setAttachments(post.attachments || []);
     }
   }, [isOpen, post]);
@@ -77,7 +77,8 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
         }
       );
 
-      setImageUrl(response.data.url);
+      const uploadedUrl = response.data.url;
+      setImageUrls((prev) => [...prev, uploadedUrl]);
       toast.success("Image uploaded successfully");
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to upload image");
@@ -137,8 +138,8 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
     }
   };
 
-  const handleRemoveImage = () => {
-    setImageUrl(null);
+  const handleRemoveImage = (index: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleRemoveAttachment = (index: number) => {
@@ -171,7 +172,7 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
         content: content.trim(),
         category,
         tags: tags.length > 0 ? tags : undefined,
-        imageUrl: imageUrl || null,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
       };
 
@@ -308,46 +309,51 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
             </div>
           </div>
 
-          {/* Image */}
+          {/* Images */}
           <div>
             <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
-              Image
+              Images {imageUrls.length > 0 && `(${imageUrls.length})`}
             </label>
-            {imageUrl ? (
-              <div className="relative rounded-lg overflow-hidden border border-slate-200">
-                <img
-                  src={imageUrl}
-                  alt="Post image"
-                  className="w-full h-auto max-h-64 object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 cursor-pointer rounded-full bg-red-600 p-1.5 text-white hover:bg-red-700"
-                >
-                  <XCircle size={16} />
-                </button>
+            {imageUrls.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+                {imageUrls.map((url, index) => (
+                  <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
+                    <img
+                      src={url}
+                      alt={`Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      disabled={submitting}
+                      className="absolute top-1 right-1 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="w-full rounded-lg border-2 border-dashed border-slate-300 p-4 sm:p-6 text-center hover:border-[#111827] hover:bg-slate-50 transition disabled:opacity-50"
-              >
-                <ImageIcon size={24} className="mx-auto mb-2 text-slate-400" />
-                <p className="text-xs sm:text-sm font-medium text-slate-600">
-                  {uploading ? "Uploading..." : "Click to upload image"}
-                </p>
-                <p className="text-[10px] sm:text-xs text-slate-400 mt-1">Max 10MB</p>
-              </button>
             )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || submitting}
+              className="w-full rounded-lg border-2 border-dashed border-slate-300 p-4 sm:p-6 text-center hover:border-[#111827] hover:bg-slate-50 transition disabled:opacity-50"
+            >
+              <ImageIcon size={24} className="mx-auto mb-2 text-slate-400" />
+              <p className="text-xs sm:text-sm font-medium text-slate-600">
+                {uploading ? "Uploading..." : "Click to upload images"}
+              </p>
+              <p className="text-[10px] sm:text-xs text-slate-400 mt-1">Max 10MB per image, up to 10 images</p>
+            </button>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
               className="hidden"
+              multiple
             />
           </div>
 
