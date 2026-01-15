@@ -186,6 +186,19 @@ export const ModuleContentSection = ({
           </div>
         </div>
 
+        {/* Debug: log quiz data for this module */}
+        {(() => {
+          console.log("🧪 Module quiz debug:", {
+            moduleId: module.id,
+            moduleTitle: module.title,
+            hasQuizField: module.hasQuiz,
+            quizArray: module.quiz,
+            quizLength: module.quiz?.length,
+            hasQuizComputed: module.hasQuiz ?? (module.quiz && module.quiz.length > 0),
+          });
+          return null;
+        })()}
+
         {(module.hasQuiz ?? (module.quiz && module.quiz.length > 0)) ? (
           <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
