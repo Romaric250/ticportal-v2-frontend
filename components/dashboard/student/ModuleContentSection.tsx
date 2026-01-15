@@ -296,10 +296,10 @@ export const ModuleContentSection = ({
 
       {/* Mobile Module Navigation - Bottom - Always visible on mobile when modules exist */}
       {modules.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-slate-700 shadow-lg z-50 safe-area-inset-bottom">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-40 safe-area-inset-bottom">
           {/* Module Selector - Horizontal Scroll */}
-          <div className="px-2 py-1.5 overflow-x-auto">
-            <div className="flex gap-1.5 min-w-max">
+          <div className="px-2 py-2 overflow-x-auto">
+            <div className="flex gap-2 min-w-max">
               {modules.map((m, index) => {
                 const isSelected = m.id === currentModuleId;
                 const isModuleCompleted = m.isCompleted === true;
@@ -313,30 +313,30 @@ export const ModuleContentSection = ({
                       }
                     }}
                     disabled={!isEnrolled}
-                    className={`flex-shrink-0 rounded-lg border-2 px-2 py-1.5 text-left transition-all ${
+                    className={`flex-shrink-0 rounded-lg border-2 px-2 py-1 text-left transition-all ${
                       !isEnrolled
-                        ? "border-slate-600 bg-slate-800 cursor-not-allowed opacity-50"
+                        ? "border-slate-200 bg-slate-50 cursor-not-allowed opacity-50"
                         : isCompletePathModule
                         ? isSelected
-                          ? "border-emerald-400 bg-emerald-900"
-                          : "border-emerald-600 bg-emerald-800 hover:border-emerald-500"
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-emerald-300 bg-emerald-50 hover:border-emerald-400"
                         : isSelected
-                        ? "border-white bg-slate-800"
-                        : "border-slate-600 bg-slate-900 hover:border-slate-500"
+                        ? "border-[#111827] bg-slate-50"
+                        : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
                       {isCompletePathModule ? (
-                        <span className="flex-shrink-0 text-[10px] font-semibold text-emerald-300">✓</span>
+                        <span className="flex-shrink-0 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">✓</span>
                       ) : isModuleCompleted ? (
-                        <div className="flex-shrink-0 flex items-center justify-center rounded bg-white p-0.5">
-                          <Check size={10} className="text-[#111827]" />
+                        <div className="flex-shrink-0 flex items-center justify-center rounded bg-[#111827] p-0.5">
+                          <Check size={10} className="text-white" />
                         </div>
                       ) : (
-                        <span className="flex-shrink-0 text-[10px] font-semibold text-white">{index + 1}</span>
+                        <span className="flex-shrink-0 rounded-full bg-[#111827] px-1.5 py-0.5 text-[10px] font-semibold text-white">{index + 1}</span>
                       )}
-                      <p className={`text-[10px] font-medium truncate max-w-[60px] ${
-                        isCompletePathModule ? "text-emerald-200" : "text-white"
+                      <p className={`text-[10px] font-medium truncate max-w-[80px] ${
+                        isCompletePathModule ? "text-emerald-900" : isSelected ? "text-slate-900" : "text-slate-700"
                       }`}>
                         {m.title}
                       </p>
@@ -348,7 +348,7 @@ export const ModuleContentSection = ({
           </div>
 
           {/* Navigation and Complete Buttons */}
-          <div className="px-4 py-2.5 flex items-center justify-between gap-3 border-t border-slate-700">
+          <div className="px-4 py-2.5 flex items-center justify-between gap-3 border-t border-slate-200">
             {/* Previous/Next Navigation */}
             <div className="flex items-center gap-2 flex-1">
               {(() => {
@@ -367,7 +367,7 @@ export const ModuleContentSection = ({
                         }
                       }}
                       disabled={!hasPrevious || !isEnrolled}
-                      className="flex items-center justify-center gap-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ChevronLeft size={14} />
                       <span className="hidden xs:inline">Prev</span>
@@ -379,7 +379,7 @@ export const ModuleContentSection = ({
                         }
                       }}
                       disabled={!hasNext || !isEnrolled}
-                      className="flex items-center justify-center gap-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span className="hidden xs:inline">Next</span>
                       <ChevronRight size={14} />

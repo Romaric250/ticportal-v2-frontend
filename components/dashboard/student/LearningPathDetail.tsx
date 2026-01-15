@@ -286,7 +286,7 @@ export const LearningPathDetail = ({ path, onBack, onEnroll }: LearningPathDetai
       {/* Main Content - Modules on the RIGHT */}
       <div className="flex flex-col lg:grid lg:grid-cols-[1fr_280px] gap-4 sm:gap-6">
         {/* Main Content - LEFT */}
-        <div className="space-y-4 sm:space-y-6 min-w-0 order-2 lg:order-1 pb-32 lg:pb-0">
+        <div className="space-y-4 sm:space-y-6 min-w-0 order-2 lg:order-1 pb-28 lg:pb-0">
           {contentLoading ? (
             <div className="flex h-[300px] sm:h-[400px] items-center justify-center rounded-lg border border-slate-200 bg-white">
               <div className="flex flex-col items-center gap-3">
