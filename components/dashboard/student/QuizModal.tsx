@@ -120,7 +120,7 @@ export const QuizModal = ({
         toast.info("Module already completed");
         // Still mark as submitted to show results
         setSubmitted(true);
-        onComplete?.({ quizScore: 0, pointsAwarded: 0, passed: false, moduleId, quizAnswers: answerArray });
+        onComplete?.({ quizScore: 0, pointsAwarded: 0, passed: false });
       } else {
         toast.error(error?.response?.data?.message || error?.message || "Failed to submit quiz");
       }

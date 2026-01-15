@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await authService.forgotPassword({ email });
+      await authService.forgotPassword({ email, type: "PASSWORD_RESET" });
       toast.success("If this email exists, a reset code has been sent to your email.");
       // Redirect to reset password page with email
       router.push(`/${locale}/reset-password?email=${encodeURIComponent(email)}`);
