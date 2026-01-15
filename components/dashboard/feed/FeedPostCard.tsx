@@ -252,15 +252,17 @@ export function FeedPostCard({
                 const target = e.target as HTMLImageElement;
                 target.style.display = "none";
                 const parent = target.parentElement;
-                if (parent && !parent.textContent) {
+                if (parent) {
                   const initials = post.author.fullName
                     .split(" ")
                     .map((n) => n[0])
                     .join("")
                     .toUpperCase()
                     .slice(0, 2);
-                  parent.textContent = initials;
-                  parent.className += " text-xs sm:text-sm font-semibold text-slate-600";
+                  if (!parent.textContent) {
+                    parent.textContent = initials;
+                    parent.className += " text-xs sm:text-sm font-semibold text-slate-600";
+                  }
                 }
               }}
             />
@@ -383,39 +385,39 @@ export function FeedPostCard({
             <img
               src={allImages[0]}
               alt="Post image"
-              className="w-full h-auto max-h-96 object-contain bg-slate-50"
+              className="w-full h-auto max-h-[400px] sm:max-h-[500px] object-contain bg-slate-50 rounded-lg"
               loading="lazy"
             />
             {hasMultipleImages && (
-              <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs font-medium">
-                {allImages.length} photos
+              <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg text-xs sm:text-sm font-medium">
+                {allImages.length} {allImages.length === 1 ? "photo" : "photos"}
               </div>
             )}
           </div>
           {/* Show thumbnail strip if multiple images */}
           {hasMultipleImages && allImages.length > 1 && (
-            <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
-              {allImages.slice(1, 5).map((img, index) => (
+            <div className="flex gap-2 mt-2 overflow-x-auto pb-2 scrollbar-hide">
+              {allImages.slice(0, 6).map((img, index) => (
                 <div
-                  key={index + 1}
-                  className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-[#111827] transition"
-                  onClick={() => handleImageClick(index + 1)}
+                  key={index}
+                  className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-[#111827] transition"
+                  onClick={() => handleImageClick(index)}
                 >
                   <img
                     src={img}
-                    alt={`Thumbnail ${index + 2}`}
-                    className="w-full h-full object-contain bg-slate-50"
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
                     loading="lazy"
                   />
                 </div>
               ))}
-              {allImages.length > 5 && (
+              {allImages.length > 6 && (
                 <div
-                  className="flex-shrink-0 w-20 h-20 rounded-lg bg-slate-200 flex items-center justify-center cursor-pointer border-2 border-transparent hover:border-[#111827] transition"
+                  className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-slate-200 flex items-center justify-center cursor-pointer border-2 border-transparent hover:border-[#111827] transition"
                   onClick={() => handleImageClick(0)}
                 >
                   <span className="text-xs font-semibold text-slate-600">
-                    +{allImages.length - 5}
+                    +{allImages.length - 6}
                   </span>
                 </div>
               )}

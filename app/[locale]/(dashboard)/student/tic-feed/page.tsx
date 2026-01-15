@@ -68,12 +68,9 @@ export default function TICFeedPage() {
     return categoryMap[tab.toLowerCase()];
   };
 
-  // For students, only show GENERAL category
+  // All users can see all filter tabs
   // Use useMemo to ensure tabs don't disappear on re-render
   const tabs = useMemo(() => {
-    if (isStudent) {
-      return [{ id: "general", label: "General" }];
-    }
     return [
       { id: "all", label: "All Posts" },
       { id: "announcements", label: "Official Announcements" },
@@ -86,7 +83,7 @@ export default function TICFeedPage() {
       { id: "opportunities", label: "Opportunities" },
       { id: "general", label: "General" },
     ];
-  }, [isStudent]);
+  }, []);
 
   // Initialize socket connection - ensure it stays connected
   useEffect(() => {
@@ -154,12 +151,9 @@ export default function TICFeedPage() {
 
       const currentPage = reset ? 1 : page;
       const category = getCategoryForTab(activeTab);
-      
-      // For students, force GENERAL category
-      const finalCategory = isStudent ? "GENERAL" : category;
 
       const response = await feedService.getPosts({
-        category: finalCategory || "all",
+        category: category || "all",
         page: currentPage,
         limit: 20,
         includePinned: currentPage === 1,
@@ -204,8 +198,7 @@ export default function TICFeedPage() {
     // Only add if it matches current category or is "all"
     if (
       activeTab === "all" ||
-      (category && data.post?.category === category) ||
-      (isStudent && data.post?.category === "GENERAL")
+      (category && data.post?.category === category)
     ) {
       setPosts((prev) => [data.post, ...prev]);
       toast.success("New post added!");
@@ -320,16 +313,17 @@ export default function TICFeedPage() {
   };
 
   return (
-    <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      {/* Main Content */}
-      <div className="space-y-4 sm:space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+      <div className="grid gap-3 sm:gap-4 lg:gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* Main Content */}
+        <div className="space-y-3 sm:space-y-4 lg:space-y-6 min-w-0">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">TIC Feed</h1>
+            {/* <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">TIC Feed</h1>
             <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-600">
               Stay updated with summit news, official posts, and mentorship announcements.
-            </p>
+            </p> */}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -355,12 +349,12 @@ export default function TICFeedPage() {
 
         {/* Tabs */}
         {tabs && tabs.length > 0 && (
-          <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-200 overflow-x-auto">
+          <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-200 overflow-x-auto scrollbar-hide -mx-2 sm:-mx-4 lg:mx-0 px-2 sm:px-4 lg:px-0">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as FeedCategory | "all")}
-                className={`cursor-pointer whitespace-nowrap px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition ${
+                className={`cursor-pointer whitespace-nowrap px-2 sm:px-3 lg:px-4 py-2 text-[11px] sm:text-xs lg:text-sm font-semibold transition flex-shrink-0 ${
                   activeTab === tab.id
                     ? "border-b-2 border-[#111827] text-[#111827]"
                     : "text-slate-500 hover:text-slate-700"
@@ -443,8 +437,8 @@ export default function TICFeedPage() {
         )}
       </div>
 
-      {/* Right Sidebar */}
-      <div className="hidden lg:block sticky top-4 sm:top-6 h-fit space-y-4 sm:space-y-6 order-first lg:order-last">
+        {/* Right Sidebar */}
+        <div className="hidden lg:block sticky top-4 h-fit space-y-4 sm:space-y-6 order-first lg:order-last">
         {/* Pinned Section */}
         {pinnedPosts.length > 0 && (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
@@ -504,6 +498,7 @@ export default function TICFeedPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Create Post Modal */}

@@ -21,6 +21,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageAttachments, setImageAttachments] = useState<FeedAttachment[]>([]);
   const [attachments, setAttachments] = useState<FeedAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -30,47 +31,73 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
   if (!isOpen) return null;
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
+    
+    if (imageFiles.length === 0) {
+      toast.error("Please select image files");
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Image size must be less than 10MB");
+    // Check file sizes
+    const oversizedFiles = imageFiles.filter((file) => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      toast.error("Some images exceed 10MB limit");
       return;
+    }
+
+    // Limit to 10 images
+    const filesToUpload = imageFiles.slice(0, 10);
+    if (imageFiles.length > 10) {
+      toast.info("Only the first 10 images will be uploaded");
     }
 
     try {
       setUploading(true);
-      // Convert to base64 as per existing upload pattern
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            resolve(reader.result);
-          } else {
-            reject(new Error("Failed to convert file to base64"));
+      const uploadPromises = filesToUpload.map(async (file) => {
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === "string") {
+              resolve(reader.result);
+            } else {
+              reject(new Error("Failed to convert file to base64"));
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const response = await apiClient.post<{ success: true; data: { url: string } }>(
+          "/f/upload",
+          {
+            file: base64Data,
+            fileName: file.name,
           }
+        );
+
+        return {
+          fileName: file.name,
+          fileUrl: response.data.url,
+          fileSize: file.size,
+          mimeType: file.type,
+          fileType: "image" as const,
         };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
       });
 
-      const response = await apiClient.post<{ success: true; data: { url: string } }>(
-        "/f/upload",
-        {
-          file: base64Data,
-          fileName: file.name,
-        }
-      );
-
-      setImageUrl(response.data.url);
-      toast.success("Image uploaded successfully");
+      const uploadedImages = await Promise.all(uploadPromises);
+      
+      // If it's the first image, also set imageUrl for backward compatibility
+      if (uploadedImages.length > 0 && !imageUrl) {
+        setImageUrl(uploadedImages[0].fileUrl);
+      }
+      
+      setImageAttachments((prev) => [...prev, ...uploadedImages]);
+      toast.success(`${uploadedImages.length} image(s) uploaded successfully`);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to upload image");
+      toast.error(error?.response?.data?.message || "Failed to upload images");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -170,6 +197,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       setCategory(defaultCategory || "GENERAL");
       setTags([]);
       setImageUrl(null);
+      setImageAttachments([]);
       setAttachments([]);
       
       onPostCreated();
@@ -319,28 +347,68 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
               )}
             </div>
 
-            {/* Image Preview */}
-            {imageUrl && (
-              <div className="relative">
-                <img
-                  src={imageUrl}
-                  alt="Post preview"
-                  className="w-full rounded-lg object-cover max-h-64"
-                />
-                <button
-                  type="button"
-                  onClick={() => setImageUrl(null)}
-                  disabled={submitting}
-                  className="absolute top-2 right-2 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600 disabled:opacity-50"
-                >
-                  <X size={16} />
-                </button>
+            {/* Images Preview */}
+            {(imageAttachments.length > 0 || imageUrl) && (
+              <div className="space-y-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
+                  Images ({imageAttachments.length + (imageUrl && !imageAttachments.some(img => img.fileUrl === imageUrl) ? 1 : 0)})
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {/* Show imageUrl if it exists and is not in imageAttachments */}
+                  {imageUrl && !imageAttachments.some(img => img.fileUrl === imageUrl) && (
+                    <div className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
+                      <img
+                        src={imageUrl}
+                        alt="Post preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl(null)}
+                        disabled={submitting}
+                        className="absolute top-1 right-1 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                  {/* Show all image attachments */}
+                  {imageAttachments.map((img, index) => (
+                    <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
+                      <img
+                        src={img.fileUrl}
+                        alt={`Image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newImages = imageAttachments.filter((_, i) => i !== index);
+                          setImageAttachments(newImages);
+                          // Update imageUrl if this was the first image
+                          if (index === 0 && newImages.length > 0) {
+                            setImageUrl(newImages[0].fileUrl);
+                          } else if (newImages.length === 0 && imageUrl === img.fileUrl) {
+                            setImageUrl(null);
+                          }
+                        }}
+                        disabled={submitting}
+                        className="absolute top-1 right-1 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Attachments */}
+            {/* Non-Image Attachments */}
             {attachments.length > 0 && (
               <div className="space-y-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
+                  Attachments ({attachments.length})
+                </label>
                 {attachments.map((attachment, index) => (
                   <div
                     key={index}
@@ -377,6 +445,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
                 onChange={handleImageUpload}
                 disabled={uploading || submitting}
                 className="hidden"
+                multiple
               />
               <button
                 type="button"
