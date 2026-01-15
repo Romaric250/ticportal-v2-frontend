@@ -19,6 +19,7 @@ import { feedService, type FeedPost, type FeedAuthor } from "@/src/lib/services/
 import { DeleteConfirmationModal } from "@/components/dashboard/admin/DeleteConfirmationModal";
 import { EditPostModal } from "./EditPostModal";
 import { ImageCarousel } from "./ImageCarousel";
+import { PostDetailsModal } from "./PostDetailsModal";
 import { useSocketEvent } from "@/src/lib/socket";
 // Date formatting helper
 const formatTimeAgo = (dateString: string) => {
@@ -72,23 +73,25 @@ export function FeedPostCard({
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [expandedContent, setExpandedContent] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const isAuthor = currentUserId === post.author.id;
   const isAdmin = currentUserRole === "ADMIN";
   const canEdit = isAuthor || isAdmin;
   const canDelete = isAuthor || isAdmin;
 
-  // Collect all images for carousel
+  // Collect all images for carousel - deduplicate to avoid duplicates
   const allImages: string[] = [];
   // Use imageUrls array from post
   if (post.imageUrls && post.imageUrls.length > 0) {
     allImages.push(...post.imageUrls);
   }
-  // Also include image attachments if any
+  // Also include image attachments if any (but avoid duplicates)
   if (post.attachments) {
     const imageAttachments = post.attachments
       .filter((att) => att.fileType === "image" || att.mimeType?.startsWith("image/"))
-      .map((att) => att.fileUrl);
+      .map((att) => att.fileUrl)
+      .filter((url) => !allImages.includes(url)); // Remove duplicates
     allImages.push(...imageAttachments);
   }
   const hasMultipleImages = allImages.length > 1;
@@ -441,34 +444,40 @@ export function FeedPostCard({
               
               {/* Thumbnails on right */}
               <div className="flex flex-col gap-2 w-24 sm:w-32">
-                {allImages.slice(1, 4).map((img, index) => (
-                  <div
-                    key={index + 1}
-                    className="relative flex-1 cursor-pointer group overflow-hidden rounded-r-lg"
-                    onClick={() => handleImageClick(index + 1)}
-                  >
-                    <img
-                      src={img}
-                      alt={`Thumbnail ${index + 2}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                    {index === 2 && allImages.length > 4 && (
-                      <div
-                        className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleImageClick(0);
-                        }}
-                      >
-                        <span className="text-white text-xs sm:text-sm font-semibold">
-                          +{allImages.length - 4}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {allImages.slice(1, 4).map((img, index) => {
+                  const isLastThumbnail = index === 2;
+                  const remainingCount = allImages.length - 4; // Total images minus the 4 shown (1 main + 3 thumbnails)
+                  const shouldShowOverlay = isLastThumbnail && allImages.length > 3;
+                  
+                  return (
+                    <div
+                      key={index + 1}
+                      className="relative flex-1 cursor-pointer group overflow-hidden rounded-r-lg"
+                      onClick={() => handleImageClick(index + 1)}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumbnail ${index + 2}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                      {shouldShowOverlay && (
+                        <div
+                          className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleImageClick(0);
+                          }}
+                        >
+                          <span className="text-white text-xs sm:text-sm font-semibold">
+                            +{remainingCount}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 {/* If only 2 images, show second one full height */}
                 {allImages.length === 2 && (
                   <div
@@ -555,60 +564,72 @@ export function FeedPostCard({
       )}
 
       {/* Engagement */}
-      <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2 sm:gap-4 border-t border-slate-100 pt-3 sm:pt-4">
-        <button
-          onClick={handleLike}
-          disabled={liking}
-          className={`cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm transition-colors disabled:opacity-50 ${
-            isLiked ? "text-[#111827] font-semibold" : "text-slate-600 hover:text-[#111827]"
-          }`}
-        >
-          {liking ? (
-            <Loader2 size={14} className="sm:w-4 sm:h-4 animate-spin" />
-          ) : (
-            <ThumbsUp size={14} className={`sm:w-4 sm:h-4 ${isLiked ? "fill-current" : ""}`} />
-          )}
-          <span>{likesCount}</span>
-        </button>
+      <div className="mb-3 sm:mb-4 flex flex-wrap items-center justify-between gap-2 sm:gap-4 border-t border-slate-100 pt-3 sm:pt-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <button
+            onClick={handleLike}
+            disabled={liking}
+            className={`cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm transition-colors disabled:opacity-50 ${
+              isLiked ? "text-[#111827] font-semibold" : "text-slate-600 hover:text-[#111827]"
+            }`}
+          >
+            {liking ? (
+              <Loader2 size={14} className="sm:w-4 sm:h-4 animate-spin" />
+            ) : (
+              <ThumbsUp size={14} className={`sm:w-4 sm:h-4 ${isLiked ? "fill-current" : ""}`} />
+            )}
+            <span>{likesCount}</span>
+          </button>
 
-        <button
-          onClick={() => setShowComments(!showComments)}
-          className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 hover:text-[#111827]"
-        >
-          <MessageCircle size={14} className="sm:w-4 sm:h-4" />
-          <span className="hidden sm:inline">{commentsCount} Comments</span>
-          <span className="sm:hidden">{commentsCount}</span>
-        </button>
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 hover:text-[#111827]"
+          >
+            <MessageCircle size={14} className="sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{commentsCount} Comments</span>
+            <span className="sm:hidden">{commentsCount}</span>
+          </button>
 
-        <div className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-          <Eye size={14} className="sm:w-4 sm:h-4" />
-          <span>{viewsCount}</span>
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
+            <Eye size={14} className="sm:w-4 sm:h-4" />
+            <span>{viewsCount}</span>
+          </div>
+
+          <button
+            onClick={handleBookmark}
+            disabled={bookmarking}
+            className={`cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm transition-colors disabled:opacity-50 ${
+              isBookmarked ? "text-[#111827] font-semibold" : "text-slate-600 hover:text-[#111827]"
+            }`}
+          >
+            {bookmarking ? (
+              <Loader2 size={14} className="sm:w-4 sm:h-4 animate-spin" />
+            ) : (
+              <Bookmark
+                size={14}
+                className={`sm:w-4 sm:h-4 ${isBookmarked ? "fill-current" : ""}`}
+              />
+            )}
+            <span className="hidden sm:inline">Save</span>
+          </button>
+
+          <button
+            onClick={handleShare}
+            className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 hover:text-[#111827]"
+          >
+            <Share2 size={14} className="sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
         </div>
-
+        
+        {/* View Details Button - Opposite to Like */}
         <button
-          onClick={handleBookmark}
-          disabled={bookmarking}
-          className={`cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm transition-colors disabled:opacity-50 ${
-            isBookmarked ? "text-[#111827] font-semibold" : "text-slate-600 hover:text-[#111827]"
-          }`}
+          onClick={() => setShowDetailsModal(true)}
+          className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 hover:text-[#111827] transition-colors"
         >
-          {bookmarking ? (
-            <Loader2 size={14} className="sm:w-4 sm:h-4 animate-spin" />
-          ) : (
-            <Bookmark
-              size={14}
-              className={`sm:w-4 sm:h-4 ${isBookmarked ? "fill-current" : ""}`}
-            />
-          )}
-          <span className="hidden sm:inline">Save</span>
-        </button>
-
-        <button
-          onClick={handleShare}
-          className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 hover:text-[#111827]"
-        >
-          <Share2 size={14} className="sm:w-4 sm:h-4" />
-          <span className="hidden sm:inline">Share</span>
+          <Eye size={14} className="sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">View Details</span>
+          <span className="sm:hidden">Details</span>
         </button>
       </div>
 
@@ -664,6 +685,18 @@ export function FeedPostCard({
           initialIndex={carouselIndex}
         />
       )}
+
+      {/* Post Details Modal */}
+      <PostDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        post={post}
+        onLike={handleLike}
+        onBookmark={handleBookmark}
+        onShare={handleShare}
+        isLiked={isLiked}
+        isBookmarked={isBookmarked}
+      />
     </div>
   );
 }

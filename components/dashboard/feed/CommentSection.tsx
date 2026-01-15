@@ -156,8 +156,21 @@ export function CommentSection({
     try {
       setLoading(true);
       const response = await feedService.getComments(postId, { limit: 50 });
-      setComments(response?.data || []);
+      // API returns: { success: true, data: { comments: [...], pagination: {...} } }
+      // apiClient interceptor unwraps to: { comments: [...], pagination: {...} }
+      // But getComments returns PaginationResponse<FeedComment> which is { data: [...], pagination: {...} }
+      // So we need to check both structures
+      let commentsData: FeedComment[] = [];
+      if (Array.isArray(response)) {
+        commentsData = response;
+      } else if (response?.data && Array.isArray(response.data)) {
+        commentsData = response.data;
+      } else if (response?.comments && Array.isArray(response.comments)) {
+        commentsData = response.comments;
+      }
+      setComments(commentsData);
     } catch (error: any) {
+      console.error("Failed to load comments:", error);
       toast.error(error?.response?.data?.message || "Failed to load comments");
       setComments([]); // Set empty array on error
     } finally {
@@ -177,7 +190,7 @@ export function CommentSection({
       });
       setCommentContent("");
       setReplyingTo(null);
-      await loadComments(); // Reload to get updated counts
+      // Don't reload - socket event will handle the update
       onCommentAdded?.();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to post comment");
@@ -197,7 +210,7 @@ export function CommentSection({
         parentId,
       });
       setReplyContent((prev) => ({ ...prev, [parentId]: "" }));
-      await loadComments();
+      // Don't reload - socket event will handle the update
       onCommentAdded?.();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to post reply");
@@ -214,7 +227,7 @@ export function CommentSection({
       await feedService.updateComment(commentId, editContent.trim());
       setEditingId(null);
       setEditContent("");
-      await loadComments();
+      // Don't reload - socket event will handle the update
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to update comment");
     } finally {
@@ -227,7 +240,7 @@ export function CommentSection({
 
     try {
       await feedService.deleteComment(commentId);
-      await loadComments();
+      // Don't reload - socket event will handle the update
       onCommentDeleted?.();
       setShowMenu((prev) => ({ ...prev, [commentId]: false }));
     } catch (error: any) {
