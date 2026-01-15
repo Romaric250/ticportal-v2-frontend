@@ -22,6 +22,7 @@ type VerifyOTPPayload = {
 
 type ForgotPasswordPayload = {
   email: string;
+  type: "PASSWORD_RESET";
 };
 
 type ResetPasswordPayload = {
@@ -121,7 +122,7 @@ export const authService = {
    * Sends OTP to email if user exists
    */
   async forgotPassword(payload: ForgotPasswordPayload): Promise<void> {
-    await apiClient.post("/auth/forgot-password", payload);
+    await apiClient.post("/auth/send-otp", { email: payload.email, type: "PASSWORD_RESET" });
   },
 
   /**
