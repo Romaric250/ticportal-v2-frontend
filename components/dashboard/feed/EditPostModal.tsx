@@ -69,7 +69,7 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
         reader.readAsDataURL(file);
       });
 
-      const response = await apiClient.post<{ success: true; data: { url: string } }>(
+      const response = await apiClient.post<{ url: string }>(
         "/f/upload",
         {
           file: base64Data,
@@ -112,7 +112,7 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
         reader.readAsDataURL(file);
       });
 
-      const response = await apiClient.post<{ success: true; data: { url: string } }>(
+      const response = await apiClient.post<{ url: string }>(
         "/f/upload",
         {
           file: base64Data,

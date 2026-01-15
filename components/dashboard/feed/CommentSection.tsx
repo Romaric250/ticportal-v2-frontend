@@ -49,7 +49,7 @@ export function CommentSection({
   const [editContent, setEditContent] = useState("");
   const [showMenu, setShowMenu] = useState<Record<string, boolean>>({});
   const [typing, setTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const isAdmin = currentUserRole === "ADMIN";
 
@@ -80,7 +80,7 @@ export function CommentSection({
           // This is a reply
           return prev.map((c) =>
             c.id === comment.parentId
-              ? { ...c, replies: [...(c.replies || []), comment], repliesCount: (c.repliesCount || 0) + 1 }
+              ? { ...c, replies: [...(c.replies || []), comment] }
               : c
           );
         }
@@ -171,17 +171,14 @@ export function CommentSection({
     try {
       setLoading(true);
       const response = await feedService.getComments(postId, { limit: 50 });
-      // API returns: { success: true, data: { comments: [...], pagination: {...} } }
-      // apiClient interceptor unwraps to: { comments: [...], pagination: {...} }
-      // But getComments returns PaginationResponse<FeedComment> which is { data: [...], pagination: {...} }
-      // So we need to check both structures
+      // getComments returns PaginationResponse<FeedComment> which is { data: FeedComment[], pagination: {...} }
+      // The apiClient interceptor unwraps { success: true, data: {...} } to just {...}
+      // So response should be { data: [...], pagination: {...} }
       let commentsData: FeedComment[] = [];
       if (Array.isArray(response)) {
         commentsData = response;
       } else if (response?.data && Array.isArray(response.data)) {
         commentsData = response.data;
-      } else if (response?.comments && Array.isArray(response.comments)) {
-        commentsData = response.comments;
       }
       setComments(commentsData);
     } catch (error: any) {

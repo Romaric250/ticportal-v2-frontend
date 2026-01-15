@@ -69,7 +69,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
           reader.readAsDataURL(file);
         });
 
-        const response = await apiClient.post<{ success: true; data: { url: string } }>(
+        const response = await apiClient.post<{ url: string }>(
           "/f/upload",
           {
             file: base64Data,
@@ -122,7 +122,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
         reader.readAsDataURL(file);
       });
 
-      const response = await apiClient.post<{ success: true; data: { url: string } }>(
+      const response = await apiClient.post<{ url: string }>(
         "/f/upload",
         {
           file: base64Data,
