@@ -409,20 +409,6 @@ export function FeedPostCard({
         )}
       </div>
 
-      {/* Tags */}
-      {post.tags && post.tags.length > 0 && (
-        <div className="mb-3 sm:mb-4 flex flex-wrap gap-2">
-          {post.tags.map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center rounded-full bg-slate-100 px-2 sm:px-3 py-0.5 text-[10px] sm:text-xs font-medium text-slate-700"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
       {/* Images - LinkedIn/Instagram style layout */}
       {allImages.length > 0 && (
         <div className="mb-3 sm:mb-4 rounded-xl overflow-hidden">
@@ -510,6 +496,34 @@ export function FeedPostCard({
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors rounded-lg" />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tags - Show after images if there are any images */}
+      {post.tags && post.tags.length > 0 && allImages.length > 0 && (
+        <div className="mb-3 sm:mb-4 flex flex-wrap gap-2">
+          {post.tags.map((tag, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center rounded-full bg-slate-100 px-2 sm:px-3 py-0.5 text-[10px] sm:text-xs font-medium text-slate-700"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+      
+      {/* Tags - Show after content if there are no images */}
+      {post.tags && post.tags.length > 0 && allImages.length === 0 && (
+        <div className="mb-3 sm:mb-4 flex flex-wrap gap-2">
+          {post.tags.map((tag, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center rounded-full bg-slate-100 px-2 sm:px-3 py-0.5 text-[10px] sm:text-xs font-medium text-slate-700"
+            >
+              #{tag}
+            </span>
+          ))}
         </div>
       )}
 
