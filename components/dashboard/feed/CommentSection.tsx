@@ -63,20 +63,35 @@ export function CommentSection({
     if (data.postId === postId) {
       console.log("CommentSection: Received feed:comment:created event", data);
       setComments((prev) => {
-        // Check if comment already exists
-        if (prev.some((c) => c.id === data.comment?.id)) {
+        const comment = data.comment || data; // Handle both structures
+        if (!comment || !comment.id) {
+          console.warn("CommentSection: Invalid comment data in socket event", data);
           return prev;
         }
+        
+        // Check if comment already exists
+        if (prev.some((c) => c.id === comment.id)) {
+          console.log("CommentSection: Comment already exists, skipping", comment.id);
+          return prev;
+        }
+        
         // Add new comment or reply
-        if (data.comment?.parentId) {
-          return prev.map((comment) =>
-            comment.id === data.comment.parentId
-              ? { ...comment, replies: [...(comment.replies || []), data.comment] }
-              : comment
+        if (comment.parentId) {
+          // This is a reply
+          return prev.map((c) =>
+            c.id === comment.parentId
+              ? { ...c, replies: [...(c.replies || []), comment], repliesCount: (c.repliesCount || 0) + 1 }
+              : c
           );
         }
-        return [data.comment, ...prev];
+        // This is a top-level comment
+        return [comment, ...prev];
       });
+      // Clear the input if this is the current user's comment
+      if (data.comment?.authorId === currentUserId || data.authorId === currentUserId) {
+        setCommentContent("");
+        setReplyingTo(null);
+      }
       onCommentAdded?.();
     }
   });
@@ -182,17 +197,28 @@ export function CommentSection({
     e.preventDefault();
     if (!commentContent.trim() || submitting) return;
 
+    const contentToSubmit = commentContent.trim();
+    const parentIdToSubmit = replyingTo || null;
+
+    // Clear input immediately for better UX
+    setCommentContent("");
+    setReplyingTo(null);
+
     try {
       setSubmitting(true);
       await feedService.createComment(postId, {
-        content: commentContent.trim(),
-        parentId: replyingTo || null,
+        content: contentToSubmit,
+        parentId: parentIdToSubmit,
       });
-      setCommentContent("");
-      setReplyingTo(null);
-      // Don't reload - socket event will handle the update
+      // Don't update state here - socket event will handle it
+      // The input is already cleared above
       onCommentAdded?.();
     } catch (error: any) {
+      // Restore input on error
+      setCommentContent(contentToSubmit);
+      if (parentIdToSubmit) {
+        setReplyingTo(parentIdToSubmit);
+      }
       toast.error(error?.response?.data?.message || "Failed to post comment");
     } finally {
       setSubmitting(false);
@@ -203,16 +229,21 @@ export function CommentSection({
     const content = replyContent[parentId]?.trim();
     if (!content || submitting) return;
 
+    // Clear input immediately for better UX
+    setReplyContent((prev) => ({ ...prev, [parentId]: "" }));
+
     try {
       setSubmitting(true);
       await feedService.createComment(postId, {
         content,
         parentId,
       });
-      setReplyContent((prev) => ({ ...prev, [parentId]: "" }));
-      // Don't reload - socket event will handle the update
+      // Don't update state here - socket event will handle it
+      // The input is already cleared above
       onCommentAdded?.();
     } catch (error: any) {
+      // Restore input on error
+      setReplyContent((prev) => ({ ...prev, [parentId]: content }));
       toast.error(error?.response?.data?.message || "Failed to post reply");
     } finally {
       setSubmitting(false);

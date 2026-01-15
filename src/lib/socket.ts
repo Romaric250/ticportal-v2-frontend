@@ -105,11 +105,20 @@ export function useSocketEvent<T = unknown>(
   useEffect(() => {
     const s = getSocket();
     
+    // Wrapper to ensure handler is called with proper context
+    const wrappedHandler = (payload: T) => {
+      try {
+        handler(payload);
+      } catch (error) {
+        console.error(`Socket: Error in handler for event "${event}":`, error);
+      }
+    };
+    
     // Only listen if socket is connected or will connect
     const setupListener = () => {
       if (s.connected) {
         console.log(`Socket: Listening to event "${event}"`);
-        s.on(event, handler);
+        s.on(event, wrappedHandler);
       }
     };
 
@@ -122,7 +131,7 @@ export function useSocketEvent<T = unknown>(
     }
 
     return () => {
-      s.off(event, handler);
+      s.off(event, wrappedHandler);
       s.off("connect", setupListener);
     };
   }, [event, handler]);

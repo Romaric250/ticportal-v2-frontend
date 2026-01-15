@@ -107,8 +107,13 @@ export function FeedPostCard({
   useSocketEvent("feed:post:liked", (data: any) => {
     if (data.postId === post.id) {
       console.log("FeedPostCard: Received feed:post:liked event", data);
-      setIsLiked(data.isLiked);
-      setLikesCount(data.likesCount);
+      // Only update if the data is valid
+      if (typeof data.isLiked === "boolean" && typeof data.likesCount === "number") {
+        setIsLiked(data.isLiked);
+        setLikesCount(data.likesCount);
+      } else {
+        console.warn("FeedPostCard: Invalid like data in socket event", data);
+      }
     }
   });
 
@@ -148,9 +153,9 @@ export function FeedPostCard({
 
     try {
       setLiking(true);
-      const result = await feedService.likePost(post.id);
-      setIsLiked(result.isLiked);
-      setLikesCount(result.likesCount);
+      // Don't update state from API response - let socket event handle it
+      await feedService.likePost(post.id);
+      // Socket event will update the state automatically
     } catch (error: any) {
       // Revert on error
       setIsLiked(!newIsLiked);
