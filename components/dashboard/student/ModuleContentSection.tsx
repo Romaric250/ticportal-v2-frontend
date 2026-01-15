@@ -171,8 +171,8 @@ export const ModuleContentSection = ({
   return (
     <>
       <div className="space-y-4 sm:space-y-6">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-lg border border-slate-200 bg-white">
+          <div className="px-2 sm:px-3 pt-3 sm:pt-4 pb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 break-words">{module.title}</h2>
             {(moduleCompleted || module.isCompleted) && (
               <div className="flex items-center gap-2 rounded-full bg-emerald-100 px-2 sm:px-3 py-1 text-xs font-semibold text-emerald-700 flex-shrink-0">
@@ -181,7 +181,7 @@ export const ModuleContentSection = ({
               </div>
             )}
           </div>
-          <div className="overflow-x-hidden">
+          <div className="overflow-x-hidden px-2 sm:px-3 pb-3 sm:pb-4">
             <ModuleContentViewer content={module.content} />
           </div>
         </div>

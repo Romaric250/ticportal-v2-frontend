@@ -160,7 +160,7 @@ export const ModuleContentViewer = ({ content }: ModuleContentViewerProps) => {
           className={cn(
             "module-content-viewer",
             "bg-white rounded-lg overflow-hidden",
-            "prose prose-sm sm:prose-lg prose-slate dark:prose-invert prose-p:mb-4 prose-p:leading-relaxed font-default max-w-none p-4 sm:p-6 lg:p-8"
+            "prose prose-sm sm:prose-lg prose-slate dark:prose-invert prose-p:mb-4 prose-p:leading-relaxed font-default max-w-none p-2 sm:p-3"
           )}
           initialContent={initialContent}
           extensions={extensions as any}
