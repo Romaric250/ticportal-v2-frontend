@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, GraduationCap, Users, BookOpen } from "lucide-react";
+import { X, GraduationCap, Users, BookOpen, FileCheck, FileX } from "lucide-react";
 
 interface CreateLearningPathModalProps {
   onClose: () => void;
@@ -10,6 +10,7 @@ interface CreateLearningPathModalProps {
     description: string;
     audience: "STUDENTS" | "MENTORS" | "EVERYONE";
     isCore: boolean;
+    status: "DRAFT" | "ACTIVE";
   }) => void;
   loading: boolean;
 }
@@ -20,6 +21,7 @@ export function CreateLearningPathModal({ onClose, onSubmit, loading }: CreateLe
     description: "",
     audience: "STUDENTS" as "STUDENTS" | "MENTORS" | "EVERYONE",
     isCore: false,
+    status: "DRAFT" as "DRAFT" | "ACTIVE",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -103,6 +105,39 @@ export function CreateLearningPathModal({ onClose, onSubmit, loading }: CreateLe
                   >
                     <Users size={20} />
                     <span>{audience}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Status
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["DRAFT", "ACTIVE"] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status })}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all ${
+                      formData.status === status
+                        ? "border-[#111827] bg-[#111827] text-white"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {status === "DRAFT" ? (
+                      <FileX size={20} />
+                    ) : (
+                      <FileCheck size={20} />
+                    )}
+                    <div className="text-left">
+                      <div className="font-semibold">{status}</div>
+                      <div className="text-xs opacity-75">
+                        {status === "DRAFT" ? "Not visible to students" : "Published and visible"}
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>

@@ -23,12 +23,15 @@ export type Module = {
   quizScore?: number | null;
 };
 
+export type LearningPathStatus = "DRAFT" | "ACTIVE";
+
 export type LearningPath = {
   id: string;
   title: string;
   description: string;
   audience: LearningPathAudience;
   isCore: boolean;
+  status?: LearningPathStatus;
   modules?: Module[];
   createdAt: string;
   updatedAt: string;
@@ -39,6 +42,7 @@ export type CreateLearningPathPayload = {
   description: string;
   audience: LearningPathAudience;
   isCore: boolean;
+  status: LearningPathStatus;
 };
 
 export type CreateModulePayload = {
@@ -193,11 +197,42 @@ export const learningPathService = {
     pointsAwarded: number;
     passed: boolean;
   }> {
-    const { data } = await apiClient.post<{ success: boolean; message: string; data: any }>(
+    console.log("📡 API Call: submitQuiz", { pathId, moduleId, answers });
+    // The apiClient interceptor automatically unwraps { success: true, data: {...} } to just {...}
+    // So response.data is already the unwrapped data object
+    const { data } = await apiClient.post<{
+      id?: string;
+      userId?: string;
+      moduleId: string;
+      completedAt?: string;
+      quizScore: number;
+      quizAnswers: number[];
+      pointsAwarded: number;
+      passed: boolean;
+    }>(
       `/learning-paths/${pathId}/modules/${moduleId}/submit-quiz`,
       { answers }
     );
-    return data.data;
+    console.log("📡 API Response: submitQuiz - Raw Response", data);
+    
+    // Validate the response structure
+    if (!data || typeof data.passed === 'undefined') {
+      console.error("❌ Invalid quiz result structure:", data);
+      throw new Error("Invalid quiz result from server");
+    }
+    
+    console.log("📦 Parsed Quiz Result:", data);
+    
+    return {
+      id: data.id,
+      userId: data.userId,
+      moduleId: data.moduleId || moduleId,
+      completedAt: data.completedAt,
+      quizScore: data.quizScore ?? 0,
+      quizAnswers: data.quizAnswers || answers,
+      pointsAwarded: data.pointsAwarded ?? 0,
+      passed: data.passed ?? false,
+    };
   },
 
   /**

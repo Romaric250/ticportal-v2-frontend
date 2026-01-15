@@ -79,10 +79,29 @@ export const QuizModal = ({
       return; // Prevent double submission
     }
 
+    // Calculate score before submitting to validate minimum requirement
+    const answerArray = questions.map((_, index) => answers[index] ?? -1);
+    const correctAnswers = questions.filter((q, index) => answers[index] === q.correctAnswer).length;
+    const calculatedScore = questions.length > 0 ? Math.round((correctAnswers / questions.length) * 100) : 0;
+    
+    // Validate minimum score requirement (50%)
+    if (calculatedScore < 50) {
+      toast.error(`Score too low! You need at least 50% to submit. Your current score is ${calculatedScore}%. Please review and try again.`);
+      return;
+    }
+
     try {
       setSubmitting(true);
-      const answerArray = questions.map((_, index) => answers[index] ?? -1);
       const result = await learningPathService.submitQuiz(pathId, moduleId, answerArray);
+      
+      console.log("📦 Quiz Result from API:", result);
+      
+      // Validate result structure
+      if (!result || typeof result.passed === 'undefined') {
+        console.error("❌ Invalid quiz result structure:", result);
+        toast.error("Invalid response from server. Please try again.");
+        return;
+      }
       
       setQuizResult(result);
       setSubmitted(true);
@@ -96,11 +115,12 @@ export const QuizModal = ({
       // Call onComplete callback
       onComplete?.(result);
     } catch (error: any) {
+      console.error("❌ Quiz submission error:", error);
       if (error?.response?.status === 409) {
         toast.info("Module already completed");
         // Still mark as submitted to show results
         setSubmitted(true);
-        onComplete?.({ quizScore: 0, pointsAwarded: 0, passed: false });
+        onComplete?.({ quizScore: 0, pointsAwarded: 0, passed: false, moduleId, quizAnswers: answerArray });
       } else {
         toast.error(error?.response?.data?.message || error?.message || "Failed to submit quiz");
       }
