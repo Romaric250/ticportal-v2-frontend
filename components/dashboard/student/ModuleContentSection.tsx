@@ -31,57 +31,18 @@ export const ModuleContentSection = ({
 }: ModuleContentSectionProps) => {
   const [completing, setCompleting] = useState(false);
   const [showQuizModal, setShowQuizModal] = useState(false);
-  const [moduleCompleted, setModuleCompleted] = useState(isCompleted);
+  // CRITICAL: Initialize from module.isCompleted FIRST (from API), then fallback to prop
+  // This prevents the "Complete" button from showing even for a split second on completed modules
+  const [moduleCompleted, setModuleCompleted] = useState<boolean>(() => {
+    return module.isCompleted ?? isCompleted ?? false;
+  });
   const [loadingStatus, setLoadingStatus] = useState(false);
 
-  // Check module status on mount and when module changes
+  // Update local state immediately when prop or module.isCompleted changes (no async delay)
   useEffect(() => {
-    const checkModuleStatus = async () => {
-      console.log("🔍 Checking Module Status:", {
-        moduleId: module.id,
-        moduleTitle: module.title,
-        moduleIsCompleted: module.isCompleted,
-        moduleHasQuiz: module.hasQuiz,
-        moduleQuiz: module.quiz,
-        propIsCompleted: isCompleted,
-      });
-      
-      // First, use the module's isCompleted field if available (from getStudentModules)
-      // This is the most reliable source as it comes directly from the API
-      if (module.isCompleted !== undefined && module.isCompleted !== null) {
-        console.log("✅ Using module.isCompleted:", module.isCompleted);
-        setModuleCompleted(module.isCompleted);
-        return;
-      }
-      
-      // If prop is provided and module.isCompleted is not, use prop
-      if (isCompleted !== undefined) {
-        console.log("✅ Using prop isCompleted:", isCompleted);
-        setModuleCompleted(isCompleted);
-      }
-      
-      // Also try to fetch status for accuracy (but don't block on it if we have module.isCompleted)
-      try {
-        setLoadingStatus(true);
-        const status = await learningPathService.getModuleStatus(pathId, module.id);
-        
-        if (status && typeof status === 'object' && 'isCompleted' in status) {
-          setModuleCompleted(status.isCompleted);
-        }
-      } catch (error: any) {
-        // If status check fails, keep current state (from module.isCompleted or prop)
-      } finally {
-        setLoadingStatus(false);
-      }
-    };
-
-    checkModuleStatus();
-  }, [pathId, module.id, module.isCompleted, isCompleted]);
-
-  // Update local state when prop or module.isCompleted changes
-  useEffect(() => {
-    // Prioritize module.isCompleted if available, then use prop
-    const shouldBeCompleted = module.isCompleted ?? isCompleted;
+    // Prioritize module.isCompleted if available (from API), then use prop
+    // Set immediately to avoid showing "Complete" button when module is already completed
+    const shouldBeCompleted = module.isCompleted ?? isCompleted ?? false;
     setModuleCompleted(shouldBeCompleted);
   }, [module.isCompleted, isCompleted]);
 
@@ -348,9 +309,9 @@ export const ModuleContentSection = ({
           </div>
 
           {/* Navigation and Complete Buttons */}
-          <div className="px-4 py-2.5 flex items-center justify-between gap-3 border-t border-slate-200">
-            {/* Previous/Next Navigation */}
-            <div className="flex items-center gap-2 flex-1">
+          <div className="px-4 py-2.5 flex items-center justify-center gap-3 border-t border-slate-200">
+            {/* Previous/Next Navigation - Centered */}
+            <div className="flex items-center gap-2">
               {(() => {
                 const currentIndex = modules.findIndex((m) => m.id === currentModuleId);
                 const hasPrevious = currentIndex > 0;
@@ -389,7 +350,7 @@ export const ModuleContentSection = ({
               })()}
             </div>
 
-            {/* Complete Button - Opposite Side */}
+            {/* Complete Button - Next to Navigation */}
             {!(moduleCompleted || module.isCompleted) && (
               <button
                 onClick={() => {

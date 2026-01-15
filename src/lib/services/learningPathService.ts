@@ -341,9 +341,9 @@ export const learningPathService = {
       `/learning-paths/${pathId}/modules`
     );
     console.log("📡 API Response: getStudentModules", data);
-    const modules = data.data || [];
+    const modules = data || [];
     console.log("📦 Parsed Modules:", modules);
-    return modules;
+    return modules as unknown as Module[];
   },
 
   /**
