@@ -13,6 +13,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
+  const { user, accessToken, initialize, initialized } = useAuthStore();
   const { setUser, setTokens, setLoading } = useAuthStore();
 
   const [email, setEmail] = useState("");
@@ -23,6 +24,27 @@ export default function LoginPage() {
   const [currentSummit, setCurrentSummit] = useState(0);
 
   const summits = ["TIC21", "TIC22", "TIC23", "TIC24", "TIC25", "TIC26"];
+
+  // Initialize auth store
+  useEffect(() => {
+    if (!initialized) {
+      initialize();
+    }
+  }, [initialize, initialized]);
+
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    if (!initialized) return;
+
+    // If user has tokens and user data, redirect to their dashboard
+    if (accessToken && user) {
+      const userRole = user.role?.toLowerCase() || "student";
+      const redirectTo = userRole === "admin" || userRole === "super-admin" 
+        ? `/${userRole}` 
+        : "/student";
+      router.replace(`/${locale}${redirectTo}`);
+    }
+  }, [accessToken, user, initialized, router, locale]);
 
   // Auto-cycle through summits
   useEffect(() => {

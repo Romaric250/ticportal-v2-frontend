@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }: Props) {
     | "admin"
     | "super-admin";
 
-  const { user, initialize, initialized } = useAuthStore();
+  const { user, accessToken, initialize, initialized, logout } = useAuthStore();
   const router = useRouter();
   const locale = useLocale();
 
@@ -49,24 +49,51 @@ export default function DashboardLayout({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
+  const [validatingAuth, setValidatingAuth] = useState(true);
+
+  // Validate authentication on mount - check if tokens are valid
+  useEffect(() => {
+    const validateAuth = async () => {
+      // Wait for auth store to be initialized
+      if (!initialized) {
+        return;
+      }
+
+      // Check if tokens exist
+      const hasToken = accessToken || (typeof window !== "undefined" && tokenStorage.getAccessToken());
+      
+      if (!hasToken) {
+        // No token, redirect to login
+        logout();
+        router.replace(`/${locale}/login`);
+        return;
+      }
+
+      // Validate token by calling getProfile API
+      try {
+        await userService.getProfile();
+        // Token is valid, allow access
+        setValidatingAuth(false);
+      } catch (error: any) {
+        // Token is invalid (401 or other error)
+        console.error("Authentication validation failed:", error);
+        logout();
+        router.replace(`/${locale}/login`);
+        return;
+      }
+    };
+
+    validateAuth();
+  }, [initialized, accessToken, router, locale, logout]);
 
   // Protect admin routes - check immediately and redirect silently if not authorized
   useEffect(() => {
-    // Wait for auth store to be initialized before checking
-    if (!initialized) {
+    // Wait for auth validation to complete
+    if (validatingAuth || !initialized) {
       return;
     }
 
     if (role === "admin" || role === "super-admin") {
-      // Check if tokens exist in storage (even if user not loaded yet)
-      const hasToken = typeof window !== "undefined" && tokenStorage.getAccessToken();
-      
-      // If no token and no user, redirect to login
-      if (!hasToken && !user) {
-        router.replace(`/${locale}/login`);
-        return;
-      }
-      
       // If user is loaded, check role
       if (user) {
         const userRole = user.role?.toLowerCase();
@@ -78,13 +105,13 @@ export default function DashboardLayout({ children }: Props) {
         }
       }
       
-      // User has token (and is admin if user is loaded), allow access
+      // User has valid token (and is admin if user is loaded), allow access
       setAuthChecked(true);
     } else {
       // Not an admin route, no need to check
       setAuthChecked(true);
     }
-  }, [role, user, router, locale, initialized]);
+  }, [role, user, router, locale, initialized, validatingAuth]);
 
 
   // Check if student needs onboarding
@@ -204,9 +231,9 @@ export default function DashboardLayout({ children }: Props) {
     checkBeforeClose();
   };
 
-  // Don't render anything until auth is checked for admin routes - show nothing (invisible)
+  // Don't render anything until auth is validated and checked - show nothing (invisible)
   // This check happens AFTER all hooks are called to follow Rules of Hooks
-  if ((role === "admin" || role === "super-admin") && !authChecked) {
+  if (validatingAuth || ((role === "admin" || role === "super-admin") && !authChecked)) {
     return null; // Render nothing - completely invisible
   }
 
