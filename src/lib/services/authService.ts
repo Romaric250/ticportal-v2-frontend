@@ -40,7 +40,9 @@ type LogoutPayload = {
 };
 
 type AuthResponse = {
-  user: AuthUser;
+  user: AuthUser & {
+    isVerified?: boolean;
+  };
   accessToken: string;
   refreshToken: string;
 };
@@ -123,6 +125,14 @@ export const authService = {
    */
   async forgotPassword(payload: ForgotPasswordPayload): Promise<void> {
     await apiClient.post("/auth/send-otp", { email: payload.email, type: "PASSWORD_RESET" });
+  },
+
+  /**
+   * Send OTP for email verification or password reset
+   * Sends OTP to email for verification
+   */
+  async sendOTP(email: string, type: "EMAIL_VERIFICATION" | "PASSWORD_RESET" = "EMAIL_VERIFICATION"): Promise<void> {
+    await apiClient.post("/auth/send-otp", { email, type });
   },
 
   /**

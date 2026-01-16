@@ -43,6 +43,20 @@ export default function LoginPage() {
 
       console.log("Login response:", response);
       
+      // Check if email is verified
+      if (response.user.isVerified === false) {
+        // User is not verified, redirect to verify-email page and auto-request OTP
+        try {
+          await authService.sendOTP(email, "EMAIL_VERIFICATION");
+          toast.info("Please verify your email. A verification code has been sent to your email.");
+        } catch (otpError) {
+          // If sending OTP fails, still redirect but show a message
+          toast.info("Please verify your email to continue.");
+        }
+        router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}&autoRequest=true`);
+        return;
+      }
+      
       // Store tokens
       setTokens(response.accessToken, response.refreshToken);
       

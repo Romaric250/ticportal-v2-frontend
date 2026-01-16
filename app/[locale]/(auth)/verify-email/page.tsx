@@ -24,7 +24,30 @@ export default function VerifyEmailPage() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(9 * 60 + 42); // 9:42 in seconds
   const [submitting, setSubmitting] = useState(false);
+  const [otpRequested, setOtpRequested] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Auto-request OTP on mount if autoRequest param is present
+  useEffect(() => {
+    const autoRequest = searchParams.get("autoRequest") === "true";
+    if (autoRequest && email && !otpRequested) {
+      const requestOTP = async () => {
+        try {
+          await authService.sendOTP(email, "EMAIL_VERIFICATION");
+          toast.success("Verification code sent to your email");
+          setTimeLeft(10 * 60); // Reset timer to 10 minutes
+          setCode(["", "", "", "", "", ""]);
+          inputRefs.current[0]?.focus();
+        } catch (error: any) {
+          const errorMessage = error?.message || "Failed to send code. Please try again.";
+          toast.error(errorMessage);
+        }
+      };
+      requestOTP();
+      setOtpRequested(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email]);
 
   // Countdown timer
   useEffect(() => {
@@ -108,14 +131,8 @@ export default function VerifyEmailPage() {
     }
 
     try {
-      // Re-register to get a new OTP
-      await authService.register({
-        email,
-        password: "", // We don't have the password here, but the API might allow resending OTP
-        firstName: "",
-        lastName: "",
-        role,
-      });
+      // Send OTP for email verification
+      await authService.sendOTP(email, "EMAIL_VERIFICATION");
       toast.success("Verification code sent to your email");
       setTimeLeft(10 * 60); // Reset timer to 10 minutes
       setCode(["", "", "", "", "", ""]);
