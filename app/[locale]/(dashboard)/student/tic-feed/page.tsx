@@ -296,7 +296,7 @@ export default function TICFeedPage() {
     };
   }, [activeTab]);
 
-  // Load posts
+  // Load posts - loads 2 posts at a time for smooth scrolling
   const loadPosts = async (reset = false) => {
     try {
       if (reset) {
@@ -312,7 +312,7 @@ export default function TICFeedPage() {
       const response = await feedService.getPosts({
         category: category || "all",
         page: currentPage,
-        limit: 10,
+        limit: 2, // Load 2 posts at a time for smooth infinite scroll
         includePinned: currentPage === 1,
       });
 
@@ -349,7 +349,8 @@ export default function TICFeedPage() {
         page: 1,
         limit: 20,
       });
-      setSearchResults(response.data || []);
+      // API returns { posts: [...], pagination: {...}, query: "..." }
+      setSearchResults(response.posts || []);
       setSearchQuery(query);
     } catch (error: any) {
       // Silent fail - don't show toast for search errors

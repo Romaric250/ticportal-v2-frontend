@@ -381,8 +381,10 @@ export const feedService = {
     q: string;
     page?: number;
     limit?: number;
-  }): Promise<PaginationResponse<FeedPost>> {
-    const { data } = await apiClient.get<PaginationResponse<FeedPost>>(
+  }): Promise<{ posts: FeedPost[]; pagination: { page: number; limit: number; total: number; totalPages: number }; query: string }> {
+    // The API returns { success: true, data: { posts: [...], pagination: {...}, query: "..." } }
+    // The apiClient interceptor unwraps it to { posts: [...], pagination: {...}, query: "..." }
+    const { data } = await apiClient.get<{ posts: FeedPost[]; pagination: { page: number; limit: number; total: number; totalPages: number }; query: string }>(
       "/feed/search",
       { params }
     );
