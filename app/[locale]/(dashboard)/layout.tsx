@@ -242,7 +242,7 @@ export default function DashboardLayout({ children }: Props) {
       <Sidebar role={role} />
       <div className="flex h-screen flex-1 flex-col overflow-hidden">
         <TopNav />
-        <main className="flex-1 overflow-y-auto px-8 py-6">{children}</main>
+        <main className="flex-1 overflow-y-auto px-1 py-4 sm:px-5 sm:py-5 md:px-8 md:py-6">{children}</main>
       </div>
       
       {/* Onboarding Modal */}

@@ -165,12 +165,7 @@ export default function LoginPage() {
                 width: 'auto',
                 objectFit: 'contain',
                 display: 'block',
-                opacity: 1,
-                visibility: 'visible',
-                filter: 'none',
-                mixBlendMode: 'normal',
-                position: 'relative',
-                zIndex: 10
+                filter: 'invert(1)',
               }}
               onError={(e) => {
                 console.error("Logo image failed to load. Check if /ticsummit-logo.png exists in public folder.");

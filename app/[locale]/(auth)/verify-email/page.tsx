@@ -209,6 +209,13 @@ export default function VerifyEmailPage() {
                 ))}
               </div>
 
+              {/* Spam folder reminder */}
+              <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-2.5">
+                <p className="text-xs text-amber-800 text-center">
+                  <span className="font-semibold">Tip:</span> If you don&apos;t see the email, please check your spam or junk folder.
+                </p>
+              </div>
+
               {/* Timer */}
               <p className="mb-6 text-center text-sm text-slate-500">
                 Code expires in <span className="font-semibold text-slate-900">{formatTime(timeLeft)}</span>

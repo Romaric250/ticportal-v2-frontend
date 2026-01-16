@@ -8,8 +8,6 @@ import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
 
-type Role = "student" | "mentor";
-
 export default function RegisterPage() {
   const router = useRouter();
   const locale = useLocale();
@@ -18,7 +16,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<Role>("student");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -94,11 +91,11 @@ export default function RegisterPage() {
         password,
         firstName,
         lastName,
-        role: role.toUpperCase() as "STUDENT" | "MENTOR",
+        role: "STUDENT",
       });
       
       toast.success("Registration successful! Please check your email for the verification code.");
-      router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role.toUpperCase())}`);
+      router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}&role=STUDENT`);
     } catch (error: any) {
       console.error(error);
       const errorMessage = error?.message || "Registration failed. Please try again.";
@@ -110,16 +107,34 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white px-6 py-4">
+      <header className="border-b border-slate-200 bg-white px-6 py-3">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111827] text-white font-bold">
-              T
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/ticsummit-logo.png" 
+              alt="TIC Summit" 
+              className="h-8 w-auto"
+              style={{ 
+                maxWidth: '200px', 
+                height: '32px', 
+                width: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+                filter: 'invert(1)',
+              }}
+              onError={(e) => {
+                console.error("Logo image failed to load. Check if /ticsummit-logo.png exists in public folder.");
+                (e.target as HTMLImageElement).style.border = '2px solid red';
+              }}
+              onLoad={() => {
+                console.log("Logo loaded successfully");
+              }}
+            />
           </div>
           <Link
             href="#"
-            className="text-sm font-medium text-slate-600 hover:text-[#111827] transition-colors"
+            className="text-xs font-medium text-slate-600 hover:text-[#111827] transition-colors"
           >
             Help Center
           </Link>
@@ -131,9 +146,9 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           {/* Title */}
           <div className="mb-8 text-center">
-            <h1 className="mb-2 text-3xl sm:text-4xl font-bold text-[#111827]">
-              Join the TIC Summit Portal
-            </h1>
+            <h3 className="mb-2 text-2xl sm:text-4xl font-bold text-[#111827]">
+              TIC Summit Portal
+            </h3>
             <p className="text-base text-slate-600">
               Manage your learning, team, and hackathon journey in one place.
             </p>
@@ -262,54 +277,6 @@ export default function RegisterPage() {
                   >
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
-                </div>
-              </div>
-
-              {/* Role Selection - Slider Toggle */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-slate-700">I am joining as a:</label>
-                <div className="relative rounded-lg border-2 border-slate-200 bg-white p-1">
-                  {/* Slider Background */}
-                  <div className="relative flex">
-                    {/* Sliding Indicator */}
-                    <div
-                      className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-[#111827] transition-transform duration-300 ease-in-out ${
-                        role === "student" ? "translate-x-0" : "translate-x-full"
-                      }`}
-                    />
-                    
-                    {/* Student Option */}
-                    <button
-                      type="button"
-                      onClick={() => setRole("student")}
-                      className={`relative z-10 flex-1 rounded-md px-4 py-3 text-center transition-colors ${
-                        role === "student"
-                          ? "text-white"
-                          : "text-slate-700 hover:text-slate-900"
-                      }`}
-                    >
-                      <div className="font-semibold text-sm">Student</div>
-                      <div className={`mt-1 text-xs ${role === "student" ? "text-white/90" : "text-slate-600"}`}>
-                        Join as a participant to manage projects and learning.
-                      </div>
-                    </button>
-
-                    {/* Mentor Option */}
-                    <button
-                      type="button"
-                      onClick={() => setRole("mentor")}
-                      className={`relative z-10 flex-1 rounded-md px-4 py-3 text-center transition-colors ${
-                        role === "mentor"
-                          ? "text-white"
-                          : "text-slate-700 hover:text-slate-900"
-                      }`}
-                    >
-                      <div className="font-semibold text-sm">Mentor</div>
-                      <div className={`mt-1 text-xs ${role === "mentor" ? "text-white/90" : "text-slate-600"}`}>
-                        Requires administrative approval before full activation.
-                      </div>
-                    </button>
-                  </div>
                 </div>
               </div>
 

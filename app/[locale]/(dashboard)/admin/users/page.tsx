@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Filter, Download, UserPlus, CheckCircle, AlertCircle, GraduationCap, Gavel, Users, Loader2 } from "lucide-react";
+import { Search, Filter, Download, UserPlus, CheckCircle, AlertCircle, GraduationCap, Gavel, Users, Loader2, Edit2, Trash2 } from "lucide-react";
 import { adminService, type AdminUser, type UserFilters } from "../../../../../src/lib/services/adminService";
 import { toast } from "sonner";
 import { cn } from "../../../../../src/utils/cn";
+import { EditUserModal } from "../../../../../components/dashboard/admin/EditUserModal";
+import { DeleteConfirmationModal } from "../../../../../components/dashboard/admin/DeleteConfirmationModal";
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -35,6 +37,9 @@ export default function UserManagementPage() {
     search: "",
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Load stats
   const loadStats = useCallback(async () => {
@@ -81,6 +86,36 @@ export default function UserManagementPage() {
     } catch (error: any) {
       toast.error(error?.message || "Failed to approve user");
     }
+  };
+
+  const handleEdit = (user: AdminUser) => {
+    setEditingUser(user);
+  };
+
+  const handleDelete = (user: AdminUser) => {
+    setDeletingUser(user);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingUser) return;
+
+    setDeleteLoading(true);
+    try {
+      await adminService.deleteUser(deletingUser.id);
+      toast.success("User deleted successfully");
+      setDeletingUser(null);
+      loadUsers(pagination.page);
+      loadStats();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to delete user");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleUserUpdated = () => {
+    loadUsers(pagination.page);
+    loadStats();
   };
 
   const handleSearch = () => {
@@ -276,18 +311,21 @@ export default function UserManagementPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   STATUS
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  ACTIONS
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <Loader2 size={24} className="mx-auto animate-spin text-slate-400" />
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-500">
                     No users found
                   </td>
                 </tr>
@@ -344,6 +382,24 @@ export default function UserManagementPage() {
                         )}
                       </div>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="rounded-lg p-1.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-[#111827]"
+                          title="Edit user"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user)}
+                          className="rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                          title="Delete user"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -383,6 +439,25 @@ export default function UserManagementPage() {
           </div>
         )}
       </div>
+
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        user={editingUser}
+        onUserUpdated={handleUserUpdated}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={!!deletingUser}
+        onClose={() => setDeletingUser(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete User"
+        message="Are you sure you want to delete this user? This action cannot be undone and will permanently remove the user from the system."
+        itemName={deletingUser ? `${deletingUser.firstName} ${deletingUser.lastName} (${deletingUser.email})` : undefined}
+        loading={deleteLoading}
+      />
     </div>
   );
 }

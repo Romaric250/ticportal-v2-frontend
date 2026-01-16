@@ -283,8 +283,8 @@ export function PostDetailsModal({
               </button>
             )}
           </div>
-          <div className="text-xs text-slate-500">
-            <Calendar size={14} className="inline mr-1" />
+          <div className="text-[10px] text-slate-500 ml-2">
+            <Calendar size={10} className="inline mr-1" />
             {new Date(post.createdAt).toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
