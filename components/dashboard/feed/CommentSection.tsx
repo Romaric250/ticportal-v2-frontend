@@ -63,10 +63,11 @@ export function CommentSection({
     console.log("CommentSection: Received feed:comment:created event", { data, postId, currentPostId: postId });
     if (data.postId === postId) {
       console.log("CommentSection: Processing feed:comment:created event for current post", data);
+      // Extract comment from data - handle both structures
+      const comment = data.comment || data;
+      console.log("CommentSection: Extracted comment from socket event:", comment);
+      
       setComments((prev) => {
-        const comment = data.comment || data; // Handle both structures
-        console.log("CommentSection: Extracted comment from socket event:", comment);
-        
         if (!comment || !comment.id) {
           console.warn("CommentSection: Invalid comment data in socket event", { data, comment });
           return prev;
@@ -133,7 +134,7 @@ export function CommentSection({
         return newComments;
       });
       // Clear the input if this is the current user's comment
-      const commentAuthorId = data.comment?.authorId || data.authorId || data.comment?.author?.id || comment?.author?.id || comment?.authorId;
+      const commentAuthorId = comment?.authorId || comment?.author?.id || data.comment?.authorId || data.authorId || data.comment?.author?.id;
       if (commentAuthorId === currentUserId) {
         setCommentContent("");
         setReplyingTo(null);
@@ -263,16 +264,11 @@ export function CommentSection({
         if (Array.isArray(response.data)) {
           console.log("CommentSection: Found comments in response.data, length:", response.data.length);
           commentsData = response.data;
-        } else if (response.comments && Array.isArray(response.comments)) {
-          console.log("CommentSection: Found comments in response.comments, length:", response.comments.length);
-          commentsData = response.comments;
         } else {
           console.warn("CommentSection: Unexpected response structure:", {
             hasData: !!response.data,
             dataType: typeof response.data,
             isDataArray: Array.isArray(response.data),
-            hasComments: !!response.comments,
-            isCommentsArray: Array.isArray(response.comments),
             responseKeys: Object.keys(response),
           });
         }
