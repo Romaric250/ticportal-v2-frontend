@@ -60,76 +60,150 @@ export function CommentSection({
 
   // Listen for real-time comment updates
   useSocketEvent("feed:comment:created", (data: any) => {
+    console.log("CommentSection: Received feed:comment:created event", { data, postId, currentPostId: postId });
     if (data.postId === postId) {
-      console.log("CommentSection: Received feed:comment:created event", data);
+      console.log("CommentSection: Processing feed:comment:created event for current post", data);
       setComments((prev) => {
         const comment = data.comment || data; // Handle both structures
+        console.log("CommentSection: Extracted comment from socket event:", comment);
+        
         if (!comment || !comment.id) {
-          console.warn("CommentSection: Invalid comment data in socket event", data);
+          console.warn("CommentSection: Invalid comment data in socket event", { data, comment });
           return prev;
         }
         
-        // Check if comment already exists
-        if (prev.some((c) => c.id === comment.id)) {
+        // Check if comment already exists (check both top-level and nested)
+        const commentExists = prev.some((c) => 
+          c.id === comment.id || 
+          (c.replies && c.replies.some((r) => r.id === comment.id))
+        );
+        if (commentExists) {
           console.log("CommentSection: Comment already exists, skipping", comment.id);
           return prev;
         }
         
         // Add new comment or reply
         if (comment.parentId) {
-          // This is a reply
-          return prev.map((c) =>
-            c.id === comment.parentId
-              ? { ...c, replies: [...(c.replies || []), comment] }
-              : c
-          );
+          // This is a reply - need to find parent in top-level or nested replies
+          console.log("CommentSection: Adding reply to parent comment", comment.parentId);
+          return prev.map((c) => {
+            // Check if this is the direct parent
+            if (c.id === comment.parentId) {
+              const newReplies = [...(c.replies || []), comment];
+              // Sort replies by createdAt ascending (oldest first)
+              newReplies.sort((a, b) => {
+                const dateA = new Date(a.createdAt).getTime();
+                const dateB = new Date(b.createdAt).getTime();
+                return dateA - dateB;
+              });
+              return { ...c, replies: newReplies };
+            }
+            // Check if parent is in nested replies
+            if (c.replies && c.replies.some((r) => r.id === comment.parentId)) {
+              return {
+                ...c,
+                replies: c.replies.map((r) => {
+                  if (r.id === comment.parentId) {
+                    const newNestedReplies = [...(r.replies || []), comment];
+                    // Sort nested replies by createdAt ascending (oldest first)
+                    newNestedReplies.sort((a, b) => {
+                      const dateA = new Date(a.createdAt).getTime();
+                      const dateB = new Date(b.createdAt).getTime();
+                      return dateA - dateB;
+                    });
+                    return { ...r, replies: newNestedReplies };
+                  }
+                  return r;
+                }),
+              };
+            }
+            return c;
+          });
         }
-        // This is a top-level comment
-        return [comment, ...prev];
+        // This is a top-level comment - add to end (oldest first order)
+        console.log("CommentSection: Adding new top-level comment", comment.id);
+        const newComments = [...prev, comment];
+        // Sort by createdAt ascending (oldest first)
+        newComments.sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateA - dateB;
+        });
+        console.log("CommentSection: Updated comments count:", newComments.length);
+        return newComments;
       });
       // Clear the input if this is the current user's comment
-      if (data.comment?.authorId === currentUserId || data.authorId === currentUserId) {
+      const commentAuthorId = data.comment?.authorId || data.authorId || data.comment?.author?.id || comment?.author?.id || comment?.authorId;
+      if (commentAuthorId === currentUserId) {
         setCommentContent("");
         setReplyingTo(null);
+        // Also clear any reply inputs
+        setReplyContent({});
       }
       onCommentAdded?.();
+    } else {
+      console.log("CommentSection: Ignoring feed:comment:created event for different post", { eventPostId: data.postId, currentPostId: postId });
     }
   });
 
   useSocketEvent("feed:comment:updated", (data: any) => {
+    console.log("CommentSection: Received feed:comment:updated event", { data, postId });
     if (data.postId === postId) {
       setComments((prev) =>
         prev.map((comment) => {
           if (comment.id === data.commentId) {
-            return { ...comment, content: data.content, updatedAt: data.updatedAt };
+            return { ...comment, content: data.content, isEdited: true, updatedAt: data.updatedAt || new Date().toISOString() };
           }
           // Check replies
           if (comment.replies) {
             return {
               ...comment,
-              replies: comment.replies.map((reply) =>
-                reply.id === data.commentId
-                  ? { ...reply, content: data.content, updatedAt: data.updatedAt }
-                  : reply
-              ),
+              replies: comment.replies.map((reply) => {
+                if (reply.id === data.commentId) {
+                  return { ...reply, content: data.content, isEdited: true, updatedAt: data.updatedAt || new Date().toISOString() };
+                }
+                // Check nested replies (replies to replies)
+                if (reply.replies) {
+                  return {
+                    ...reply,
+                    replies: reply.replies.map((nestedReply) =>
+                      nestedReply.id === data.commentId
+                        ? { ...nestedReply, content: data.content, isEdited: true, updatedAt: data.updatedAt || new Date().toISOString() }
+                        : nestedReply
+                    ),
+                  };
+                }
+                return reply;
+              }),
             };
           }
           return comment;
         })
       );
+      // Close edit mode if this comment was being edited
+      if (editingId === data.commentId) {
+        setEditingId(null);
+        setEditContent("");
+      }
     }
   });
 
   useSocketEvent("feed:comment:deleted", (data: any) => {
+    console.log("CommentSection: Received feed:comment:deleted event", { data, postId });
     if (data.postId === postId) {
       setComments((prev) => {
-        // Remove comment or reply
-        const filtered = prev.filter((comment) => comment.id !== data.commentId);
-        // Also check replies
-        return filtered.map((comment) => ({
-          ...comment,
-          replies: comment.replies?.filter((reply) => reply.id !== data.commentId),
-        }));
+        // Remove comment or reply (check top-level, replies, and nested replies)
+        return prev
+          .filter((comment) => comment.id !== data.commentId)
+          .map((comment) => ({
+            ...comment,
+            replies: comment.replies
+              ?.filter((reply) => reply.id !== data.commentId)
+              .map((reply) => ({
+                ...reply,
+                replies: reply.replies?.filter((nestedReply) => nestedReply.id !== data.commentId),
+              })),
+          }));
       });
       onCommentDeleted?.();
     }
@@ -170,20 +244,71 @@ export function CommentSection({
   const loadComments = async () => {
     try {
       setLoading(true);
+      console.log("CommentSection: Loading comments for postId:", postId);
       const response = await feedService.getComments(postId, { limit: 50 });
+      console.log("CommentSection: Raw response from getComments:", response);
+      console.log("CommentSection: Response type:", typeof response);
+      console.log("CommentSection: Is array?", Array.isArray(response));
+      console.log("CommentSection: Response keys:", response ? Object.keys(response) : "null/undefined");
+      
       // getComments returns PaginationResponse<FeedComment> which is { data: FeedComment[], pagination: {...} }
       // The apiClient interceptor unwraps { success: true, data: {...} } to just {...}
       // So response should be { data: [...], pagination: {...} }
       let commentsData: FeedComment[] = [];
+      
       if (Array.isArray(response)) {
+        console.log("CommentSection: Response is array, length:", response.length);
         commentsData = response;
-      } else if (response?.data && Array.isArray(response.data)) {
-        commentsData = response.data;
+      } else if (response && typeof response === "object") {
+        if (Array.isArray(response.data)) {
+          console.log("CommentSection: Found comments in response.data, length:", response.data.length);
+          commentsData = response.data;
+        } else if (response.comments && Array.isArray(response.comments)) {
+          console.log("CommentSection: Found comments in response.comments, length:", response.comments.length);
+          commentsData = response.comments;
+        } else {
+          console.warn("CommentSection: Unexpected response structure:", {
+            hasData: !!response.data,
+            dataType: typeof response.data,
+            isDataArray: Array.isArray(response.data),
+            hasComments: !!response.comments,
+            isCommentsArray: Array.isArray(response.comments),
+            responseKeys: Object.keys(response),
+          });
+        }
+      } else {
+        console.error("CommentSection: Invalid response type:", typeof response, response);
       }
-      setComments(commentsData);
+      
+      console.log("CommentSection: Final commentsData length:", commentsData.length);
+      console.log("CommentSection: Comments data:", commentsData);
+      // Sort comments by createdAt ascending (oldest first)
+      const sortedComments = [...commentsData].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateA - dateB;
+      });
+      // Also sort replies within each comment
+      sortedComments.forEach((comment) => {
+        if (comment.replies && comment.replies.length > 0) {
+          comment.replies.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateA - dateB;
+          });
+        }
+      });
+      setComments(sortedComments);
     } catch (error: any) {
-      console.error("Failed to load comments:", error);
-      toast.error(error?.response?.data?.message || "Failed to load comments");
+      console.error("CommentSection: Failed to load comments:", error);
+      console.error("CommentSection: Error details:", {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        stack: error?.stack,
+      });
+      toast.error(error?.response?.data?.message || error?.message || "Failed to load comments");
       setComments([]); // Set empty array on error
     } finally {
       setLoading(false);
@@ -199,16 +324,70 @@ export function CommentSection({
 
     // Clear input immediately for better UX
     setCommentContent("");
+    const previousReplyingTo = replyingTo;
     setReplyingTo(null);
 
     try {
       setSubmitting(true);
-      await feedService.createComment(postId, {
+      const newComment = await feedService.createComment(postId, {
         content: contentToSubmit,
         parentId: parentIdToSubmit,
       });
-      // Don't update state here - socket event will handle it
-      // The input is already cleared above
+      
+      // Optimistic update - add comment immediately if socket event doesn't fire quickly
+      // Socket event will handle the real update, but this ensures immediate feedback
+      setTimeout(() => {
+        setComments((prev) => {
+          // Check if comment already exists (socket event might have added it)
+          const exists = prev.some((c) => 
+            c.id === newComment.id || 
+            (c.replies && c.replies.some((r) => r.id === newComment.id))
+          );
+          if (exists) return prev;
+          
+          // Add the comment
+          if (newComment.parentId) {
+            return prev.map((c) => {
+              if (c.id === newComment.parentId) {
+                const newReplies = [...(c.replies || []), newComment];
+                newReplies.sort((a, b) => {
+                  const dateA = new Date(a.createdAt).getTime();
+                  const dateB = new Date(b.createdAt).getTime();
+                  return dateA - dateB;
+                });
+                return { ...c, replies: newReplies };
+              }
+              if (c.replies && c.replies.some((r) => r.id === newComment.parentId)) {
+                return {
+                  ...c,
+                  replies: c.replies.map((r) => {
+                    if (r.id === newComment.parentId) {
+                      const newNestedReplies = [...(r.replies || []), newComment];
+                      newNestedReplies.sort((a, b) => {
+                        const dateA = new Date(a.createdAt).getTime();
+                        const dateB = new Date(b.createdAt).getTime();
+                        return dateA - dateB;
+                      });
+                      return { ...r, replies: newNestedReplies };
+                    }
+                    return r;
+                  }),
+                };
+              }
+              return c;
+            });
+          }
+          // Add to end and sort (oldest first)
+          const newComments = [...prev, newComment];
+          newComments.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateA - dateB;
+          });
+          return newComments;
+        });
+      }, 500); // Wait 500ms for socket event, then add optimistically
+      
       onCommentAdded?.();
     } catch (error: any) {
       // Restore input on error
@@ -227,20 +406,71 @@ export function CommentSection({
     if (!content || submitting) return;
 
     // Clear input immediately for better UX
+    const previousContent = content;
     setReplyContent((prev) => ({ ...prev, [parentId]: "" }));
+    // Also clear replyingTo if this was the active reply
+    const wasReplyingTo = replyingTo === parentId;
+    if (wasReplyingTo) {
+      setReplyingTo(null);
+    }
 
     try {
       setSubmitting(true);
-      await feedService.createComment(postId, {
+      const newReply = await feedService.createComment(postId, {
         content,
         parentId,
       });
-      // Don't update state here - socket event will handle it
-      // The input is already cleared above
+      
+      // Optimistic update - add reply immediately if socket event doesn't fire quickly
+      setTimeout(() => {
+        setComments((prev) => {
+          // Check if reply already exists (socket event might have added it)
+          const exists = prev.some((c) => 
+            (c.replies && c.replies.some((r) => r.id === newReply.id)) ||
+            (c.replies && c.replies.some((r) => r.replies && r.replies.some((nr) => nr.id === newReply.id)))
+          );
+          if (exists) return prev;
+          
+          // Add the reply
+          return prev.map((c) => {
+            if (c.id === parentId) {
+              const newReplies = [...(c.replies || []), newReply];
+              newReplies.sort((a, b) => {
+                const dateA = new Date(a.createdAt).getTime();
+                const dateB = new Date(b.createdAt).getTime();
+                return dateA - dateB;
+              });
+              return { ...c, replies: newReplies };
+            }
+            if (c.replies && c.replies.some((r) => r.id === parentId)) {
+              return {
+                ...c,
+                replies: c.replies.map((r) => {
+                  if (r.id === parentId) {
+                    const newNestedReplies = [...(r.replies || []), newReply];
+                    newNestedReplies.sort((a, b) => {
+                      const dateA = new Date(a.createdAt).getTime();
+                      const dateB = new Date(b.createdAt).getTime();
+                      return dateA - dateB;
+                    });
+                    return { ...r, replies: newNestedReplies };
+                  }
+                  return r;
+                }),
+              };
+            }
+            return c;
+          });
+        });
+      }, 500); // Wait 500ms for socket event, then add optimistically
+      
       onCommentAdded?.();
     } catch (error: any) {
       // Restore input on error
-      setReplyContent((prev) => ({ ...prev, [parentId]: content }));
+      setReplyContent((prev) => ({ ...prev, [parentId]: previousContent }));
+      if (wasReplyingTo) {
+        setReplyingTo(parentId);
+      }
       toast.error(error?.response?.data?.message || "Failed to post reply");
     } finally {
       setSubmitting(false);
@@ -460,14 +690,12 @@ export function CommentSection({
                     />
                     <span>{comment.likesCount}</span>
                   </button>
-                  {!isReply && (
-                    <button
-                      onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                      className="cursor-pointer text-[10px] sm:text-xs text-slate-500 hover:text-[#111827]"
-                    >
-                      Reply
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                    className="cursor-pointer text-[10px] sm:text-xs text-slate-500 hover:text-[#111827]"
+                  >
+                    Reply
+                  </button>
                   {(canEdit || canDelete) && (
                     <div className="relative">
                       <button
@@ -523,7 +751,13 @@ export function CommentSection({
 
             {/* Reply Input */}
             {replyingTo === comment.id && (
-              <div className="mt-3 flex items-center gap-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleReply(comment.id);
+                }}
+                className="mt-3 flex items-center gap-2"
+              >
                 <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-slate-200 flex-shrink-0" />
                 <input
                   type="text"
@@ -531,11 +765,19 @@ export function CommentSection({
                   onChange={(e) =>
                     setReplyContent((prev) => ({ ...prev, [comment.id]: e.target.value }))
                   }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (replyContent[comment.id]?.trim() && !submitting) {
+                        handleReply(comment.id);
+                      }
+                    }
+                  }}
                   placeholder="Write a reply..."
                   className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827] min-w-0"
                 />
                 <button
-                  onClick={() => handleReply(comment.id)}
+                  type="submit"
                   disabled={submitting || !replyContent[comment.id]?.trim()}
                   className="cursor-pointer rounded-lg bg-[#111827] p-1.5 sm:p-2 text-white hover:bg-[#1f2937] flex-shrink-0 disabled:opacity-50"
                 >
@@ -545,13 +787,60 @@ export function CommentSection({
                     <Send size={14} />
                   )}
                 </button>
-              </div>
+              </form>
             )}
 
             {/* Nested Replies */}
             {comment.replies && comment.replies.length > 0 && (
               <div className="mt-3 space-y-3">
-                {comment.replies.map((reply) => renderComment(reply, true))}
+                {comment.replies.map((reply) => {
+                  // Also show reply input for nested replies
+                  return (
+                    <div key={reply.id}>
+                      {renderComment(reply, true)}
+                      {/* Reply Input for nested replies */}
+                      {replyingTo === reply.id && (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleReply(reply.id);
+                          }}
+                          className="mt-3 ml-4 sm:ml-6 flex items-center gap-2"
+                        >
+                          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-slate-200 flex-shrink-0" />
+                          <input
+                            type="text"
+                            value={replyContent[reply.id] || ""}
+                            onChange={(e) =>
+                              setReplyContent((prev) => ({ ...prev, [reply.id]: e.target.value }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                if (replyContent[reply.id]?.trim() && !submitting) {
+                                  handleReply(reply.id);
+                                }
+                              }
+                            }}
+                            placeholder="Write a reply..."
+                            className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-1 focus:ring-[#111827] min-w-0"
+                          />
+                          <button
+                            type="submit"
+                            disabled={submitting || !replyContent[reply.id]?.trim()}
+                            className="cursor-pointer rounded-lg bg-[#111827] p-1.5 sm:p-2 text-white hover:bg-[#1f2937] flex-shrink-0 disabled:opacity-50"
+                          >
+                            {submitting ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Send size={14} />
+                            )}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -567,6 +856,13 @@ export function CommentSection({
       </div>
     );
   }
+
+  console.log("CommentSection: Rendering with comments:", { 
+    commentsCount: comments?.length || 0, 
+    loading, 
+    postId,
+    comments: comments 
+  });
 
   return (
     <div className="space-y-3 border-t border-slate-100 pt-3 sm:pt-4">

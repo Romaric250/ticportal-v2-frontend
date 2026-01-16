@@ -661,11 +661,11 @@ export function FeedPostCard({
             currentUserRole={currentUserRole}
             onCommentAdded={() => {
               setCommentsCount((prev) => prev + 1);
-              onUpdate?.();
+              // Don't call onUpdate - socket events will handle real-time updates
             }}
             onCommentDeleted={() => {
               setCommentsCount((prev) => Math.max(0, prev - 1));
-              onUpdate?.();
+              // Don't call onUpdate - socket events will handle real-time updates
             }}
           />
         </div>

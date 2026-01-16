@@ -230,6 +230,17 @@ export const feedService = {
   },
 
   /**
+   * Record a post view (new endpoint)
+   */
+  async recordView(postId: string, duration: number): Promise<{ viewsCount: number }> {
+    const { data } = await apiClient.post<{ viewsCount: number }>(
+      `/feed/posts/${postId}/record-view`,
+      { duration }
+    );
+    return data;
+  },
+
+  /**
    * Bookmark/unbookmark a post
    */
   async bookmarkPost(postId: string): Promise<{ isBookmarked: boolean }> {
@@ -337,6 +348,43 @@ export const feedService = {
   async getPinnedPosts(): Promise<FeedPost[]> {
     const { data } = await apiClient.get<FeedPost[]>(
       "/feed/pinned"
+    );
+    return data;
+  },
+
+  /**
+   * Get trending posts
+   */
+  async getTrendingPosts(limit: number = 3): Promise<FeedPost[]> {
+    const { data } = await apiClient.get<FeedPost[]>(
+      "/feed/trending",
+      { params: { limit } }
+    );
+    return data;
+  },
+
+  /**
+   * Get latest posts
+   */
+  async getLatestPosts(limit: number = 3): Promise<FeedPost[]> {
+    const { data } = await apiClient.get<FeedPost[]>(
+      "/feed/latest",
+      { params: { limit } }
+    );
+    return data;
+  },
+
+  /**
+   * Search posts
+   */
+  async searchPosts(params: {
+    q: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginationResponse<FeedPost>> {
+    const { data } = await apiClient.get<PaginationResponse<FeedPost>>(
+      "/feed/search",
+      { params }
     );
     return data;
   },
