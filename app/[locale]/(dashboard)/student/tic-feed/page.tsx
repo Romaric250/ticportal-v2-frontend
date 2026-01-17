@@ -176,6 +176,7 @@ export default function TICFeedPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<FeedPost[]>([]);
+  const seenPostIdsRef = useRef<string[]>([]); // Use ref to avoid stale state issues
   const socketRef = useRef<any>(null);
   const viewedPostsRef = useRef<Set<string>>(new Set());
   const viewStartTimesRef = useRef<Map<string, number>>(new Map());
@@ -302,30 +303,173 @@ export default function TICFeedPage() {
       if (reset) {
         setLoading(true);
         setPage(1);
+        seenPostIdsRef.current = []; // Reset seen posts when resetting
       } else {
         setLoadingMore(true);
       }
 
       const currentPage = reset ? 1 : page;
       const category = getCategoryForTab(activeTab);
+      const seenPostIds = seenPostIdsRef.current; // Get current value from ref
+      const excludeIdsString = seenPostIds.length > 0 ? seenPostIds.join(",") : undefined;
+
+      console.log("Feed: Loading posts", {
+        reset,
+        currentPage,
+        category: category || "all",
+        seenPostIdsCount: seenPostIds.length,
+        seenPostIds: seenPostIds.slice(0, 10), // Log first 10 for debugging
+        excludePostIds: excludeIdsString?.substring(0, 100), // Log first 100 chars
+      });
 
       const response = await feedService.getPosts({
         category: category || "all",
         page: currentPage,
         limit: 2, // Load 2 posts at a time for smooth infinite scroll
         includePinned: currentPage === 1,
+        excludePostIds: excludeIdsString, // Exclude seen posts
       });
 
+      console.log("Feed: Received response", {
+        postsCount: response.posts?.length || 0,
+        returnedPostIds: response.returnedPostIds?.length || 0,
+        returnedPostIdsArray: response.returnedPostIds,
+        pagination: response.pagination,
+        postsIds: response.posts?.map((p) => p.id) || [],
+      });
+
+      // Add returned IDs to tracking
+      if (response.returnedPostIds && response.returnedPostIds.length > 0) {
+        const currentSeenIds = seenPostIdsRef.current;
+        const newIds = response.returnedPostIds.filter((id) => !currentSeenIds.includes(id));
+        
+        console.log("Feed: Adding returnedPostIds to seenPostIds", {
+          before: currentSeenIds.length,
+          returnedIds: response.returnedPostIds,
+          newIds,
+          afterCount: currentSeenIds.length + newIds.length,
+        });
+        
+        if (newIds.length > 0) {
+          seenPostIdsRef.current = [...currentSeenIds, ...newIds];
+          console.log("Feed: Updated seenPostIdsRef", {
+            newLength: seenPostIdsRef.current.length,
+            addedIds: newIds,
+          });
+        }
+      } else {
+        console.warn("Feed: No returnedPostIds in response", {
+          responseKeys: Object.keys(response),
+          hasPosts: !!response.posts,
+          responseStructure: response,
+        });
+        
+        // Fallback: extract IDs from posts if returnedPostIds is missing
+        if (response.posts && response.posts.length > 0) {
+          const postIds = response.posts.map((p) => p.id);
+          const currentSeenIds = seenPostIdsRef.current;
+          const newIds = postIds.filter((id) => !currentSeenIds.includes(id));
+          if (newIds.length > 0) {
+            console.warn("Feed: Using post IDs as fallback for seenPostIds", {
+              newIds,
+              beforeCount: currentSeenIds.length,
+            });
+            seenPostIdsRef.current = [...currentSeenIds, ...newIds];
+          }
+        }
+      }
+
       if (reset) {
+        // Extract post IDs from pinned posts as well
+        const pinnedPostIds = response.pinnedPosts?.map((p) => p.id) || [];
+        const allPostIds = [...response.posts.map((p) => p.id), ...pinnedPostIds];
+        
+        console.log("Feed: Resetting posts", {
+          postsCount: response.posts.length,
+          pinnedPostsCount: response.pinnedPosts?.length || 0,
+          allPostIds,
+        });
+
         setPosts(response.posts);
         setPinnedPosts(response.pinnedPosts || []);
+        
+        // Also track pinned post IDs as seen
+        if (pinnedPostIds.length > 0) {
+          const currentSeenIds = seenPostIdsRef.current;
+          const newIds = pinnedPostIds.filter((id) => !currentSeenIds.includes(id));
+          if (newIds.length > 0) {
+            seenPostIdsRef.current = [...currentSeenIds, ...newIds];
+            console.log("Feed: Added pinned post IDs to seenPostIds", {
+              newIds,
+              newCount: seenPostIdsRef.current.length,
+            });
+          }
+        }
+        
+        // Track regular post IDs as well
+        if (response.posts && response.posts.length > 0) {
+          const postIds = response.posts.map((p) => p.id);
+          const currentSeenIds = seenPostIdsRef.current;
+          const newIds = postIds.filter((id) => !currentSeenIds.includes(id));
+          if (newIds.length > 0) {
+            seenPostIdsRef.current = [...currentSeenIds, ...newIds];
+            console.log("Feed: Added regular post IDs to seenPostIds on reset", {
+              newIds,
+              newCount: seenPostIdsRef.current.length,
+            });
+          }
+        }
       } else {
-        setPosts((prev) => [...prev, ...response.posts]);
+        // Filter out any duplicates before adding (safety check)
+        const existingPostIds = posts.map((p) => p.id);
+        const newPosts = response.posts.filter((post) => !existingPostIds.includes(post.id));
+        
+        const duplicateCount = response.posts.length - newPosts.length;
+        if (duplicateCount > 0) {
+          console.warn("Feed: Filtered out duplicate posts", {
+            totalReceived: response.posts.length,
+            duplicates: duplicateCount,
+            newPosts: newPosts.length,
+            duplicateIds: response.posts
+              .filter((p) => existingPostIds.includes(p.id))
+              .map((p) => p.id),
+          });
+        }
+
+        console.log("Feed: Adding new posts", {
+          existingCount: posts.length,
+          receivedCount: response.posts.length,
+          newCount: newPosts.length,
+          newPostIds: newPosts.map((p) => p.id),
+        });
+
+        if (newPosts.length > 0) {
+          setPosts((prev) => {
+            const combined = [...prev, ...newPosts];
+            // Additional safety: remove duplicates by ID (keep first occurrence)
+            const uniquePosts = Array.from(
+              new Map(combined.map((post) => [post.id, post])).values()
+            );
+            if (uniquePosts.length !== combined.length) {
+              console.warn("Feed: Removed additional duplicates from combined posts", {
+                before: combined.length,
+                after: uniquePosts.length,
+              });
+            }
+            return uniquePosts;
+          });
+        }
       }
 
       setHasMore(response.pagination.page < response.pagination.totalPages);
       setPage(currentPage + 1);
     } catch (error: any) {
+      console.error("Feed: Error loading posts", {
+        error,
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+      });
       toast.error(error?.response?.data?.message || "Failed to load posts");
     } finally {
       setLoading(false);

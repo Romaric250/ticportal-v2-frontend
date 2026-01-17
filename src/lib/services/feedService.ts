@@ -113,6 +113,7 @@ export interface PaginationResponse<T> {
 export interface FeedPostsResponse {
   posts: FeedPost[];
   pinnedPosts?: FeedPost[];
+  returnedPostIds?: string[];
   pagination: {
     page: number;
     limit: number;
@@ -135,6 +136,7 @@ export const feedService = {
     authorId?: string;
     tags?: string[];
     search?: string;
+    excludePostIds?: string;
   }): Promise<FeedPostsResponse> {
     // The apiClient interceptor unwraps { success: true, data: {...} } to just {...}
     const { data } = await apiClient.get<FeedPostsResponse>(
