@@ -530,6 +530,45 @@ export const adminService = {
   async removeTeamMember(teamId: string, userId: string): Promise<void> {
     await apiClient.delete(`/admin/teams/${teamId}/members/${userId}`);
   },
+
+  /**
+   * Get all badges (admin view with database details)
+   * API returns: { success: true, data: { badges: [...] } }
+   * After apiClient interceptor: { badges: [...] }
+   */
+  async getAllBadges(): Promise<{ badges: AdminBadge[]; total: number }> {
+    const { data } = await apiClient.get<{ badges: AdminBadge[] }>("/badges/admin/all");
+    // Calculate total from badges array length
+    return {
+      badges: data.badges || [],
+      total: data.badges?.length || 0,
+    };
+  },
+
+  /**
+   * Get specific badge details with award count
+   * API returns: { success: true, data: { badge: {...}, awardCount: number } }
+   * After apiClient interceptor: { badge: {...}, awardCount: number }
+   */
+  async getBadgeDetails(badgeId: string): Promise<{ badge: AdminBadge; awardCount: number }> {
+    const { data } = await apiClient.get<{ badge: AdminBadge; awardCount: number }>(
+      `/badges/admin/badge/${badgeId}`
+    );
+    return data;
+  },
+
+  /**
+   * Update badge information
+   * API returns: { success: true, message: "...", data: {...} }
+   * After apiClient interceptor: { message: "...", data: {...} }
+   */
+  async updateBadge(badgeId: string, payload: UpdateBadgePayload): Promise<AdminBadge> {
+    const { data } = await apiClient.put<{ message: string; data: AdminBadge }>(
+      `/badges/admin/${badgeId}`,
+      payload
+    );
+    return data.data;
+  },
 };
 
 export type TeamMember = {
@@ -647,3 +686,28 @@ export type DeliverableFilters = {
   search?: string;
 };
 
+export type AdminBadge = {
+  id: string;
+  badgeId: string;
+  name: string;
+  description: string;
+  icon: string;
+  imageUrl: string | null;
+  category: "POINTS" | "SOCIAL" | "ACHIEVEMENT" | "MILESTONE" | "SPECIAL";
+  tier: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
+  points: number;
+  rarity: number; // 1-100
+  criteria: string; // JSON string
+};
+
+export type UpdateBadgePayload = {
+  name?: string;
+  description?: string;
+  icon?: string;
+  imageUrl?: string | null;
+  category?: "POINTS" | "SOCIAL" | "ACHIEVEMENT" | "MILESTONE" | "SPECIAL";
+  tier?: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
+  points?: number;
+  rarity?: number;
+  criteria?: string;
+};

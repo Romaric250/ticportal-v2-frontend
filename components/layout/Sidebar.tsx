@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare, UserCog, Gavel, GraduationCap } from "lucide-react";
+import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare, UserCog, Gavel, GraduationCap, Award } from "lucide-react";
 import { useAuthStore } from "../../src/state/auth-store";
 import { authService } from "../../src/lib/services/authService";
 import { toast } from "sonner";
@@ -72,6 +72,7 @@ export function Sidebar({ role }: Props) {
           { href: `${basePath}/learning-path`, label: "Learning Path", icon: <BookOpen size={16} /> },
           { href: `${basePath}/mentorship`, label: "Mentorship", icon: <GraduationCap size={16} /> },
           { href: `${basePath}/judging`, label: "Judging", icon: <Gavel size={16} /> },
+          { href: `${basePath}/badges`, label: "Badges", icon: <Award size={16} /> },
         ]
       : [
           { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
