@@ -1,9 +1,59 @@
 import React from "react";
+import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { BadgePoints } from "../../../components/gamification/BadgePoints";
 import { QuickAccessTile } from "./StudentQuickAccessTile";
 import { UpcomingDeadlineItem } from "./StudentUpcomingDeadlineItem";
+import type { UpcomingDeadline, RecentBadge, BadgeStats } from "@/src/lib/services/dashboardService";
 
-export function StudentBottomRow() {
+type Props = {
+  deadlines: UpcomingDeadline[];
+  badges: RecentBadge[];
+  badgeStats: BadgeStats;
+};
+
+const formatDate = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    const month = date.toLocaleDateString("en-US", { month: "short" });
+    const day = date.getDate();
+    return `${month} ${day}`;
+  } catch {
+    return dateString;
+  }
+};
+
+const getBadgeColorClass = (color: string) => {
+  const colorMap: Record<string, string> = {
+    amber: "bg-amber-50 text-amber-700",
+    sky: "bg-sky-50 text-sky-700",
+    blue: "bg-blue-50 text-blue-700",
+    purple: "bg-purple-50 text-purple-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    pink: "bg-pink-50 text-pink-700",
+    slate: "bg-slate-50 text-slate-400",
+  };
+  return colorMap[color] || "bg-slate-50 text-slate-400";
+};
+
+// Helper to get a fallback icon if the provided icon is invalid
+const getBadgeIcon = (icon: string | null | undefined): string => {
+  if (!icon || icon.trim().length === 0) {
+    return "🏆"; // Default fallback
+  }
+  // Return the icon as-is - browser should handle UTF-8 encoding
+  return icon;
+};
+
+export function StudentBottomRow({ deadlines, badges, badgeStats }: Props) {
+  const router = useRouter();
+  const locale = useLocale();
+
+  const handleViewAllBadges = () => {
+    // Navigate to badges/portfolio page if available
+    router.push(`/${locale}/student/portfolio`);
+  };
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {/* Upcoming deadlines */}
@@ -16,26 +66,21 @@ export function StudentBottomRow() {
             📅
           </div>
         </div>
-        <ul className="space-y-3">
-          <UpcomingDeadlineItem
-            variant="danger"
-            title="Hackathon registration"
-            subtitle="Due tomorrow"
-            date="Oct 24"
-          />
-          <UpcomingDeadlineItem
-            variant="info"
-            title="Idea submission"
-            subtitle="Due next week"
-            date="Oct 30"
-          />
-          <UpcomingDeadlineItem
-            variant="purple"
-            title="Mentor check‑in"
-            subtitle="Scheduled"
-            date="Nov 02"
-          />
-        </ul>
+        {deadlines.length > 0 ? (
+          <ul className="space-y-3">
+            {deadlines.slice(0, 3).map((deadline) => (
+              <UpcomingDeadlineItem
+                key={deadline.id}
+                variant={deadline.variant}
+                title={deadline.title}
+                subtitle={deadline.subtitle}
+                date={formatDate(deadline.date)}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-slate-500 py-4">No upcoming deadlines</p>
+        )}
       </div>
 
       {/* Recent badges */}
@@ -44,27 +89,35 @@ export function StudentBottomRow() {
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
             Recent badges
           </h2>
-          <button className="cursor-pointer text-xs font-medium text-[#111827] hover:underline">
+          <button
+            onClick={handleViewAllBadges}
+            className="cursor-pointer text-xs font-medium text-[#111827] hover:underline"
+          >
             View all
           </button>
         </div>
 
-        <div className="flex gap-2">
-          <div className="flex h-14 w-16 flex-col items-center justify-center rounded-xl bg-amber-50 text-xs font-semibold text-amber-700">
-            <span className="text-lg">★</span>
-            <span>Early bird</span>
-          </div>
-          <div className="flex h-14 w-16 flex-col items-center justify-center rounded-xl bg-sky-50 text-xs font-semibold text-sky-700">
-            <span className="text-lg">👥</span>
-            <span>Team player</span>
-          </div>
-          <div className="flex h-14 w-16 flex-col items-center justify-center rounded-xl bg-slate-50 text-xs font-semibold text-slate-400">
-            <span className="text-lg">🔒</span>
-            <span>Code master</span>
-          </div>
-        </div>
-
-        <BadgePoints badgesCount={3} points={1240} />
+        {badges.length > 0 ? (
+          <>
+            <div className="flex gap-2">
+              {badges.slice(0, 3).map((badge) => (
+                <div
+                  key={badge.id}
+                  className={`flex h-14 w-16 flex-col items-center justify-center rounded-xl text-xs font-semibold ${
+                    badge.locked ? "bg-slate-50 text-slate-400" : getBadgeColorClass(badge.color)
+                  }`}
+                  title={badge.name}
+                >
+                  <span className="text-lg">{getBadgeIcon(badge.icon)}</span>
+                  <span className="text-center text-[10px] leading-tight">{badge.name}</span>
+                </div>
+              ))}
+            </div>
+            <BadgePoints badgesCount={badgeStats.totalBadges} points={badgeStats.totalPoints} />
+          </>
+        ) : (
+          <p className="text-xs text-slate-500 py-4">No badges earned yet</p>
+        )}
       </div>
 
       {/* Quick access */}

@@ -5,6 +5,7 @@ import { X, Image as ImageIcon, FileText, XCircle, Loader2 } from "lucide-react"
 import { toast } from "sonner";
 import { feedService, type CreatePostPayload, type FeedCategory, type FeedAttachment } from "@/src/lib/services/feedService";
 import { apiClient } from "@/src/lib/api-client";
+import { extractPdfPagesAsImages } from "@/src/utils/pdfToImages";
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -33,63 +34,141 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    // Separate images and PDFs
     const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
+    const pdfFiles = Array.from(files).filter((file) => file.type === "application/pdf");
     
-    if (imageFiles.length === 0) {
-      toast.error("Please select image files");
+    if (imageFiles.length === 0 && pdfFiles.length === 0) {
+      toast.error("Please select image files or PDFs");
       return;
     }
 
-    // Check file sizes
-    const oversizedFiles = imageFiles.filter((file) => file.size > 10 * 1024 * 1024);
-    if (oversizedFiles.length > 0) {
+    // Check file sizes for images
+    const oversizedImages = imageFiles.filter((file) => file.size > 10 * 1024 * 1024);
+    if (oversizedImages.length > 0) {
       toast.error("Some images exceed 10MB limit");
       return;
     }
 
-    // Limit to 10 images
-    const filesToUpload = imageFiles.slice(0, 10);
-    if (imageFiles.length > 10) {
-      toast.info("Only the first 10 images will be uploaded");
+    // Check file sizes for PDFs
+    const oversizedPdfs = pdfFiles.filter((file) => file.size > 50 * 1024 * 1024);
+    if (oversizedPdfs.length > 0) {
+      toast.error("Some PDFs exceed 50MB limit");
+      return;
     }
 
     try {
       setUploading(true);
-      const uploadPromises = filesToUpload.map(async (file) => {
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (typeof reader.result === "string") {
-              resolve(reader.result);
-            } else {
-              reject(new Error("Failed to convert file to base64"));
+      const allUploadedImages: FeedAttachment[] = [];
+
+      // Process regular images
+      if (imageFiles.length > 0) {
+        // Limit to 10 images total (including PDF pages)
+        const remainingSlots = 10 - allUploadedImages.length;
+        const filesToUpload = imageFiles.slice(0, remainingSlots);
+        
+        if (imageFiles.length > remainingSlots) {
+          toast.info(`Only the first ${remainingSlots} images will be uploaded`);
+        }
+
+        const imageUploadPromises = filesToUpload.map(async (file) => {
+          const base64Data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (typeof reader.result === "string") {
+                resolve(reader.result);
+              } else {
+                reject(new Error("Failed to convert file to base64"));
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
+          const response = await apiClient.post<{ url: string }>(
+            "/f/upload",
+            {
+              file: base64Data,
+              fileName: file.name,
             }
+          );
+
+          return {
+            fileName: file.name,
+            fileUrl: response.data.url,
+            fileSize: file.size,
+            mimeType: file.type,
+            fileType: "image" as const,
           };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
         });
 
-        const response = await apiClient.post<{ url: string }>(
-          "/f/upload",
-          {
-            file: base64Data,
-            fileName: file.name,
+        const uploadedImages = await Promise.all(imageUploadPromises);
+        allUploadedImages.push(...uploadedImages);
+      }
+
+      // Process PDFs - extract pages as images
+      if (pdfFiles.length > 0) {
+        const remainingSlots = 10 - allUploadedImages.length;
+        if (remainingSlots <= 0) {
+          toast.info("Maximum of 10 images reached. PDFs will not be processed.");
+        } else {
+          for (const pdfFile of pdfFiles) {
+            if (allUploadedImages.length >= 10) break;
+
+            try {
+              toast.info(`Processing PDF: ${pdfFile.name}...`);
+              const pdfPageImages = await extractPdfPagesAsImages(pdfFile);
+              
+              // Limit pages based on remaining slots
+              const pagesToProcess = pdfPageImages.slice(0, remainingSlots - allUploadedImages.length);
+              
+              if (pdfPageImages.length > pagesToProcess.length) {
+                toast.info(`Only the first ${pagesToProcess.length} pages of ${pdfFile.name} will be uploaded`);
+              }
+
+              // Upload each PDF page as an image
+              const pdfPageUploadPromises = pagesToProcess.map(async (pageImageDataUrl, pageIndex) => {
+                const response = await apiClient.post<{ url: string }>(
+                  "/f/upload",
+                  {
+                    file: pageImageDataUrl,
+                    fileName: `${pdfFile.name}_page_${pageIndex + 1}.png`,
+                  }
+                );
+
+                return {
+                  fileName: `${pdfFile.name} (Page ${pageIndex + 1})`,
+                  fileUrl: response.data.url,
+                  fileSize: 0, // Size not available for extracted pages
+                  mimeType: "image/png",
+                  fileType: "image" as const,
+                };
+              });
+
+              const uploadedPdfPages = await Promise.all(pdfPageUploadPromises);
+              allUploadedImages.push(...uploadedPdfPages);
+            } catch (error: any) {
+              console.error(`Error processing PDF ${pdfFile.name}:`, error);
+              toast.error(`Failed to process PDF: ${pdfFile.name}`);
+            }
           }
-        );
+        }
+      }
 
-        return {
-          fileName: file.name,
-          fileUrl: response.data.url,
-          fileSize: file.size,
-          mimeType: file.type,
-          fileType: "image" as const,
-        };
-      });
-
-      const uploadedImages = await Promise.all(uploadPromises);
-      setImageAttachments((prev) => [...prev, ...uploadedImages]);
-      toast.success(`${uploadedImages.length} image(s) uploaded successfully`);
+      if (allUploadedImages.length > 0) {
+        setImageAttachments((prev) => [...prev, ...allUploadedImages]);
+        const totalCount = allUploadedImages.length;
+        const imageCount = imageFiles.length;
+        const pdfCount = pdfFiles.length;
+        
+        if (pdfCount > 0) {
+          toast.success(`${totalCount} image(s) uploaded successfully (${imageCount} image(s) + ${pdfCount} PDF(s) processed)`);
+        } else {
+          toast.success(`${totalCount} image(s) uploaded successfully`);
+        }
+      }
     } catch (error: any) {
+      console.error("Upload error:", error);
       toast.error(error?.response?.data?.message || "Failed to upload images");
     } finally {
       setUploading(false);
@@ -222,10 +301,9 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
       <div
         className="w-full max-w-2xl rounded-lg sm:rounded-xl border border-slate-200 bg-white shadow-xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-4 sm:px-6 py-3 sm:py-4">
@@ -354,11 +432,15 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {/* Show all image attachments */}
                   {imageAttachments.map((img, index) => (
-                    <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
+                    <div key={`${img.fileUrl}-${index}`} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
                       <img
                         src={img.fileUrl}
-                        alt={`Image ${index + 1}`}
+                        alt={img.fileName || `Image ${index + 1}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Failed to load image:', img.fileUrl);
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23f3f4f6"/%3E%3Ctext x="50" y="50" text-anchor="middle" fill="%239ca3af" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+                        }}
                       />
                       <button
                         type="button"
@@ -367,9 +449,15 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
                         }}
                         disabled={submitting}
                         className="absolute top-1 right-1 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove image"
                       >
                         <X size={14} />
                       </button>
+                      {img.fileName && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 py-0.5 truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                          {img.fileName}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -414,7 +502,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 onChange={handleImageUpload}
                 disabled={uploading || submitting}
                 className="hidden"
