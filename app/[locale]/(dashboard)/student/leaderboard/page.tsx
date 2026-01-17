@@ -185,6 +185,12 @@ export default function LeaderboardPage() {
     return schoolsPagination;
   };
 
+  const getCurrentPage = () => {
+    if (activeTab === "students") return studentsPage;
+    if (activeTab === "teams") return teamsPage;
+    return schoolsPage;
+  };
+
   const getCurrentData = () => {
     if (activeTab === "students") return students;
     if (activeTab === "teams") return teams;
@@ -192,21 +198,22 @@ export default function LeaderboardPage() {
   };
 
   const pagination = getCurrentPagination();
-  const hasMore = pagination.page < pagination.totalPages;
+  const currentPage = getCurrentPage();
+  const hasMore = currentPage < pagination.totalPages;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       {/* Your Rank Section */}
       {userRank && (
         <div className="flex items-center justify-end">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2 rounded-lg border border-slate-200 bg-white px-3 sm:px-4 py-2 sm:py-3 shadow-sm w-full sm:w-auto">
-            <BarChart3 size={16} className="sm:w-[18px] sm:h-[18px] text-slate-500 flex-shrink-0" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-2 rounded-lg border border-black bg-white px-2 sm:px-3 py-1.5 sm:py-2 shadow-sm w-full sm:w-auto">
+            <BarChart3 size={14} className="sm:w-4 sm:h-4 text-slate-500 flex-shrink-0" />
             <div className="flex-1 sm:flex-none">
-              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                 YOUR RANK
               </p>
-              <div className="mt-1 flex items-center gap-2">
-                <span className="text-base sm:text-lg font-bold text-slate-900">#{userRank.rank}</span>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <span className="text-sm sm:text-base font-bold text-slate-900">#{userRank.rank || 0}</span>
                 {userRank.rankChange !== 0 && (
                   <div
                     className={`flex items-center gap-0.5 ${
@@ -214,11 +221,11 @@ export default function LeaderboardPage() {
                     }`}
                   >
                     {userRank.rankChange > 0 ? (
-                      <TrendingUp size={10} className="sm:w-3 sm:h-3" />
+                      <TrendingUp size={9} className="sm:w-2.5 sm:h-2.5" />
                     ) : (
-                      <TrendingDown size={10} className="sm:w-3 sm:h-3" />
+                      <TrendingDown size={9} className="sm:w-2.5 sm:h-2.5" />
                     )}
-                    <span className="text-[10px] sm:text-xs font-semibold">
+                    <span className="text-[9px] sm:text-[10px] font-semibold">
                       {userRank.rankChange > 0 ? "+" : ""}
                       {userRank.rankChange}
                     </span>
@@ -226,57 +233,57 @@ export default function LeaderboardPage() {
                 )}
               </div>
             </div>
-            <div className="sm:ml-4 sm:border-l sm:border-slate-200 sm:pl-4 pt-2 sm:pt-0 border-t sm:border-t-0 w-full sm:w-auto">
-              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">TP</p>
-              <p className="mt-1 text-base sm:text-lg font-bold text-slate-900">{userRank.totalTP.toLocaleString()}</p>
+            <div className="sm:ml-3 sm:border-l sm:border-black sm:pl-3 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-black w-full sm:w-auto">
+              <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide text-slate-500">TP</p>
+              <p className="mt-0.5 text-sm sm:text-base font-bold text-slate-900">{(userRank.totalTP || 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <button
           onClick={() => setActiveTab("students")}
-          className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-colors ${
+          className={`flex items-center gap-1 sm:gap-1.5 rounded-lg border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold transition-colors ${
             activeTab === "students"
-              ? "bg-[#111827] text-white"
-              : "bg-white text-slate-700 hover:bg-slate-50"
+              ? "bg-[#111827] text-white border-[#111827]"
+              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
           }`}
         >
-          <User size={14} className="sm:w-4 sm:h-4" />
+          <User size={12} className="sm:w-3.5 sm:h-3.5" />
           <span>Students</span>
         </button>
         <button
           onClick={() => setActiveTab("teams")}
-          className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-colors ${
+          className={`flex items-center gap-1 sm:gap-1.5 rounded-lg border-2 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold transition-colors ${
             activeTab === "teams"
-              ? "bg-[#111827] text-white"
-              : "bg-white text-slate-700 hover:bg-slate-50"
+              ? "bg-[#111827] text-white border-black"
+              : "bg-white text-slate-700 border-black hover:bg-slate-50"
           }`}
         >
-          <Users size={14} className="sm:w-4 sm:h-4" />
+          <Users size={12} className="sm:w-3.5 sm:h-3.5" />
           <span>Teams</span>
         </button>
         <button
           onClick={() => setActiveTab("schools")}
-          className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-colors ${
+          className={`flex items-center gap-1 sm:gap-1.5 rounded-lg border-2 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold transition-colors ${
             activeTab === "schools"
-              ? "bg-[#111827] text-white"
-              : "bg-white text-slate-700 hover:bg-slate-50"
+              ? "bg-[#111827] text-white border-black"
+              : "bg-white text-slate-700 border-black hover:bg-slate-50"
           }`}
         >
-          <School size={14} className="sm:w-4 sm:h-4" />
+          <School size={12} className="sm:w-3.5 sm:h-3.5" />
           <span>Schools</span>
         </button>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2">
         <div className="relative flex-1">
           <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 sm:w-[18px] sm:h-[18px]"
+            size={14}
+            className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-slate-400 sm:w-4 sm:h-4"
           />
           <input
             type="text"
@@ -288,14 +295,14 @@ export default function LeaderboardPage() {
                 handleSearch();
               }
             }}
-            className="w-full rounded-lg border border-slate-300 bg-white pl-9 sm:pl-10 pr-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#111827] focus:outline-none focus:ring-1 focus:ring-[#111827]"
+            className="w-full rounded-lg border border-slate-300 bg-white pl-7 sm:pl-8 pr-3 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#111827] focus:border-[#111827]"
           />
         </div>
         <button
           onClick={handleSearch}
-          className="cursor-pointer flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+          className="cursor-pointer flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
         >
-          <Filter size={14} className="sm:w-4 sm:h-4" />
+          <Filter size={12} className="sm:w-3.5 sm:h-3.5" />
           <span>Search</span>
         </button>
       </div>
@@ -308,99 +315,177 @@ export default function LeaderboardPage() {
         <>
           {/* Top 3 Students Podium */}
           {activeTab === "students" && topStudents.length >= 3 && (
-            <div className="flex flex-col md:flex-row items-center md:items-end justify-center gap-4 md:gap-6">
+            <div className="flex flex-col md:flex-row items-center md:items-end justify-center gap-3 md:gap-4">
               {/* #2 */}
-              <div className="flex w-full sm:w-[280px] flex-col items-center">
-                <div className="relative mb-4">
-                  <div className="flex h-20 w-20 sm:h-28 sm:w-28 items-center justify-center rounded-full border-2 border-slate-300 bg-gradient-to-br from-slate-200 to-slate-300">
+              <div className="flex w-full sm:w-[240px] flex-col items-center">
+                <div className="relative mb-3">
+                  <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border-2 border-slate-300 bg-gradient-to-br from-slate-200 to-slate-300">
                     {topStudents[1]?.avatarUrl ? (
                       <img
                         src={topStudents[1].avatarUrl}
-                        alt={topStudents[1].name}
+                        alt={topStudents[1].name || "User"}
                         className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent && !parent.querySelector("span")) {
+                            const name = topStudents[1]?.name || "User";
+                            const initialsValue = topStudents[1]?.initials;
+                            const invalidInitials = ["undefined", "null", "NUNDEFINED", "UNDEFINED", "NULL"];
+                            const initials = (!initialsValue || invalidInitials.includes(initialsValue) || initialsValue.trim() === "") 
+                              ? (name ? name.split(" ").map((n) => n?.[0] || "").filter(Boolean).join("").toUpperCase().slice(0, 2) || "U" : "U")
+                              : initialsValue;
+                            const span = document.createElement("span");
+                            span.className = "text-lg sm:text-xl font-semibold text-slate-600";
+                            span.textContent = initials;
+                            parent.appendChild(span);
+                          }
+                        }}
                       />
                     ) : (
-                      <span className="text-2xl sm:text-3xl font-semibold text-slate-600">
-                        {topStudents[1]?.initials || topStudents[1]?.name.split(" ").map((n) => n[0]).join("")}
+                      <span className="text-lg sm:text-xl font-semibold text-slate-600">
+                        {(() => {
+                          const name = topStudents[1]?.name || "";
+                          const initials = topStudents[1]?.initials;
+                          const invalidInitials = ["undefined", "null", "NUNDEFINED", "UNDEFINED", "NULL"];
+                          // Check if initials is undefined, null, empty, or invalid strings from backend
+                          if (!initials || invalidInitials.includes(initials) || initials.trim() === "") {
+                            return name ? name.split(" ").map((n) => n?.[0] || "").filter(Boolean).join("").toUpperCase().slice(0, 2) || "U" : "U";
+                          }
+                          return initials;
+                        })()}
                       </span>
                     )}
                   </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-slate-200 px-2 sm:px-3 py-0.5">
-                    <span className="text-xs sm:text-sm font-bold text-slate-700">#2</span>
+                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-slate-200 px-2 py-0.5">
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-700">#2</span>
                   </div>
                 </div>
-                <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-lg">
-                  <h3 className="text-center text-lg sm:text-xl font-bold text-slate-900">{topStudents[1]?.name}</h3>
-                  <p className="mt-1 text-center text-xs sm:text-sm text-slate-500">{topStudents[1]?.school}</p>
-                  <div className="mt-3 sm:mt-4 flex items-center justify-center gap-2">
-                    <Star size={16} className="sm:w-[18px] sm:h-[18px] fill-amber-400 text-amber-400" />
-                    <span className="text-base sm:text-lg font-bold text-slate-900">
-                      {topStudents[1]?.totalTP.toLocaleString()} TP
+                <div className="w-full rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-lg">
+                  <h3 className="text-center text-base sm:text-lg font-bold text-slate-900">{topStudents[1]?.name || "Unknown"}</h3>
+                  <p className="mt-0.5 text-center text-[10px] sm:text-xs text-slate-500">{topStudents[1]?.school || ""}</p>
+                  <div className="mt-2 sm:mt-3 flex items-center justify-center gap-1.5">
+                    <Star size={14} className="sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
+                    <span className="text-sm sm:text-base font-bold text-slate-900">
+                      {topStudents[1]?.totalTP?.toLocaleString() || 0} TP
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* #1 - Highlighted */}
-              <div className="flex w-full sm:w-[320px] flex-col items-center order-first md:order-none">
-                <div className="relative mb-4">
-                  <div className="flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full border-4 border-amber-400 bg-gradient-to-br from-slate-200 to-slate-300 shadow-lg">
+              <div className="flex w-full sm:w-[260px] flex-col items-center order-first md:order-none">
+                <div className="relative mb-3">
+                  <div className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border-4 border-amber-400 bg-gradient-to-br from-slate-200 to-slate-300 shadow-lg">
                     {topStudents[0]?.avatarUrl ? (
                       <img
                         src={topStudents[0].avatarUrl}
-                        alt={topStudents[0].name}
+                        alt={topStudents[0].name || "User"}
                         className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent && !parent.querySelector("span")) {
+                            const name = topStudents[0]?.name || "User";
+                            const initialsValue = topStudents[0]?.initials;
+                            const invalidInitials = ["undefined", "null", "NUNDEFINED", "UNDEFINED", "NULL"];
+                            const initials = (!initialsValue || invalidInitials.includes(initialsValue) || initialsValue.trim() === "") 
+                              ? (name ? name.split(" ").map((n) => n?.[0] || "").filter(Boolean).join("").toUpperCase().slice(0, 2) || "U" : "U")
+                              : initialsValue;
+                            const span = document.createElement("span");
+                            span.className = "text-xl sm:text-2xl font-semibold text-slate-600";
+                            span.textContent = initials;
+                            parent.appendChild(span);
+                          }
+                        }}
                       />
                     ) : (
-                      <span className="text-3xl sm:text-5xl font-semibold text-slate-600">
-                        {topStudents[0]?.initials || topStudents[0]?.name.split(" ").map((n) => n[0]).join("")}
+                      <span className="text-xl sm:text-2xl font-semibold text-slate-600">
+                        {(() => {
+                          const name = topStudents[0]?.name || "";
+                          const initials = topStudents[0]?.initials;
+                          const invalidInitials = ["undefined", "null", "NUNDEFINED", "UNDEFINED", "NULL"];
+                          // Check if initials is undefined, null, empty, or invalid strings from backend
+                          if (!initials || invalidInitials.includes(initials) || initials.trim() === "") {
+                            return name ? name.split(" ").map((n) => n?.[0] || "").filter(Boolean).join("").toUpperCase().slice(0, 2) || "U" : "U";
+                          }
+                          return initials;
+                        })()}
                       </span>
                     )}
                   </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-3 sm:px-4 py-1">
-                    <span className="text-sm sm:text-base font-bold text-white">#1</span>
+                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-2.5 sm:px-3 py-0.5">
+                    <span className="text-xs sm:text-sm font-bold text-white">#1</span>
                   </div>
                 </div>
-                <div className="relative w-full overflow-hidden rounded-2xl bg-[#111827] p-4 sm:p-6 shadow-xl">
-                  <Trophy size={60} className="absolute -right-4 -top-4 opacity-10 text-amber-400 sm:w-20 sm:h-20" />
-                  <h3 className="relative text-center text-xl sm:text-2xl font-bold text-white">{topStudents[0]?.name}</h3>
-                  <p className="relative mt-1 text-center text-xs sm:text-sm text-slate-300">{topStudents[0]?.school}</p>
-                  <div className="relative mt-3 sm:mt-4 flex items-center justify-center gap-2">
-                    <Star size={18} className="sm:w-5 sm:h-5 fill-amber-400 text-amber-400" />
-                    <span className="text-lg sm:text-xl font-bold text-white">
-                      {topStudents[0]?.totalTP.toLocaleString()} TP
+                <div className="relative w-full overflow-hidden rounded-xl bg-[#111827] p-3 sm:p-4 shadow-xl">
+                  <Trophy size={40} className="absolute -right-2 -top-2 opacity-10 text-amber-400 sm:w-16 sm:h-16" />
+                  <h3 className="relative text-center text-lg sm:text-xl font-bold text-white">{topStudents[0]?.name || "Unknown"}</h3>
+                  <p className="relative mt-0.5 text-center text-[10px] sm:text-xs text-slate-300">{topStudents[0]?.school || ""}</p>
+                  <div className="relative mt-2 sm:mt-3 flex items-center justify-center gap-1.5">
+                    <Star size={16} className="sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
+                    <span className="text-base sm:text-lg font-bold text-white">
+                      {topStudents[0]?.totalTP?.toLocaleString() || 0} TP
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* #3 */}
-              <div className="flex w-full sm:w-[280px] flex-col items-center">
-                <div className="relative mb-4">
-                  <div className="flex h-20 w-20 sm:h-28 sm:w-28 items-center justify-center rounded-full border-2 border-orange-300 bg-gradient-to-br from-slate-200 to-slate-300">
+              <div className="flex w-full sm:w-[240px] flex-col items-center">
+                <div className="relative mb-3">
+                  <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border-2 border-slate-300 bg-gradient-to-br from-slate-200 to-slate-300">
                     {topStudents[2]?.avatarUrl ? (
                       <img
                         src={topStudents[2].avatarUrl}
-                        alt={topStudents[2].name}
+                        alt={topStudents[2].name || "User"}
                         className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent && !parent.querySelector("span")) {
+                            const name = topStudents[2]?.name || "User";
+                            const initialsValue = topStudents[2]?.initials;
+                            const invalidInitials = ["undefined", "null", "NUNDEFINED", "UNDEFINED", "NULL"];
+                            const initials = (!initialsValue || invalidInitials.includes(initialsValue) || initialsValue.trim() === "") 
+                              ? (name ? name.split(" ").map((n) => n?.[0] || "").filter(Boolean).join("").toUpperCase().slice(0, 2) || "U" : "U")
+                              : initialsValue;
+                            const span = document.createElement("span");
+                            span.className = "text-lg sm:text-xl font-semibold text-slate-600";
+                            span.textContent = initials;
+                            parent.appendChild(span);
+                          }
+                        }}
                       />
                     ) : (
-                      <span className="text-2xl sm:text-3xl font-semibold text-slate-600">
-                        {topStudents[2]?.initials || topStudents[2]?.name.split(" ").map((n) => n[0]).join("")}
+                      <span className="text-lg sm:text-xl font-semibold text-slate-600">
+                        {(() => {
+                          const name = topStudents[2]?.name || "";
+                          const initials = topStudents[2]?.initials;
+                          const invalidInitials = ["undefined", "null", "NUNDEFINED", "UNDEFINED", "NULL"];
+                          // Check if initials is undefined, null, empty, or invalid strings from backend
+                          if (!initials || invalidInitials.includes(initials) || initials.trim() === "") {
+                            return name ? name.split(" ").map((n) => n?.[0] || "").filter(Boolean).join("").toUpperCase().slice(0, 2) || "U" : "U";
+                          }
+                          return initials;
+                        })()}
                       </span>
                     )}
                   </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-orange-200 px-2 sm:px-3 py-0.5">
-                    <span className="text-xs sm:text-sm font-bold text-orange-700">#3</span>
+                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-orange-200 px-2 py-0.5 border border-black">
+                    <span className="text-[10px] sm:text-xs font-bold text-orange-700">#3</span>
                   </div>
                 </div>
-                <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-lg">
-                  <h3 className="text-center text-lg sm:text-xl font-bold text-slate-900">{topStudents[2]?.name}</h3>
-                  <p className="mt-1 text-center text-xs sm:text-sm text-slate-500">{topStudents[2]?.school}</p>
-                  <div className="mt-3 sm:mt-4 flex items-center justify-center gap-2">
-                    <Star size={16} className="sm:w-[18px] sm:h-[18px] fill-amber-400 text-amber-400" />
-                    <span className="text-base sm:text-lg font-bold text-slate-900">
-                      {topStudents[2]?.totalTP.toLocaleString()} TP
+                <div className="w-full rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-lg">
+                  <h3 className="text-center text-base sm:text-lg font-bold text-slate-900">{topStudents[2]?.name || "Unknown"}</h3>
+                  <p className="mt-0.5 text-center text-[10px] sm:text-xs text-slate-500">{topStudents[2]?.school || ""}</p>
+                  <div className="mt-2 sm:mt-3 flex items-center justify-center gap-1.5">
+                    <Star size={14} className="sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
+                    <span className="text-sm sm:text-base font-bold text-slate-900">
+                      {topStudents[2]?.totalTP?.toLocaleString() || 0} TP
                     </span>
                   </div>
                 </div>
@@ -409,130 +494,156 @@ export default function LeaderboardPage() {
           )}
 
           {/* Leaderboard Table */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="border-b border-slate-200 bg-slate-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-900 bg-[#111827] text-white border-r border-slate-300">
                       RANK
                     </th>
                     {activeTab === "students" && (
                       <>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           STUDENT
                         </th>
-                        <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden md:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           SCHOOL
                         </th>
-                        <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden lg:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           BADGES
                         </th>
-                        <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden lg:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           ACTIVITY TREND
                         </th>
                       </>
                     )}
                     {activeTab === "teams" && (
                       <>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           TEAM
                         </th>
-                        <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden md:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           SCHOOL
                         </th>
-                        <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden lg:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           MEMBERS
                         </th>
-                        <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden lg:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           ACTIVITY TREND
                         </th>
                       </>
                     )}
                     {activeTab === "schools" && (
                       <>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           SCHOOL
                         </th>
-                        <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden md:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           STUDENTS
                         </th>
-                        <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden lg:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           TEAMS
                         </th>
-                        <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden lg:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           AVG TP
                         </th>
-                        <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="hidden lg:table-cell px-3 sm:px-4 py-2 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                           ACTIVITY TREND
                         </th>
                       </>
                     )}
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-right text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">
                       TOTAL TP
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-200">
                   {getCurrentData().map((item) => {
                     if (activeTab === "students") {
                       const student = item as LeaderboardStudent;
+                      const studentName = student.name || "Unknown";
+                      // Helper function to get initials - handles "undefined", "NUNDEFINED", "null" strings from backend
+                      const getInitials = (name: string, initials?: string | null): string => {
+                        // Check if initials is undefined, null, empty, or invalid strings from backend
+                        const invalidInitials = ["undefined", "null", "NUNDEFINED", "UNDEFINED", "null", "NULL"];
+                        if (!initials || invalidInitials.includes(initials) || initials.trim() === "") {
+                          if (name && name.trim()) {
+                            const generated = name.split(" ").map((n) => n?.[0] || "").filter(Boolean).join("").toUpperCase().slice(0, 2);
+                            return generated || "U";
+                          }
+                          return "U";
+                        }
+                        return initials;
+                      };
+                      const studentInitials = getInitials(studentName, student.initials);
                       return (
                         <tr key={student.id} className="hover:bg-slate-50">
-                          <td className="px-3 sm:px-6 py-4">
-                            <span className="text-sm font-bold text-slate-900">
-                              {String(student.rank).padStart(2, "0")}
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 bg-[#111827] text-white border-r border-slate-300">
+                            <span className="text-xs sm:text-sm font-bold">
+                              {String(student.rank || 0).padStart(2, "0")}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-6 py-4">
-                            <div className="flex items-center gap-2 sm:gap-3">
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
                               {student.avatarUrl ? (
                                 <img
                                   src={student.avatarUrl}
-                                  alt={student.name}
-                                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover flex-shrink-0"
+                                  alt={studentName}
+                                  className="h-6 w-6 sm:h-8 sm:w-8 rounded-full object-cover flex-shrink-0"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = "none";
+                                    const parent = target.parentElement;
+                                    if (parent && !parent.querySelector(".avatar-fallback")) {
+                                      const fallback = document.createElement("div");
+                                      fallback.className = "avatar-fallback flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-[10px] sm:text-xs font-semibold text-slate-700 flex-shrink-0";
+                                      fallback.textContent = studentInitials;
+                                      parent.insertBefore(fallback, target.nextSibling);
+                                    }
+                                  }}
                                 />
                               ) : (
-                                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-xs sm:text-sm font-semibold text-slate-700 flex-shrink-0">
-                                  {student.initials || student.name.split(" ").map((n) => n[0]).join("")}
+                                <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-[10px] sm:text-xs font-semibold text-slate-700 flex-shrink-0">
+                                  {studentInitials}
                                 </div>
                               )}
-                              <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
-                                {student.name}
+                              <span className="text-[11px] sm:text-xs font-semibold text-slate-900 truncate">
+                                {studentName}
                               </span>
                             </div>
                           </td>
-                          <td className="hidden md:table-cell px-4 sm:px-6 py-4">
-                            <span className="text-sm text-slate-600">{student.school}</span>
+                          <td className="hidden md:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <span className="text-[11px] sm:text-xs text-slate-600">{student.school || ""}</span>
                           </td>
-                          <td className="hidden lg:table-cell px-4 sm:px-6 py-4">
+                          <td className="hidden lg:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
                             <div className="flex items-center gap-1">
-                              {student.badges.slice(0, 3).map((badge, idx) => (
+                              {student.badges?.slice(0, 3).map((badge, idx) => (
                                 <div
                                   key={idx}
-                                  className="h-6 w-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600"
+                                  className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-black border border-black"
                                   title={badge}
                                 />
                               ))}
-                              {student.badges.length > 3 && (
-                                <span className="text-xs text-slate-500">+{student.badges.length - 3}</span>
+                              {student.badges && student.badges.length > 3 && (
+                                <span className="text-[10px] text-slate-500">+{student.badges.length - 3}</span>
                               )}
                             </div>
                           </td>
-                          <td className="hidden lg:table-cell px-4 sm:px-6 py-4">
-                            <div className="flex items-center gap-1.5">
-                              {getActivityIcon(student.activityTrend)}
-                              <span className={`text-sm font-semibold ${getActivityColor(student.activityTrend)}`}>
+                          <td className="hidden lg:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <div className="flex items-center gap-1">
+                              {getActivityIcon(student.activityTrend || 0)}
+                              <span className={`text-[11px] sm:text-xs font-semibold ${getActivityColor(student.activityTrend || 0)}`}>
                                 {student.activityTrend > 0 ? "+" : ""}
-                                {student.activityTrend}%
+                                {student.activityTrend || 0}%
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 sm:px-6 py-4 text-right">
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Star size={12} className="sm:w-[14px] sm:h-[14px] fill-amber-400 text-amber-400" />
-                              <span className="text-xs sm:text-sm font-bold text-slate-900">
-                                {student.totalTP.toLocaleString()} TP
+                              <Star size={10} className="sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
+                              <span className="text-[11px] sm:text-xs font-bold text-slate-900">
+                                {(student.totalTP || 0).toLocaleString()} TP
                               </span>
                             </div>
                           </td>
@@ -542,34 +653,34 @@ export default function LeaderboardPage() {
                       const team = item as LeaderboardTeam;
                       return (
                         <tr key={team.id} className="hover:bg-slate-50">
-                          <td className="px-3 sm:px-6 py-4">
-                            <span className="text-sm font-bold text-slate-900">
-                              {String(team.rank).padStart(2, "0")}
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 bg-[#111827] text-white border-r border-slate-300">
+                            <span className="text-xs sm:text-sm font-bold">
+                              {String(team.rank || 0).padStart(2, "0")}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-6 py-4">
-                            <span className="text-xs sm:text-sm font-semibold text-slate-900">{team.name}</span>
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5">
+                            <span className="text-[11px] sm:text-xs font-semibold text-slate-900">{team.name || "Unknown"}</span>
                           </td>
-                          <td className="hidden md:table-cell px-4 sm:px-6 py-4">
-                            <span className="text-sm text-slate-600">{team.school}</span>
+                          <td className="hidden md:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <span className="text-[11px] sm:text-xs text-slate-600">{team.school || ""}</span>
                           </td>
-                          <td className="hidden lg:table-cell px-4 sm:px-6 py-4">
-                            <span className="text-sm text-slate-600">{team.memberCount} members</span>
+                          <td className="hidden lg:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <span className="text-[11px] sm:text-xs text-slate-600">{team.memberCount || 0} members</span>
                           </td>
-                          <td className="hidden lg:table-cell px-4 sm:px-6 py-4">
-                            <div className="flex items-center gap-1.5">
-                              {getActivityIcon(team.activityTrend)}
-                              <span className={`text-sm font-semibold ${getActivityColor(team.activityTrend)}`}>
+                          <td className="hidden lg:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <div className="flex items-center gap-1">
+                              {getActivityIcon(team.activityTrend || 0)}
+                              <span className={`text-[11px] sm:text-xs font-semibold ${getActivityColor(team.activityTrend || 0)}`}>
                                 {team.activityTrend > 0 ? "+" : ""}
-                                {team.activityTrend}%
+                                {team.activityTrend || 0}%
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 sm:px-6 py-4 text-right">
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Star size={12} className="sm:w-[14px] sm:h-[14px] fill-amber-400 text-amber-400" />
-                              <span className="text-xs sm:text-sm font-bold text-slate-900">
-                                {team.totalTP.toLocaleString()} TP
+                              <Star size={10} className="sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
+                              <span className="text-[11px] sm:text-xs font-bold text-slate-900">
+                                {(team.totalTP || 0).toLocaleString()} TP
                               </span>
                             </div>
                           </td>
@@ -579,37 +690,37 @@ export default function LeaderboardPage() {
                       const school = item as LeaderboardSchool;
                       return (
                         <tr key={school.id} className="hover:bg-slate-50">
-                          <td className="px-3 sm:px-6 py-4">
-                            <span className="text-sm font-bold text-slate-900">
-                              {String(school.rank).padStart(2, "0")}
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 bg-[#111827] text-white border-r border-slate-300">
+                            <span className="text-xs sm:text-sm font-bold">
+                              {String(school.rank || 0).padStart(2, "0")}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-6 py-4">
-                            <span className="text-xs sm:text-sm font-semibold text-slate-900">{school.name}</span>
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5">
+                            <span className="text-[11px] sm:text-xs font-semibold text-slate-900">{school.name || "Unknown"}</span>
                           </td>
-                          <td className="hidden md:table-cell px-4 sm:px-6 py-4">
-                            <span className="text-sm text-slate-600">{school.studentCount} students</span>
+                          <td className="hidden md:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <span className="text-[11px] sm:text-xs text-slate-600">{school.studentCount || 0} students</span>
                           </td>
-                          <td className="hidden lg:table-cell px-4 sm:px-6 py-4">
-                            <span className="text-sm text-slate-600">{school.teamCount} teams</span>
+                          <td className="hidden lg:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <span className="text-[11px] sm:text-xs text-slate-600">{school.teamCount || 0} teams</span>
                           </td>
-                          <td className="hidden lg:table-cell px-4 sm:px-6 py-4">
-                            <span className="text-sm text-slate-600">{school.averageTP.toFixed(1)} TP</span>
+                          <td className="hidden lg:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <span className="text-[11px] sm:text-xs text-slate-600">{(school.averageTP || 0).toFixed(1)} TP</span>
                           </td>
-                          <td className="hidden lg:table-cell px-4 sm:px-6 py-4">
-                            <div className="flex items-center gap-1.5">
-                              {getActivityIcon(school.activityTrend)}
-                              <span className={`text-sm font-semibold ${getActivityColor(school.activityTrend)}`}>
+                          <td className="hidden lg:table-cell px-2 sm:px-3 py-2 sm:py-2.5">
+                            <div className="flex items-center gap-1">
+                              {getActivityIcon(school.activityTrend || 0)}
+                              <span className={`text-[11px] sm:text-xs font-semibold ${getActivityColor(school.activityTrend || 0)}`}>
                                 {school.activityTrend > 0 ? "+" : ""}
-                                {school.activityTrend}%
+                                {school.activityTrend || 0}%
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 sm:px-6 py-4 text-right">
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Star size={12} className="sm:w-[14px] sm:h-[14px] fill-amber-400 text-amber-400" />
-                              <span className="text-xs sm:text-sm font-bold text-slate-900">
-                                {school.totalTP.toLocaleString()} TP
+                              <Star size={10} className="sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
+                              <span className="text-[11px] sm:text-xs font-bold text-slate-900">
+                                {(school.totalTP || 0).toLocaleString()} TP
                               </span>
                             </div>
                           </td>
@@ -622,19 +733,19 @@ export default function LeaderboardPage() {
             </div>
 
             {/* Pagination */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 px-4 sm:px-6 py-4">
-              <p className="text-xs sm:text-sm text-slate-600">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 border-t border-slate-200 px-3 sm:px-4 py-2 sm:py-3">
+              <p className="text-[10px] sm:text-xs text-slate-600">
                 Showing {getCurrentData().length} of {pagination.total} results
               </p>
               {hasMore && (
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition flex items-center gap-2"
+                  className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition flex items-center gap-1.5"
                 >
                   {loadingMore ? (
                     <>
-                      <Loader2 size={14} className="animate-spin" />
+                      <Loader2 size={12} className="animate-spin" />
                       Loading...
                     </>
                   ) : (
@@ -648,8 +759,8 @@ export default function LeaderboardPage() {
       )}
 
       {/* Footer Tip */}
-      <div className="text-center">
-        <p className="text-sm text-slate-500">
+      <div className="text-center pt-2">
+        <p className="text-[10px] sm:text-xs text-slate-500">
           Tip: Complete daily quizzes to boost your TP score by up to 50 points per day.
         </p>
       </div>
