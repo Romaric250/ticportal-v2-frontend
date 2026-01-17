@@ -102,6 +102,6 @@ export const dashboardService = {
     const response = await apiClient.get<{ success: boolean; data: DashboardOverview }>(
       "/dashboard/overview"
     );
-    return response.data.data;
+    return response.data as unknown as DashboardOverview;
   },
 };
