@@ -169,7 +169,8 @@ export function TopNav() {
           <button
             type="button"
             onClick={handleLocaleSwitch}
-            className="cursor-pointer rounded-full border border-slate-300 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs text-slate-600 hover:border-[#111827] hover:text-[#111827] transition-colors"
+            disabled
+            className="cursor-not-allowed rounded-full border border-slate-200 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs text-slate-400 opacity-50 transition-colors"
           >
             <span className="hidden sm:inline">{otherLocale === "en" ? t("english") : t("french")}</span>
             <span className="sm:hidden uppercase">{otherLocale}</span>
