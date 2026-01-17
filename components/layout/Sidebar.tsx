@@ -67,6 +67,8 @@ export function Sidebar({ role }: Props) {
       : role === "admin" || role === "super-admin"
       ? [
           { href: `${basePath}/users`, label: "User Management", icon: <UserCog size={16} /> },
+          { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
+          { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
           { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
           { href: `${basePath}/teams`, label: "Teams", icon: <Users size={16} /> },
           { href: `${basePath}/learning-path`, label: "Learning Path", icon: <BookOpen size={16} /> },

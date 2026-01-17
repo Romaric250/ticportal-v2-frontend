@@ -18,7 +18,9 @@ export default function CommunityPage() {
   }, []);
 
   return (
-    <div className="grid h-[calc(100vh-60px)] lg:grid-cols-[minmax(0,1fr)_320px] -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 px-4 sm:px-6 lg:px-8 gap-4 sm:gap-6">
+    <div className="relative -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      {/* Blurred Content */}
+      <div className="blur-sm select-none grid h-[calc(100vh-60px)] lg:grid-cols-[minmax(0,1fr)_320px] gap-4 sm:gap-6">
       {/* Main Chat Area */}
       <div className="flex flex-col h-full bg-white border-r border-slate-200 overflow-hidden">
         {/* Messages Container - Scrollable */}
@@ -357,6 +359,15 @@ export default function CommunityPage() {
               <span>Invite Peers</span>
             </span>
           </button>
+        </div>
+      </div>
+      </div>
+
+      {/* Coming Soon Overlay */}
+      <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-40">
+        <div className="text-center px-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-2 sm:mb-3">Coming Soon</h2>
+          <p className="text-sm sm:text-base lg:text-lg text-slate-600">This feature is under development</p>
         </div>
       </div>
     </div>

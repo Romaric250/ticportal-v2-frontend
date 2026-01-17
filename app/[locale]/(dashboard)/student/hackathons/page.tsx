@@ -24,7 +24,9 @@ export default function HackathonsPage() {
   const [activeEventTab, setActiveEventTab] = useState("upcoming");
 
   return (
-    <div className="space-y-6 text-slate-900">
+    <div className="relative">
+      {/* Blurred Content */}
+      <div className="blur-sm select-none space-y-6 text-slate-900">
       {/* Regional Finals Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#111827] to-slate-800 p-6 sm:p-8 text-white">
         <div className="relative z-10">
@@ -358,6 +360,15 @@ export default function HackathonsPage() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+      </div>
+
+      {/* Coming Soon Overlay */}
+      <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-40">
+        <div className="text-center px-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-2 sm:mb-3">Coming Soon</h2>
+          <p className="text-sm sm:text-base lg:text-lg text-slate-600">This feature is under development</p>
         </div>
       </div>
     </div>
