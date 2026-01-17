@@ -619,16 +619,47 @@ export default function TICFeedPage() {
     );
   });
 
-  // Real-time: Post liked
+  // Real-time: Post liked - update for all users in real-time
   useSocketEvent("feed:post:liked", (data: any) => {
     console.log("Feed: Received feed:post:liked event", data);
     setPosts((prev) =>
+      prev.map((post) => {
+        if (post.id === data.postId) {
+          // Always update likesCount for real-time visibility
+          const newLikesCount = typeof data.likesCount === "number" ? data.likesCount : post.likesCount;
+          // Only update isLiked for the current user if the event includes it
+          // Otherwise, if this user's post was liked by someone else, keep their isLiked state
+          const newIsLiked = typeof data.isLiked === "boolean" 
+            ? data.isLiked 
+            : post.isLiked;
+          return {
+            ...post,
+            likesCount: newLikesCount,
+            isLiked: newIsLiked,
+          };
+        }
+        return post;
+      })
+    );
+    // Also update trending/latest posts if they contain this post
+    setTrendingPosts((prev) =>
       prev.map((post) =>
         post.id === data.postId
           ? {
               ...post,
-              likesCount: data.likesCount,
-              isLiked: post.author.id === user?.id ? post.isLiked : data.isLiked,
+              likesCount: typeof data.likesCount === "number" ? data.likesCount : post.likesCount,
+              isLiked: typeof data.isLiked === "boolean" ? data.isLiked : post.isLiked,
+            }
+          : post
+      )
+    );
+    setLatestPosts((prev) =>
+      prev.map((post) =>
+        post.id === data.postId
+          ? {
+              ...post,
+              likesCount: typeof data.likesCount === "number" ? data.likesCount : post.likesCount,
+              isLiked: typeof data.isLiked === "boolean" ? data.isLiked : post.isLiked,
             }
           : post
       )

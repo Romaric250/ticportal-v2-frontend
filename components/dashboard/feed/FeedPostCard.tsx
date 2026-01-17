@@ -107,10 +107,19 @@ export function FeedPostCard({
   useSocketEvent("feed:post:liked", (data: any) => {
     if (data.postId === post.id) {
       console.log("FeedPostCard: Received feed:post:liked event", data);
-      // Only update if the data is valid
-      if (typeof data.isLiked === "boolean" && typeof data.likesCount === "number") {
-        setIsLiked(data.isLiked);
+      // Update regardless of who liked it - this ensures all users see real-time updates
+      if (typeof data.likesCount === "number") {
         setLikesCount(data.likesCount);
+        // Only update isLiked if the data contains it, otherwise keep current state for this user
+        if (typeof data.isLiked === "boolean") {
+          setIsLiked(data.isLiked);
+        }
+      } else if (data.likesCount !== undefined) {
+        // Fallback: try to parse likesCount from various possible formats
+        const likesCount = data.likesCount || data.likes?.length || post.likesCount;
+        if (typeof likesCount === "number") {
+          setLikesCount(likesCount);
+        }
       } else {
         console.warn("FeedPostCard: Invalid like data in socket event", data);
       }
@@ -656,6 +665,7 @@ export function FeedPostCard({
       {showComments && (
         <div id={`comments-${post.id}`} className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-100">
           <CommentSection
+            key={`comments-${post.id}-${showComments}`} // Force remount when toggled
             postId={post.id}
             currentUserId={currentUserId}
             currentUserRole={currentUserRole}

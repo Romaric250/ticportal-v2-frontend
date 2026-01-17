@@ -53,8 +53,9 @@ export function CommentSection({
 
   const isAdmin = currentUserRole === "ADMIN";
 
-  // Load comments
+  // Load comments when component mounts or postId changes
   useEffect(() => {
+    console.log("CommentSection: useEffect triggered, loading comments", { postId });
     loadComments();
   }, [postId]);
 
@@ -246,30 +247,41 @@ export function CommentSection({
     try {
       setLoading(true);
       console.log("CommentSection: Loading comments for postId:", postId);
+      // Reset comments before loading to ensure fresh data
+      setComments([]);
       const response = await feedService.getComments(postId, { limit: 50 });
       console.log("CommentSection: Raw response from getComments:", response);
       console.log("CommentSection: Response type:", typeof response);
       console.log("CommentSection: Is array?", Array.isArray(response));
       console.log("CommentSection: Response keys:", response ? Object.keys(response) : "null/undefined");
+      console.log("CommentSection: Full response structure:", JSON.stringify(response, null, 2));
       
       // getComments returns PaginationResponse<FeedComment> which is { data: FeedComment[], pagination: {...} }
       // The apiClient interceptor unwraps { success: true, data: {...} } to just {...}
-      // So response should be { data: [...], pagination: {...} }
+      // But the API might return { comments: [...], pagination: {...} } or { data: [...], pagination: {...} }
       let commentsData: FeedComment[] = [];
       
       if (Array.isArray(response)) {
         console.log("CommentSection: Response is array, length:", response.length);
         commentsData = response;
       } else if (response && typeof response === "object") {
-        if (Array.isArray(response.data)) {
+        // Check for comments property first (API might use this)
+        if (Array.isArray((response as any).comments)) {
+          console.log("CommentSection: Found comments in response.comments, length:", (response as any).comments.length);
+          commentsData = (response as any).comments;
+        } else if (Array.isArray(response.data)) {
           console.log("CommentSection: Found comments in response.data, length:", response.data.length);
           commentsData = response.data;
         } else {
           console.warn("CommentSection: Unexpected response structure:", {
             hasData: !!response.data,
+            hasComments: !!(response as any).comments,
             dataType: typeof response.data,
+            commentsType: typeof (response as any).comments,
             isDataArray: Array.isArray(response.data),
+            isCommentsArray: Array.isArray((response as any).comments),
             responseKeys: Object.keys(response),
+            fullResponse: response,
           });
         }
       } else {
