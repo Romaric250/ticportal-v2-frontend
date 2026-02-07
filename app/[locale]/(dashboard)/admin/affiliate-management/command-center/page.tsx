@@ -1,89 +1,80 @@
 "use client";
 
-import { useState } from "react";
-import { Filter, Calendar, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Filter, Calendar, Shield, Loader2 } from "lucide-react";
 import { cn } from "../../../../../../src/utils/cn";
+import { affiliateService, type FinancialOverview, type LedgerEntry } from "@/src/lib/services/affiliateService";
+import { toast } from "sonner";
 
 // Format number as XAF (no symbol in design; we show "XAF" or "CFA" in labels)
 function formatXAF(value: number): string {
   return value.toLocaleString("fr-FR") + " XAF";
 }
 
-// Mock data – replace with API when backend is ready
-const financialOverview = [
-  {
-    label: "Total Revenue",
-    value: 12450000,
-    sub: "+12.5% vs last month",
-    trend: "up" as const,
-  },
-  {
-    label: "Commissions Owed",
-    value: 1200500,
-    sub: "-2.1% outstanding",
-    trend: "down" as const,
-  },
-  {
-    label: "Commissions Paid",
-    value: 8400000,
-    sub: "+5.4% settled",
-    trend: "up" as const,
-  },
-  {
-    label: "TIC Net Fees",
-    value: 2849500,
-    sub: "+8.2% platform profit",
-    trend: "up" as const,
-  },
-];
-
-const ledgerRows = [
-  {
-    id: "TXN-49202",
-    student: "Amadou Diallo",
-    payment: 5300,
-    aff: 500,
-    reg: 300,
-    nat: 200,
-    ticNet: 4300,
-    status: "completed" as const,
-  },
-  {
-    id: "TXN-49201",
-    student: "Mariam Keita",
-    payment: 5300,
-    aff: 500,
-    reg: 300,
-    nat: 200,
-    ticNet: 4300,
-    status: "completed" as const,
-  },
-  {
-    id: "TXN-49199",
-    student: "Jean-Pierre",
-    payment: 5300,
-    aff: null,
-    reg: null,
-    nat: null,
-    ticNet: 0,
-    status: "error" as const,
-  },
-  {
-    id: "TXN-49198",
-    student: "Fatoumata T.",
-    payment: 5300,
-    aff: 500,
-    reg: 300,
-    nat: 200,
-    ticNet: 4300,
-    status: "completed" as const,
-  },
-];
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 export default function CommandCenterPage() {
   const [ledgerPage, setLedgerPage] = useState(1);
-  const totalLedgerPages = 245;
-  const ledgerTotal = 2450;
+  const [loading, setLoading] = useState(true);
+  const [financialOverview, setFinancialOverview] = useState<FinancialOverview | null>(null);
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+  const [ledgerTotal, setLedgerTotal] = useState(0);
+  const [totalLedgerPages, setTotalLedgerPages] = useState(1);
+
+  useEffect(() => {
+    loadData();
+  }, [ledgerPage]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [overview, ledger] = await Promise.all([
+        affiliateService.getFinancialOverview(),
+        affiliateService.getSystemLedger({ page: ledgerPage, limit: 10 }),
+      ]);
+      setFinancialOverview(overview);
+      setLedgerEntries(ledger.entries);
+      setLedgerTotal(ledger.pagination.total);
+      setTotalLedgerPages(ledger.pagination.pages);
+    } catch (error: any) {
+      console.error("Failed to load command center data:", error);
+      toast.error(error?.message || "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const financialCards = financialOverview
+    ? [
+        {
+          label: "Total Revenue",
+          value: financialOverview.totalRevenue,
+          sub: "Total student payments",
+          trend: "up" as const,
+        },
+        {
+          label: "Commissions Owed",
+          value: financialOverview.commissionsOwed,
+          sub: "Outstanding commissions",
+          trend: "down" as const,
+        },
+        {
+          label: "Commissions Paid",
+          value: financialOverview.commissionsPaid,
+          sub: "Settled commissions",
+          trend: "up" as const,
+        },
+        {
+          label: "TIC Net Fees",
+          value: financialOverview.ticNetFees,
+          sub: "Platform profit",
+          trend: "up" as const,
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
@@ -99,7 +90,12 @@ export default function CommandCenterPage() {
 
       {/* Financial Overview */}
       <section className="grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {financialOverview.map((card) => (
+        {loading && !financialOverview ? (
+          <div className="col-span-4 flex items-center justify-center py-8">
+            <Loader2 className="animate-spin text-slate-400" size={24} />
+          </div>
+        ) : (
+          financialCards.map((card) => (
           <div
             key={card.label}
             className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:rounded-xl sm:p-4"
@@ -119,7 +115,8 @@ export default function CommandCenterPage() {
               {card.sub}
             </p>
           </div>
-        ))}
+          ))
+        )}
       </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
@@ -168,46 +165,63 @@ export default function CommandCenterPage() {
                 </tr>
               </thead>
               <tbody>
-                {ledgerRows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      "border-b border-slate-100",
-                      row.status === "error" && "bg-red-50/50"
-                    )}
-                  >
-                    <td className="px-2 py-2 sm:px-3 sm:py-2.5">
-                      <span className="font-medium text-slate-900">{row.id}</span>
-                      <span className="text-slate-500">
-                        {" "}
-                        ({row.student})
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-900 sm:px-3 sm:py-2.5">
-                      {formatXAF(row.payment)}
-                    </td>
-                    <td className="hidden whitespace-nowrap px-2 py-2 text-slate-600 sm:table-cell sm:px-3 sm:py-2.5">
-                      {row.aff != null
-                        ? `AFF: ${row.aff}, REG: ${row.reg}, NAT: ${row.nat}`
-                        : "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-900 sm:px-3 sm:py-2.5">
-                      {formatXAF(row.ticNet)}
-                    </td>
-                    <td className="px-2 py-2 sm:px-3 sm:py-2.5">
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:text-xs",
-                          row.status === "error"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-emerald-100 text-emerald-700"
-                        )}
-                      >
-                        {row.status === "error" ? "Error" : "Done"}
-                      </span>
+                {loading && ledgerEntries.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center">
+                      <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
                     </td>
                   </tr>
-                ))}
+                ) : ledgerEntries.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                      No ledger entries found.
+                    </td>
+                  </tr>
+                ) : (
+                  ledgerEntries.map((row) => {
+                    const studentName = `${row.student.firstName} ${row.student.lastName}`;
+                    return (
+                      <tr
+                        key={row.id}
+                        className={cn(
+                          "border-b border-slate-100",
+                          row.status === "error" && "bg-red-50/50"
+                        )}
+                      >
+                        <td className="px-2 py-2 sm:px-3 sm:py-2.5">
+                          <span className="font-medium text-slate-900">{row.transactionId}</span>
+                          <span className="text-slate-500">
+                            {" "}
+                            ({studentName})
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-900 sm:px-3 sm:py-2.5">
+                          {formatXAF(row.payment.amount)}
+                        </td>
+                        <td className="hidden whitespace-nowrap px-2 py-2 text-slate-600 sm:table-cell sm:px-3 sm:py-2.5">
+                          {row.affiliateCommission != null
+                            ? `AFF: ${formatXAF(row.affiliateCommission)}, REG: ${row.regionalCommission ? formatXAF(row.regionalCommission) : "—"}, NAT: ${row.nationalCommission ? formatXAF(row.nationalCommission) : "—"}`
+                            : "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-900 sm:px-3 sm:py-2.5">
+                          {formatXAF(row.ticNet)}
+                        </td>
+                        <td className="px-2 py-2 sm:px-3 sm:py-2.5">
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:text-xs",
+                              row.status === "error"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            )}
+                          >
+                            {row.status === "error" ? "Error" : "Done"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-2 py-1.5 sm:px-3 sm:py-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import {
@@ -13,8 +13,11 @@ import {
   QrCode,
   ChevronRight,
   X,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/src/utils/cn";
+import { affiliateService, type AffiliateDashboard, type Referral } from "@/src/lib/services/affiliateService";
+import { toast } from "sonner";
 
 // Theme: #111827 (slate-900) for primary actions and accents
 const THEME = "#111827";
@@ -23,51 +26,44 @@ function formatXAF(value: number): string {
   return value.toLocaleString("fr-FR") + " XAF";
 }
 
-// Mock – replace with API
-const mockMetrics = {
-  pendingCommission: 270000,
-  pendingChange: 12,
-  earnedCommission: 720000,
-  earnedChange: 5,
-  activeReferrals: 84,
-  totalPaidOut: 2310000,
-  nextPayoutDate: "Oct 15",
-};
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
-const mockReferralLink = "https://portal.ticsummit.org/ref/campus-rep-alex";
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
-const mockPipeline = [
-  {
-    id: "1",
-    name: "Jordan Davis",
-    initials: "JD",
-    joinDate: "Oct 12, 2023",
-    paymentStatus: "PAYMENT CONFIRMED" as const,
-    activationProgress: 100,
-    activationLabel: "Task Completed",
-    commission: 15000,
-  },
-  {
-    id: "2",
-    name: "Sarah Kim",
-    initials: "SK",
-    joinDate: "Oct 11, 2023",
-    paymentStatus: "PROCESSING" as const,
-    activationProgress: 60,
-    activationLabel: "Profile Setup",
-    commission: 0,
-  },
-  {
-    id: "3",
-    name: "Marcus Reed",
-    initials: "MR",
-    joinDate: "Oct 10, 2023",
-    paymentStatus: "PAYMENT CONFIRMED" as const,
-    activationProgress: 75,
-    activationLabel: "Course Started",
-    commission: 15000,
-  },
-];
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "PAID":
+    case "ACTIVATED":
+      return "bg-emerald-100 text-emerald-700";
+    case "PENDING":
+      return "bg-amber-100 text-amber-700";
+    default:
+      return "bg-slate-100 text-slate-600";
+  }
+}
+
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case "PAID":
+      return "PAYMENT CONFIRMED";
+    case "PENDING":
+      return "PROCESSING";
+    case "ACTIVATED":
+      return "ACTIVATED";
+    default:
+      return status;
+  }
+}
 
 function WithdrawFundsModal({
   open,
@@ -81,17 +77,30 @@ function WithdrawFundsModal({
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const num = parseFloat(amount.replace(/\s/g, ""));
-    if (Number.isNaN(num) || num <= 0 || num > availableBalance) return;
+    if (Number.isNaN(num) || num <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    if (num > availableBalance) {
+      toast.error("Amount exceeds available balance");
+      return;
+    }
     setSubmitting(true);
-    // TODO: API call
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      // Note: Withdrawal/payout request endpoint may need to be implemented in backend
+      // For now, this is a placeholder that shows the UI is ready
+      toast.info("Withdrawal request feature coming soon. Contact admin for payouts.");
       setAmount("");
       onClose();
-    }, 800);
+    } catch (error: any) {
+      console.error("Failed to request withdrawal:", error);
+      toast.error(error?.message || "Failed to process withdrawal request");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!open) return null;
@@ -166,13 +175,61 @@ export default function AffiliateDashboardPage() {
   const locale = useLocale();
   const [copied, setCopied] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dashboard, setDashboard] = useState<AffiliateDashboard | null>(null);
+  const [referralLink, setReferralLink] = useState("");
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      const [dashboardData, profile] = await Promise.all([
+        affiliateService.getDashboard(),
+        affiliateService.getProfile(),
+      ]);
+      setDashboard(dashboardData);
+      setReferralLink(profile.referralLink);
+    } catch (error: any) {
+      console.error("Failed to load dashboard:", error);
+      toast.error(error?.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const copyLink = () => {
-    if (typeof navigator !== "undefined") {
-      navigator.clipboard.writeText(mockReferralLink);
+    if (typeof navigator !== "undefined" && referralLink) {
+      navigator.clipboard.writeText(referralLink);
       setCopied(true);
+      toast.success("Link copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="animate-spin text-slate-400" size={32} />
+      </div>
+    );
+  }
+
+  if (!dashboard) {
+    return (
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+        <p className="text-sm text-slate-500">Failed to load dashboard data.</p>
+      </div>
+    );
+  }
+
+  const metrics = {
+    pendingCommission: dashboard.earnings.pending,
+    earnedCommission: dashboard.earnings.earned,
+    activeReferrals: dashboard.stats.activeReferrals,
+    totalPaidOut: dashboard.earnings.paid,
   };
 
   return (
@@ -180,7 +237,7 @@ export default function AffiliateDashboardPage() {
       <WithdrawFundsModal
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
-        availableBalance={mockMetrics.earnedCommission}
+        availableBalance={metrics.earnedCommission}
       />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -212,10 +269,10 @@ export default function AffiliateDashboardPage() {
                 Pending Commission
               </p>
               <p className="mt-2 text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
-                {formatXAF(mockMetrics.pendingCommission)}
+                {formatXAF(metrics.pendingCommission)}
               </p>
-              <p className="mt-1 text-xs font-medium text-emerald-600">
-                +{mockMetrics.pendingChange}% from last month
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Awaiting approval
               </p>
             </div>
             <div
@@ -233,10 +290,10 @@ export default function AffiliateDashboardPage() {
                 Earned Commission
               </p>
               <p className="mt-2 text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
-                {formatXAF(mockMetrics.earnedCommission)}
+                {formatXAF(metrics.earnedCommission)}
               </p>
               <p className="mt-1 text-xs font-medium text-emerald-600">
-                +{mockMetrics.earnedChange}% · {mockMetrics.activeReferrals} active referrals
+                {metrics.activeReferrals} active referrals
               </p>
             </div>
             <div
@@ -257,10 +314,10 @@ export default function AffiliateDashboardPage() {
                 Total Paid Out
               </p>
               <p className="mt-2 text-lg font-bold tracking-tight sm:text-xl">
-                {formatXAF(mockMetrics.totalPaidOut)}
+                {formatXAF(metrics.totalPaidOut)}
               </p>
               <p className="mt-1 text-xs text-white/70">
-                Next payout: {mockMetrics.nextPayoutDate}
+                Total commissions paid
               </p>
             </div>
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
@@ -283,7 +340,7 @@ export default function AffiliateDashboardPage() {
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <div className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5">
                 <span className="truncate text-sm font-medium" style={{ color: THEME }}>
-                  {mockReferralLink}
+                  {referralLink || "Loading..."}
                 </span>
               </div>
               <div className="flex shrink-0 gap-2">
@@ -356,51 +413,63 @@ export default function AffiliateDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockPipeline.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/50"
-                  >
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-                          style={{ backgroundColor: THEME }}
-                        >
-                          {row.initials}
-                        </div>
-                        <span className="font-medium text-slate-900">{row.name}</span>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3.5 text-slate-500">{row.joinDate}</td>
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
-                          row.paymentStatus === "PAYMENT CONFIRMED"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                        )}
-                      >
-                        {row.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-2 w-20 overflow-hidden rounded-full bg-slate-200">
-                          <div
-                            className="h-full rounded-full transition-[width]"
-                            style={{ width: `${row.activationProgress}%`, backgroundColor: THEME }}
-                          />
-                        </div>
-                        <span className="text-xs text-slate-500">{row.activationLabel}</span>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3.5 font-semibold text-slate-900">
-                      {formatXAF(row.commission)}
+                {dashboard.recentReferrals.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                      No referrals yet. Start sharing your referral link!
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  dashboard.recentReferrals.map((referral) => {
+                    const studentName = referral.studentName;
+                    const initials = getInitials(studentName);
+                    const statusLabel = getStatusLabel(referral.status);
+                    const statusColor = getStatusColor(referral.status);
+                    const progress = referral.status === "ACTIVATED" ? 100 : referral.status === "PAID" ? 75 : 25;
+                    const progressLabel = referral.status === "ACTIVATED" ? "Activated" : referral.status === "PAID" ? "Payment Confirmed" : "Pending";
+
+                    return (
+                      <tr
+                        key={referral.id}
+                        className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/50"
+                      >
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                              style={{ backgroundColor: THEME }}
+                            >
+                              {initials}
+                            </div>
+                            <span className="font-medium text-slate-900">{studentName}</span>
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-slate-500">
+                          {formatDate(referral.registeredAt)}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium", statusColor)}>
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-2 w-20 overflow-hidden rounded-full bg-slate-200">
+                              <div
+                                className="h-full rounded-full transition-[width]"
+                                style={{ width: `${progress}%`, backgroundColor: THEME }}
+                              />
+                            </div>
+                            <span className="text-xs text-slate-500">{progressLabel}</span>
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-semibold text-slate-900">
+                          {formatXAF(referral.commissionAmount)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

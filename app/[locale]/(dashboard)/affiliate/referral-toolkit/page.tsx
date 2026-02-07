@@ -1,21 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Copy, Link2, QrCode, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { affiliateService } from "@/src/lib/services/affiliateService";
 
 const THEME = "#111827";
 
-// Mock – replace with API
-const mockReferralLink = "https://portal.ticsummit.org/ref/campus-rep-alex";
-
 export default function ReferralToolkitPage() {
-  const [link, setLink] = useState(mockReferralLink);
+  const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [creatingNew, setCreatingNew] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const profile = await affiliateService.getProfile();
+      setLink(profile.referralLink);
+    } catch (error: any) {
+      console.error("Failed to load profile:", error);
+      toast.error(error?.message || "Failed to load referral link");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const copyLink = () => {
-    if (typeof navigator !== "undefined") {
+    if (typeof navigator !== "undefined" && link) {
       navigator.clipboard.writeText(link);
       setCopied(true);
       toast.success("Link copied to clipboard");
@@ -26,17 +42,24 @@ export default function ReferralToolkitPage() {
   const createNewLink = async () => {
     setCreatingNew(true);
     try {
-      // TODO: POST /api/affiliate/referral-link (invalidates previous)
-      await new Promise((r) => setTimeout(r, 800));
-      const newLink = `https://portal.ticsummit.org/ref/campus-rep-${Date.now().toString(36)}`;
-      setLink(newLink);
+      const result = await affiliateService.regenerateCode();
+      setLink(result.newReferralLink);
       toast.success("New referral link created. Your previous link is no longer valid.");
-    } catch {
-      toast.error("Failed to create new link");
+    } catch (error: any) {
+      console.error("Failed to regenerate code:", error);
+      toast.error(error?.message || "Failed to create new link");
     } finally {
       setCreatingNew(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="animate-spin text-slate-400" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6">
@@ -56,7 +79,7 @@ export default function ReferralToolkitPage() {
           </p>
           <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5">
             <p className="break-all text-sm font-medium" style={{ color: THEME }}>
-              {link}
+              {link || "Loading..."}
             </p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">

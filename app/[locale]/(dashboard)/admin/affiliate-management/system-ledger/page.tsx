@@ -1,40 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { Filter, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Filter, Calendar, Loader2 } from "lucide-react";
 import { cn } from "../../../../../../src/utils/cn";
+import { affiliateService, type LedgerEntry } from "@/src/lib/services/affiliateService";
+import { toast } from "sonner";
 
 function formatXAF(value: number): string {
   return value.toLocaleString("fr-FR") + " XAF";
 }
 
-const mockRows = [
-  {
-    id: "TXN-49202",
-    student: "Amadou Diallo",
-    payment: 5300,
-    aff: 500,
-    reg: 300,
-    nat: 200,
-    ticNet: 4300,
-    status: "completed" as const,
-  },
-  {
-    id: "TXN-49201",
-    student: "Mariam Keita",
-    payment: 5300,
-    aff: 500,
-    reg: 300,
-    nat: 200,
-    ticNet: 4300,
-    status: "completed" as const,
-  },
-];
-
 export default function SystemLedgerPage() {
   const [page, setPage] = useState(1);
-  const totalPages = 245;
-  const total = 2450;
+  const [loading, setLoading] = useState(true);
+  const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    loadLedger();
+  }, [page]);
+
+  const loadLedger = async () => {
+    try {
+      setLoading(true);
+      const response = await affiliateService.getSystemLedger({ page, limit: 20 });
+      setEntries(response.entries);
+      setTotalPages(response.pagination.pages);
+      setTotal(response.pagination.total);
+    } catch (error: any) {
+      console.error("Failed to load ledger:", error);
+      toast.error(error?.message || "Failed to load system ledger");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-w-0 space-y-4 sm:space-y-6">
@@ -86,34 +86,60 @@ export default function SystemLedgerPage() {
             </tr>
           </thead>
           <tbody>
-            {mockRows.map((row) => (
-              <tr
-                key={row.id}
-                className={cn(
-                  "border-b border-slate-100",
-                  row.status === "error" && "bg-red-50/50"
-                )}
-              >
-                <td className="px-3 py-2.5">
-                  <span className="font-medium text-slate-900">{row.id}</span>
-                  <span className="text-slate-500"> (Student: {row.student})</span>
-                </td>
-                <td className="px-3 py-2.5 font-medium text-slate-900">
-                  {formatXAF(row.payment)}
-                </td>
-                <td className="px-3 py-2.5 text-slate-600">
-                  AFF: {row.aff}, REG: {row.reg}, NAT: {row.nat}
-                </td>
-                <td className="px-3 py-2.5 font-medium text-slate-900">
-                  {formatXAF(row.ticNet)}
-                </td>
-                <td className="px-3 py-2.5">
-                  <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                    Completed
-                  </span>
+            {loading && entries.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center">
+                  <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
                 </td>
               </tr>
-            ))}
+            ) : entries.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                  No ledger entries found.
+                </td>
+              </tr>
+            ) : (
+              entries.map((row) => {
+                const studentName = `${row.student.firstName} ${row.student.lastName}`;
+                return (
+                  <tr
+                    key={row.id}
+                    className={cn(
+                      "border-b border-slate-100",
+                      row.status === "error" && "bg-red-50/50"
+                    )}
+                  >
+                    <td className="px-3 py-2.5">
+                      <span className="font-medium text-slate-900">{row.transactionId}</span>
+                      <span className="text-slate-500"> (Student: {studentName})</span>
+                    </td>
+                    <td className="px-3 py-2.5 font-medium text-slate-900">
+                      {formatXAF(row.payment.amount)}
+                    </td>
+                    <td className="px-3 py-2.5 text-slate-600">
+                      AFF: {row.affiliateCommission ? formatXAF(row.affiliateCommission) : "—"}, REG:{" "}
+                      {row.regionalCommission ? formatXAF(row.regionalCommission) : "—"}, NAT:{" "}
+                      {row.nationalCommission ? formatXAF(row.nationalCommission) : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 font-medium text-slate-900">
+                      {formatXAF(row.ticNet)}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                          row.status === "error"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-emerald-100 text-emerald-700"
+                        )}
+                      >
+                        {row.status === "error" ? "Error" : "Completed"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 py-2">
