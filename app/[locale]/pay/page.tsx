@@ -137,10 +137,10 @@ export default function PaymentPage() {
 
   // Load payment data once auth is checked
   useEffect(() => {
-    if (!checkingAuth && initialized) {
+    if (!checkingAuth && initialized && (user || accessToken)) {
       loadData();
     }
-  }, [checkingAuth, initialized]);
+  }, [checkingAuth, initialized, user, accessToken]);
 
   // Search students when query changes
   useEffect(() => {
@@ -214,17 +214,62 @@ export default function PaymentPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [countriesData, methodsData] = await Promise.all([
-        affiliateService.getCountries(),
-        paymentService.getPaymentMethods(),
-      ]);
       
-      const activeCountries = countriesData.filter((c) => c.status === "ACTIVE");
+      // Load countries and payment methods
+      let countriesData: Country[] = [];
+      let methodsData: any = { methods: [] };
+      
+      try {
+        countriesData = await affiliateService.getCountries();
+        console.log("Loaded countries:", countriesData);
+      } catch (err: any) {
+        console.error("Failed to load countries:", err);
+        if (err?.response?.status === 401 || err?.response?.status === 403) {
+          toast.error("Please log in to continue with payment");
+        } else {
+          toast.error("Failed to load countries. Please try again.");
+        }
+      }
+      
+      try {
+        methodsData = await paymentService.getPaymentMethods();
+        console.log("Loaded payment methods:", methodsData);
+        // Ensure we have the right structure
+        if (!methodsData || typeof methodsData !== 'object') {
+          methodsData = { methods: [] };
+        }
+        if (!methodsData.methods || !Array.isArray(methodsData.methods) || methodsData.methods.length === 0) {
+          console.warn("No payment methods returned, using defaults");
+          methodsData = {
+            methods: [
+              { id: "MTN", name: "MTN Mobile Money" },
+              { id: "ORANGE", name: "Orange Money" },
+            ],
+          };
+        }
+      } catch (err: any) {
+        console.error("Failed to load payment methods:", err);
+        // Provide default payment methods if API fails
+        methodsData = {
+          methods: [
+            { id: "MTN", name: "MTN Mobile Money" },
+            { id: "ORANGE", name: "Orange Money" },
+          ],
+        };
+        console.log("Using default payment methods:", methodsData);
+      }
+      
+      const activeCountries = Array.isArray(countriesData) 
+        ? countriesData.filter((c) => c.status === "ACTIVE")
+        : [];
+      
       setCountries(activeCountries);
-      setPaymentMethods(methodsData.methods);
+      setPaymentMethods(methodsData.methods || []);
       
       // Default to Cameroon
-      const cameroon = activeCountries.find((c) => c.code === "CM");
+      const cameroon = activeCountries.find((c) => 
+        c.code?.toUpperCase() === "CM" || c.name?.toLowerCase().includes("cameroon")
+      );
       if (cameroon) {
         setSelectedCountry(cameroon);
       } else if (activeCountries.length > 0) {
@@ -298,10 +343,45 @@ export default function PaymentPage() {
       return;
     }
 
+    // Ensure token is in storage before making request
+    const tokenFromStore = accessToken;
+    const tokenFromStorage = tokenStorage.getAccessToken();
+    const token = tokenFromStore || tokenFromStorage;
+    
+    if (!token) {
+      toast.error("Authentication token not found. Please log in again.");
+      router.push(`/${locale}/login?redirect=/pay${referralCode ? `?ref=${referralCode}` : ""}`);
+      setSubmitting(false);
+      return;
+    }
+    
+    // Sync token to storage if it's only in store (api-client reads from storage)
+    if (tokenFromStore && !tokenFromStorage) {
+      tokenStorage.setAccessToken(tokenFromStore);
+      console.log("Synced token from store to storage");
+    }
+
+    // Verify token is available for the request
+    const finalToken = tokenStorage.getAccessToken();
+    if (!finalToken) {
+      toast.error("Failed to prepare authentication. Please log in again.");
+      setSubmitting(false);
+      return;
+    }
+
     // Note: Backend will use the authenticated user's ID from token
     // If paying for different student, that would need backend support
     setSubmitting(true);
     try {
+      console.log("Initiating payment with:", {
+        phoneNumber,
+        amount: totalAmount,
+        countryId: selectedCountry.id,
+        referralCode: referralCode || undefined,
+        hasToken: !!finalToken,
+        tokenLength: finalToken?.length,
+      });
+      
       const result = await paymentService.initiatePayment({
         phoneNumber,
         amount: totalAmount,
@@ -393,7 +473,7 @@ export default function PaymentPage() {
       />
       
       {/* Modal - Fixed height, no scrolling */}
-      <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5 max-h-[95vh] flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5 max-h-[90vh] flex flex-col overflow-hidden">
         {/* Close Button */}
         <button
           type="button"
@@ -404,86 +484,13 @@ export default function PaymentPage() {
           <X size={20} />
         </button>
 
-        <div className="grid lg:grid-cols-2 gap-0 flex-1 overflow-hidden">
-          {/* Left Column - Benefits */}
-          <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-6 sm:p-8 lg:p-10 lg:rounded-l-2xl rounded-t-2xl lg:rounded-tr-none flex flex-col">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Why Invest in TiC Summit?</h2>
-            
-            <div className="space-y-3 mb-4 flex-1">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">Accumulate Lifetime TIC Points (TP)</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Build your TP balance that grows with every achievement and never expires</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">Access to Global Alumni Network</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Connect with professionals worldwide and discover remote opportunities</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">Exclusive TiC Scholarships</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Eligibility for special scholarships and educational funding programs</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">Direct Industry Mentorship</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Get personalized guidance from experienced professionals in your field</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">Career Development Resources</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Access workshops, webinars, and resources to advance your career</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">Certification & Recognition</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Earn verified certificates and badges recognized by industry leaders</p>
-                </div>
-              </div>
-            </div>
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-0 flex-1 overflow-hidden">
+          {/* Payment Form Column (First on mobile, second on desktop) */}
+          <div className="p-5 sm:p-6 lg:p-8 lg:rounded-r-2xl rounded-t-2xl lg:rounded-bl-none overflow-y-auto lg:order-2">
+            <h1 className="text-xl font-bold text-slate-900 mb-1">Activation & Fee Payment</h1>
+            <p className="text-xs text-slate-600 mb-4">Complete your TiC Summit registration</p>
 
-            {/* Logic Section - Back on left side */}
-            <div className="bg-white/80 rounded-xl p-4 border border-slate-200 mt-auto">
-              <p className="text-xs font-semibold text-slate-900 mb-2">Logic:</p>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                This payment of {formatXAF(totalAmount)} activates your account, unlocks Stage 1: History of TiC Foundation, and initiates your lifelong TP accumulation.
-              </p>
-            </div>
-          </div>
-
-          {/* Right Column - Payment Form */}
-          <div className="p-6 sm:p-8 lg:p-10 lg:rounded-r-2xl rounded-b-2xl lg:rounded-bl-none overflow-y-auto">
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">Activation & Fee Payment</h1>
-            <p className="text-sm text-slate-600 mb-6">Complete your TiC Summit registration</p>
-
-            {/* Referral Banner */}
-            {referralInfo?.valid && (
-              <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-emerald-900">Payment via referral</p>
-                    <p className="text-xs text-emerald-700 mt-1">
-                      Referred by: {referralInfo.affiliateName} ({referralInfo.regionName})
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Current User Display / Student Selection */}
               {user && accessToken && (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -500,7 +507,11 @@ export default function PaymentPage() {
                           setStudentSearchQuery("");
                         }
                       }}
-                      className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1"
+                      className={`text-xs flex items-center gap-1 transition-colors ${
+                        payingForDifferent
+                          ? "text-slate-600 hover:text-slate-900"
+                          : "bg-slate-900 text-white px-2 py-1 rounded underline hover:bg-slate-800"
+                      }`}
                     >
                       {payingForDifferent ? (
                         <>
@@ -583,7 +594,7 @@ export default function PaymentPage() {
                       )}
                       
                       {selectedStudent && (
-                        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                           <div className="flex items-center gap-2">
                             {selectedStudent.profilePhoto ? (
                               <img
@@ -592,15 +603,15 @@ export default function PaymentPage() {
                                 className="h-8 w-8 rounded-full object-cover"
                               />
                             ) : (
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-semibold text-white">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
                                 {getInitials(`${selectedStudent.firstName} ${selectedStudent.lastName}`)}
                               </div>
                             )}
                             <div className="flex-1">
-                              <div className="text-xs font-medium text-emerald-900">
+                              <div className="text-xs font-medium text-slate-900">
                                 {selectedStudent.firstName} {selectedStudent.lastName}
                               </div>
-                              <div className="text-xs text-emerald-700">{selectedStudent.email}</div>
+                              <div className="text-xs text-slate-600">{selectedStudent.email}</div>
                             </div>
                             <button
                               type="button"
@@ -608,7 +619,7 @@ export default function PaymentPage() {
                                 setSelectedStudent(null);
                                 setStudentSearchQuery("");
                               }}
-                              className="rounded p-1 text-emerald-600 hover:bg-emerald-100"
+                              className="rounded p-1 text-slate-600 hover:bg-slate-100"
                             >
                               <X size={14} />
                             </button>
@@ -647,22 +658,28 @@ export default function PaymentPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Country <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={selectedCountry?.id || ""}
-                  onChange={(e) => {
-                    const country = countries.find((c) => c.id === e.target.value);
-                    setSelectedCountry(country || null);
-                  }}
-                  required
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="">Select a country</option>
-                  {countries.map((country) => (
-                    <option key={country.id} value={country.id}>
-                      {country.name} ({country.code})
-                    </option>
-                  ))}
-                </select>
+                {countries.length > 0 ? (
+                  <select
+                    value={selectedCountry?.id || ""}
+                    onChange={(e) => {
+                      const country = countries.find((c) => c.id === e.target.value);
+                      setSelectedCountry(country || null);
+                    }}
+                    required
+                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  >
+                    <option value="">Select a country</option>
+                    {countries.map((country) => (
+                      <option key={country.id} value={country.id}>
+                        {country.name} ({country.code})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+                    Loading countries... {loading && <Loader2 className="inline-block ml-2 animate-spin" size={14} />}
+                  </div>
+                )}
               </div>
 
               {/* Phone Number Input */}
@@ -693,7 +710,7 @@ export default function PaymentPage() {
                   </p>
                 )}
                 {detectedMethod && (
-                  <p className="mt-1 text-xs text-emerald-600">
+                  <p className="mt-1 text-xs text-slate-700 font-medium">
                     Detected: {detectedMethod === "MTN" ? "MTN Mobile Money" : detectedMethod === "ORANGE" ? "Orange Money" : "Unknown"}
                   </p>
                 )}
@@ -704,41 +721,54 @@ export default function PaymentPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Select Payment Method <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {paymentMethods.map((method) => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => setSelectedMethod(method.id)}
-                      className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
-                        selectedMethod === method.id
-                          ? "border-emerald-500 bg-emerald-50"
-                          : "border-slate-200 bg-white hover:border-slate-300"
-                      }`}
-                    >
-                      <div className={`h-10 w-10 shrink-0 rounded-lg flex items-center justify-center ${
-                        selectedMethod === method.id ? "bg-emerald-500" : "bg-slate-100"
-                      }`}>
-                        <Phone className={`h-5 w-5 ${
-                          selectedMethod === method.id ? "text-white" : "text-slate-600"
-                        }`} />
-                      </div>
-                      <div className="text-left min-w-0 flex-1">
-                        <p className={`text-sm font-medium truncate ${
-                          selectedMethod === method.id ? "text-emerald-900" : "text-slate-900"
+                {paymentMethods.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {paymentMethods.map((method) => (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => setSelectedMethod(method.id)}
+                        className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
+                          selectedMethod === method.id
+                            ? "border-slate-900 bg-slate-900"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <div className={`h-10 w-10 shrink-0 rounded-lg flex items-center justify-center ${
+                          selectedMethod === method.id ? "bg-slate-900" : "bg-slate-100"
                         }`}>
-                          {method.name}
-                        </p>
+                          <Phone className={`h-5 w-5 ${
+                            selectedMethod === method.id ? "text-white" : "text-slate-600"
+                          }`} />
+                        </div>
+                        <div className="text-left min-w-0 flex-1">
+                          <p className={`text-sm font-medium truncate ${
+                            selectedMethod === method.id ? "text-white" : "text-slate-900"
+                          }`}>
+                            {method.name}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="animate-spin" size={16} />
+                        Loading payment methods...
                       </div>
-                    </button>
-                  ))}
-                </div>
+                    ) : (
+                      "No payment methods available. Please refresh the page."
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Transaction Summary */}
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <h3 className="text-sm font-semibold text-slate-900 mb-3">Transaction Summary</h3>
-                <div className="space-y-2 text-sm">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <h3 className="text-sm font-semibold text-slate-900 mb-2">Transaction Summary</h3>
+                <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Account Activation:</span>
                     <span className="font-medium text-slate-900">Stage 1 Access</span>
@@ -756,7 +786,7 @@ export default function PaymentPage() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-600">Discount ({discountPercentage}%):</span>
-                      <span className="font-medium text-emerald-600">-{formatXAF(discountAmount)}</span>
+                      <span className="font-medium text-slate-700">-{formatXAF(discountAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-600">Registration Fee:</span>
@@ -799,7 +829,7 @@ export default function PaymentPage() {
               <button
                 type="submit"
                 disabled={submitting || !user || !accessToken || !selectedCountry || !phoneNumber || !selectedMethod}
-                className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style={{ backgroundColor: THEME }}
               >
                 {submitting ? (
@@ -816,7 +846,7 @@ export default function PaymentPage() {
               </button>
 
               {/* Footer */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-4 border-t border-slate-200 text-xs text-slate-500">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 pt-3 border-t border-slate-200 text-xs text-slate-500">
                 <div className="flex items-center gap-1">
                   <Lock size={12} />
                   <span>Secure SSL Encrypted Transaction</span>
@@ -828,6 +858,64 @@ export default function PaymentPage() {
                 </div>
               </div>
             </form>
+          </div>
+
+          {/* Left Column - Benefits (Second on mobile, first on desktop) */}
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-5 sm:p-6 lg:p-8 lg:rounded-l-2xl rounded-b-2xl lg:rounded-tr-none flex flex-col lg:order-1">
+            <h2 className="text-lg font-bold text-slate-900 mb-5">Why Invest in TiC Summit?</h2>
+            
+            <div className="space-y-4 mb-4 flex-1">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-slate-900 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Accumulate Lifetime TIC Points (TP)</p>
+                  <p className="text-xs text-slate-600 mt-0.5">Build your TP balance that grows with every achievement and never expires</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-slate-900 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Access to Global Alumni Network</p>
+                  <p className="text-xs text-slate-600 mt-0.5">Connect with professionals worldwide and discover remote opportunities</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-slate-900 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Exclusive TiC Scholarships</p>
+                  <p className="text-xs text-slate-600 mt-0.5">Eligibility for special scholarships and educational funding programs</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-slate-900 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Direct Industry Mentorship</p>
+                  <p className="text-xs text-slate-600 mt-0.5">Get personalized guidance from experienced professionals in your field</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-slate-900 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Career Development Resources</p>
+                  <p className="text-xs text-slate-600 mt-0.5">Access workshops, webinars, and resources to advance your career</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-slate-900 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Certification & Recognition</p>
+                  <p className="text-xs text-slate-600 mt-0.5">Earn verified certificates and badges recognized by industry leaders</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Logic Section - Back on left side */}
+            <div className="bg-slate-900 rounded-xl p-4 border border-slate-900 mt-auto">
+              <p className="text-xs font-semibold text-white mb-2">Logic:</p>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                This payment of {formatXAF(totalAmount)} activates your account, unlocks Stage 1: History of TiC Foundation, and initiates your lifelong TP accumulation.
+              </p>
+            </div>
           </div>
         </div>
       </div>

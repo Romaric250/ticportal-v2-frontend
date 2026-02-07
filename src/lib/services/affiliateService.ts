@@ -568,11 +568,11 @@ export const affiliateService = {
   },
 
   /**
-   * Get countries (Admin/National Coordinator)
-   * GET /api/affiliate/admin/countries
+   * Get countries (Public endpoint)
+   * GET /api/affiliate/countries
    */
   async getCountries(): Promise<Country[]> {
-    const { data } = await apiClient.get<Country[]>("/affiliate/admin/countries");
+    const { data } = await apiClient.get<Country[]>("/affiliate/countries");
     return data;
   },
 
