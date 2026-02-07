@@ -394,7 +394,13 @@ export default function PaymentPage() {
       pollPaymentStatus(result.paymentId);
     } catch (error: any) {
       console.error("Failed to initiate payment:", error);
-      toast.error(error?.message || "Failed to initiate payment");
+      
+      if (error?.response?.status === 401) {
+        toast.error("Authentication failed. Please log in again.");
+        router.push(`/${locale}/login?redirect=/pay${referralCode ? `?ref=${referralCode}` : ""}`);
+      } else {
+        toast.error(error?.message || "Failed to initiate payment");
+      }
       setSubmitting(false);
     }
   };

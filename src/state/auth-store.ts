@@ -39,6 +39,11 @@ export const useAuthStore = createPersistedStore<AuthState>(
     if (typeof window !== "undefined") {
       initialAccessToken = tokenStorage.getAccessToken();
       initialRefreshToken = tokenStorage.getRefreshToken();
+      
+      // Expose update function for api-client to use when refreshing tokens
+      (window as any).__AUTH_STORE_UPDATE__ = (accessToken: string, refreshToken?: string) => {
+        set({ accessToken, refreshToken: refreshToken || get().refreshToken });
+      };
     }
 
     return {

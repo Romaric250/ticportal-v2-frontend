@@ -41,11 +41,11 @@ export const tokenStorage = {
 
 // Request interceptor: Add Authorization header
 apiClient.interceptors.request.use((config) => {
+  // Always get the latest token from storage (in case it was refreshed)
   const token = tokenStorage.getAccessToken();
   if (token) {
+    // Always override with latest token from storage
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.warn("No token found in storage for request:", config.url);
   }
   return config;
 });
@@ -58,14 +58,15 @@ let failedQueue: Array<{
 }> = [];
 
 const processQueue = (error: AxiosError | null, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
+  const queue = [...failedQueue];
+  failedQueue = [];
+  queue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
       prom.resolve(token);
     }
   });
-  failedQueue = [];
 };
 
 apiClient.interceptors.response.use(
@@ -194,6 +195,7 @@ apiClient.interceptors.response.use(
           if (originalRequest.headers && token) {
             originalRequest.headers.Authorization = `Bearer ${token}`;
           }
+          // Retry the original request with new token
           return apiClient(originalRequest);
         })
         .catch((err) => {
@@ -223,23 +225,32 @@ apiClient.interceptors.response.use(
 
       const { accessToken, refreshToken: newRefreshToken } = response.data.data || response.data;
       
-      if (accessToken) {
-        tokenStorage.setAccessToken(accessToken);
-        if (newRefreshToken) {
-          tokenStorage.setRefreshToken(newRefreshToken);
-        }
-
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        }
-
-        processQueue(null, accessToken);
-        isRefreshing = false;
-
-        return apiClient(originalRequest);
-      } else {
+      if (!accessToken) {
         throw new Error("No access token in refresh response");
       }
+
+      // Store new tokens
+      tokenStorage.setAccessToken(accessToken);
+      if (newRefreshToken) {
+        tokenStorage.setRefreshToken(newRefreshToken);
+      }
+
+      // Update auth store if available (for Zustand store sync)
+      if (typeof window !== "undefined" && (window as any).__AUTH_STORE_UPDATE__) {
+        try {
+          (window as any).__AUTH_STORE_UPDATE__(accessToken, newRefreshToken);
+        } catch (e) {
+          // Store update failed, continue anyway
+        }
+      }
+
+      // Process queued requests with new token
+      processQueue(null, accessToken);
+      isRefreshing = false;
+
+      // Retry the original request - request interceptor will use new token from storage
+      // Don't modify originalRequest.headers here, let the interceptor handle it
+      return apiClient(originalRequest);
     } catch (refreshError) {
       tokenStorage.clearTokens();
       processQueue(refreshError as AxiosError, null);
