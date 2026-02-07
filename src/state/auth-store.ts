@@ -1,7 +1,7 @@
 import { createPersistedStore } from "./store-config";
 import { tokenStorage } from "../lib/api-client";
 
-export type UserRole = "student" | "mentor" | "judge" | "admin" | "super-admin" | null;
+export type UserRole = "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate" | null;
 
 export type AuthUser = {
   id: string;

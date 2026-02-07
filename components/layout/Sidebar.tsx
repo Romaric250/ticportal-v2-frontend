@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare, UserCog, Gavel, GraduationCap, Award } from "lucide-react";
+import { Home, Activity, Trophy, Flag, User, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight, Users, MessageSquare, UserCog, Gavel, GraduationCap, Award, HandCoins, Briefcase, Filter, Banknote } from "lucide-react";
 import { useAuthStore } from "../../src/state/auth-store";
 import { authService } from "../../src/lib/services/authService";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ type SidebarLink = {
 };
 
 type Props = {
-  role: "student" | "mentor" | "judge" | "admin" | "super-admin";
+  role: "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate";
 };
 
 export function Sidebar({ role }: Props) {
@@ -53,7 +53,7 @@ export function Sidebar({ role }: Props) {
   const basePath = `/${locale}/${role}`;
 
   const links: SidebarLink[] = [
-    { href: `${basePath}`, label: "Overview", icon: <Home size={16} /> },
+    { href: `${basePath}`, label: role === "affiliate" ? "Dashboard" : "Overview", icon: <Home size={16} /> },
     ...(role === "student"
       ? [
           { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
@@ -63,6 +63,12 @@ export function Sidebar({ role }: Props) {
           { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
           { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
           { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
+        ]
+      : role === "affiliate"
+      ? [
+          { href: `${basePath}/referral-toolkit`, label: "Referral Toolkit", icon: <Briefcase size={16} /> },
+          { href: `${basePath}/pipeline`, label: "Pipeline", icon: <Filter size={16} /> },
+          { href: `${basePath}/earnings`, label: "Earnings", icon: <Banknote size={16} /> },
         ]
       : role === "admin" || role === "super-admin"
       ? [
@@ -75,6 +81,7 @@ export function Sidebar({ role }: Props) {
           { href: `${basePath}/mentorship`, label: "Mentorship", icon: <GraduationCap size={16} /> },
           { href: `${basePath}/judging`, label: "Judging", icon: <Gavel size={16} /> },
           { href: `${basePath}/badges`, label: "Badges", icon: <Award size={16} /> },
+          { href: `${basePath}/affiliate-management`, label: "Affiliate Management", icon: <HandCoins size={16} /> },
         ]
       : [
           { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },

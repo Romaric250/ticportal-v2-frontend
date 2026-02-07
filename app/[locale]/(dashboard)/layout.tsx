@@ -26,7 +26,8 @@ export default function DashboardLayout({ children }: Props) {
     | "mentor"
     | "judge"
     | "admin"
-    | "super-admin";
+    | "super-admin"
+    | "affiliate";
 
   const { user, accessToken, initialize, initialized, logout } = useAuthStore();
   const router = useRouter();
@@ -94,21 +95,26 @@ export default function DashboardLayout({ children }: Props) {
     }
 
     if (role === "admin" || role === "super-admin") {
-      // If user is loaded, check role
       if (user) {
         const userRole = user.role?.toLowerCase();
         if (userRole !== "admin" && userRole !== "super-admin") {
-          // User is not an admin, redirect silently to their dashboard (no toast, no indication)
           const redirectRole = userRole || "student";
           router.replace(`/${locale}/${redirectRole}`);
           return;
         }
       }
-      
-      // User has valid token (and is admin if user is loaded), allow access
+      setAuthChecked(true);
+    } else if (role === "affiliate") {
+      if (user) {
+        const userRole = user.role?.toLowerCase();
+        if (userRole !== "affiliate") {
+          const redirectRole = userRole || "student";
+          router.replace(`/${locale}/${redirectRole}`);
+          return;
+        }
+      }
       setAuthChecked(true);
     } else {
-      // Not an admin route, no need to check
       setAuthChecked(true);
     }
   }, [role, user, router, locale, initialized, validatingAuth]);
@@ -233,7 +239,7 @@ export default function DashboardLayout({ children }: Props) {
 
   // Don't render anything until auth is validated and checked - show nothing (invisible)
   // This check happens AFTER all hooks are called to follow Rules of Hooks
-  if (validatingAuth || ((role === "admin" || role === "super-admin") && !authChecked)) {
+  if (validatingAuth || ((role === "admin" || role === "super-admin" || role === "affiliate") && !authChecked)) {
     return null; // Render nothing - completely invisible
   }
 

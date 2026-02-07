@@ -39,9 +39,11 @@ export default function LoginPage() {
     // If user has tokens and user data, redirect to their dashboard
     if (accessToken && user) {
       const userRole = user.role?.toLowerCase() || "student";
-      const redirectTo = userRole === "admin" || userRole === "super-admin" 
-        ? `/${userRole}` 
-        : "/student";
+      const redirectTo = userRole === "admin" || userRole === "super-admin"
+        ? `/${userRole}`
+        : userRole === "affiliate"
+          ? "/affiliate"
+          : "/student";
       router.replace(`/${locale}${redirectTo}`);
     }
   }, [accessToken, user, initialized, router, locale]);
@@ -87,7 +89,7 @@ export default function LoginPage() {
         id: response.user.id || "",
         name: response.user.name || `${response.user.firstName || ""} ${response.user.lastName || ""}`.trim() || email.split("@")[0],
         email: response.user.email,
-        role: (response.user.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | null,
+        role: (response.user.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate" | null,
         firstName: response.user.firstName,
         lastName: response.user.lastName,
       };
@@ -101,6 +103,8 @@ export default function LoginPage() {
       if (!redirectTo) {
         if (userRole === "admin" || userRole === "super-admin") {
           redirectTo = `/${userRole}`;
+        } else if (userRole === "affiliate") {
+          redirectTo = "/affiliate";
         } else {
           redirectTo = "/student";
         }
