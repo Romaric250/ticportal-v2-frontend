@@ -28,24 +28,24 @@ export default function PipelinePage() {
   });
 
   return (
-    <div className="min-w-0 space-y-3 sm:space-y-4">
+    <div className="min-w-0 space-y-5 sm:space-y-6">
       <header>
-        <h1 className="text-base font-bold text-slate-900 sm:text-lg">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
           Referral Pipeline
         </h1>
-        <p className="mt-0.5 text-xs text-slate-600">
+        <p className="mt-1.5 text-sm text-slate-500">
           Students referred by you. All amounts in XAF.
         </p>
       </header>
 
-      <div className="flex flex-wrap items-center justify-between gap-1.5">
-        <label className="text-xs font-medium text-slate-600">
-          Filter by:
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <label className="text-sm font-medium text-slate-600">
+          Filter by status
         </label>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as typeof filter)}
-          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 focus:border-slate-300 focus:outline-none focus:ring-1 focus:ring-slate-300"
+          className="rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-700 transition-colors focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
         >
           <option value="all">All Status</option>
           <option value="confirmed">Payment Confirmed</option>
@@ -54,62 +54,67 @@ export default function PipelinePage() {
         </select>
       </div>
 
-      <div className="min-w-0 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[420px] text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80">
-              <th className="px-2 py-1.5 font-medium text-slate-600">Student Name</th>
-              <th className="px-2 py-1.5 font-medium text-slate-600">Join Date</th>
-              <th className="px-2 py-1.5 font-medium text-slate-600">Payment Status</th>
-              <th className="px-2 py-1.5 font-medium text-slate-600">Activation Progress</th>
-              <th className="px-2 py-1.5 font-medium text-slate-600">Commission</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((row) => (
-              <tr key={row.id} className="border-b border-slate-100">
-                <td className="px-2 py-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-medium text-white"
-                      style={{ backgroundColor: THEME }}
-                    >
-                      {row.initials}
-                    </div>
-                    <span className="font-medium text-slate-900">{row.name}</span>
-                  </div>
-                </td>
-                <td className="whitespace-nowrap px-2 py-1.5 text-slate-600">{row.joinDate}</td>
-                <td className="px-2 py-1.5">
-                  <span
-                    className={cn(
-                      "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                      row.paymentStatus === "PAYMENT CONFIRMED" && "bg-emerald-100 text-emerald-700",
-                      row.paymentStatus === "PROCESSING" && "bg-amber-100 text-amber-700",
-                      row.paymentStatus === "PENDING" && "bg-slate-100 text-slate-600"
-                    )}
-                  >
-                    {row.paymentStatus}
-                  </span>
-                </td>
-                <td className="px-2 py-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-1.5 w-12 overflow-hidden rounded-full bg-slate-200 sm:w-16">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${row.activationProgress}%`, backgroundColor: THEME }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-slate-600">{row.activationLabel}</span>
-                  </div>
-                </td>
-                <td className="whitespace-nowrap px-2 py-1.5 font-medium text-slate-900">
-                  {formatXAF(row.commission)}
-                </td>
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/90">
+                <th className="px-4 py-3.5 font-medium text-slate-600">Student Name</th>
+                <th className="px-4 py-3.5 font-medium text-slate-600">Join Date</th>
+                <th className="px-4 py-3.5 font-medium text-slate-600">Payment Status</th>
+                <th className="px-4 py-3.5 font-medium text-slate-600">Activation Progress</th>
+                <th className="px-4 py-3.5 font-medium text-slate-600">Commission</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((row) => (
+                <tr
+                  key={row.id}
+                  className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/50"
+                >
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                        style={{ backgroundColor: THEME }}
+                      >
+                        {row.initials}
+                      </div>
+                      <span className="font-medium text-slate-900">{row.name}</span>
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-slate-500">{row.joinDate}</td>
+                  <td className="px-4 py-3.5">
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        row.paymentStatus === "PAYMENT CONFIRMED" && "bg-emerald-100 text-emerald-700",
+                        row.paymentStatus === "PROCESSING" && "bg-amber-100 text-amber-700",
+                        row.paymentStatus === "PENDING" && "bg-slate-100 text-slate-600"
+                      )}
+                    >
+                      {row.paymentStatus}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-2 w-20 overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className="h-full rounded-full transition-[width]"
+                          style={{ width: `${row.activationProgress}%`, backgroundColor: THEME }}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-500">{row.activationLabel}</span>
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3.5 font-semibold text-slate-900">
+                    {formatXAF(row.commission)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

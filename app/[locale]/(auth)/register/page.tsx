@@ -105,9 +105,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white px-6 py-3">
+      <header className="border-b border-slate-200 bg-white px-6 py-3 flex-shrink-0">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -142,87 +142,90 @@ export default function RegisterPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          {/* Title */}
-          <div className="mb-8 text-center">
-            <h3 className="mb-2 text-2xl sm:text-4xl font-bold text-[#111827]">
-              TIC Summit Portal
-            </h3>
-            <p className="text-base text-slate-600">
-              Manage your learning, team, and hackathon journey in one place.
-            </p>
-          </div>
+      <div className="flex-1 flex items-center justify-center px-4 py-3 overflow-hidden">
+        <div className="w-full max-w-6xl h-full">
+          <div className="grid lg:grid-cols-[0.85fr_1.15fr] h-full rounded-xl bg-white shadow-lg overflow-hidden">
+            {/* Left Section - Register Form */}
+            <div className="flex flex-col justify-center p-4 sm:p-5 lg:p-6 overflow-y-auto">
+              <div className="mx-auto w-full max-w-sm">
+                {/* Title */}
+                <div className="mb-4">
+                  <h3 className="mb-1 text-lg sm:text-xl lg:text-2xl font-bold text-[#111827]">
+                    Create Account
+                  </h3>
+                  <p className="text-xs text-slate-600">
+                    Join TIC Summit Portal and start your journey.
+                  </p>
+                </div>
 
-          {/* Form Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-lg">
-            <form onSubmit={onSubmit} className="space-y-5">
+                {/* Form Card */}
+                <form onSubmit={onSubmit} className="space-y-3.5">
               {/* Full Name */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Full Name</label>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Full Name</label>
                 <div className="relative">
                   <User
-                    size={20}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     type="text"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
                     placeholder="e.g. Jane Doe"
                   />
                 </div>
               </div>
 
               {/* Email */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Email Address</label>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Email Address</label>
                 <div className="relative">
                   <Mail
-                    size={20}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
                     placeholder="e.g. jane@school.edu"
                   />
                 </div>
               </div>
 
               {/* Password */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Password</label>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Password</label>
                 <div className="relative">
                   <Lock
-                    size={20}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-12 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-10 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
                     placeholder="Min. 8 characters"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
                 {/* Password Strength Indicator */}
                 {password && (
-                  <div className="flex items-center gap-2">
-                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-slate-200">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-0.5 flex-1 overflow-hidden rounded-full bg-slate-200">
                       <div
                         className={`h-full transition-all duration-300 ${getStrengthColor()}`}
                         style={{
@@ -238,7 +241,7 @@ export default function RegisterPage() {
                       />
                     </div>
                     <span
-                      className={`text-xs font-semibold ${
+                      className={`text-[10px] font-semibold ${
                         passwordStrength === "weak"
                           ? "text-red-600"
                           : passwordStrength === "fair"
@@ -255,27 +258,27 @@ export default function RegisterPage() {
               </div>
 
               {/* Confirm Password */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Confirm Password</label>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Confirm Password</label>
                 <div className="relative">
                   <Lock
-                    size={20}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-12 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-10 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
                     placeholder="Re-enter password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
@@ -284,30 +287,30 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg bg-[#111827] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg bg-[#111827] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60 mt-2"
               >
                 {submitting ? "Creating account..." : "Create Account"}
               </button>
 
               {/* Social Login Divider */}
-              <div className="relative my-6">
+              <div className="relative my-3">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
+                <div className="relative flex justify-center text-[10px] uppercase">
                   <span className="bg-white px-2 text-slate-500">Or register with</span>
                 </div>
               </div>
 
               {/* Social Login Buttons - Disabled */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   disabled
-                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-400 cursor-not-allowed opacity-60"
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-400 cursor-not-allowed opacity-60"
                 >
                   {/* Google Logo */}
-                  <svg width="18" height="18" viewBox="0 0 18 18">
+                  <svg width="14" height="14" viewBox="0 0 18 18">
                     <path
                       fill="#4285F4"
                       d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
@@ -330,10 +333,10 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   disabled
-                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-400 cursor-not-allowed opacity-60"
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-400 cursor-not-allowed opacity-60"
                 >
                   {/* Microsoft Logo */}
-                  <svg width="18" height="18" viewBox="0 0 18 18">
+                  <svg width="14" height="14" viewBox="0 0 18 18">
                     <path fill="#F25022" d="M0 0h8.4v8.4H0z" />
                     <path fill="#00A4EF" d="M9.6 0H18v8.4H9.6z" />
                     <path fill="#7FBA00" d="M0 9.6h8.4V18H0z" />
@@ -343,31 +346,60 @@ export default function RegisterPage() {
                 </button>
               </div>
             </form>
-          </div>
 
-          {/* Footer Links */}
-          <div className="mt-6 text-center space-y-2">
-            <p className="text-sm text-slate-600">
-              Already have an account?{" "}
-              <Link
-                href={`/${locale}/login`}
-                className="font-semibold text-[#111827] hover:underline"
-              >
-                Log in
-              </Link>
-            </p>
-            <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-              <Link href="#" className="hover:text-[#111827] hover:underline">
-                Privacy Policy
-              </Link>
-              <span>•</span>
-              <Link href="#" className="hover:text-[#111827] hover:underline">
-                Terms of Service
-              </Link>
+                {/* Footer Links */}
+                <div className="mt-4 text-center space-y-1.5">
+                  <p className="text-xs text-slate-600">
+                    Already have an account?{" "}
+                    <Link
+                      href={`/${locale}/login`}
+                      className="font-semibold text-[#111827] hover:underline"
+                    >
+                      Log in
+                    </Link>
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
+                    <Link href="#" className="hover:text-[#111827] hover:underline">
+                      Privacy Policy
+                    </Link>
+                    <span>•</span>
+                    <Link href="#" className="hover:text-[#111827] hover:underline">
+                      Terms of Service
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section - Image */}
+            <div className="relative hidden lg:block bg-[#111827] h-full overflow-hidden">
+              <div className="absolute inset-0">
+                <img
+                  src="https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFp7ZAqdZvRlS1GrWLQhwZMzocm87npUf63sV5v"
+                  alt="TIC Summit"
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#111827]/40 to-[#111827]/70 transition-opacity duration-500" />
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white px-6 py-2 flex-shrink-0">
+        <div className="mx-auto max-w-7xl text-center text-xs text-slate-500">
+          © 2026 TIC Summit. All rights reserved.{" "}
+          <Link href="#" className="hover:text-[#111827] hover:underline">
+            Privacy Policy
+          </Link>{" "}
+          
+          {" "}
+          <Link href="https://ticsummit.org"  target="_blank" className="text-[#111827] underline">
+            ticsummit.org
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -2,17 +2,17 @@
 
 export default function AffiliateSettingsPage() {
   return (
-    <div className="min-w-0 space-y-3 sm:space-y-4">
+    <div className="min-w-0 space-y-5 sm:space-y-6">
       <header>
-        <h1 className="text-base font-bold text-slate-900 sm:text-lg">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
           Settings
         </h1>
-        <p className="mt-0.5 text-xs text-slate-600">
+        <p className="mt-1.5 text-sm text-slate-500">
           Manage your affiliate account and preferences.
         </p>
       </header>
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-xs text-slate-500">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+        <p className="text-sm text-slate-500">
           Settings will be available when the backend API is connected.
         </p>
       </div>

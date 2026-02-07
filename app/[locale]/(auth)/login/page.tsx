@@ -296,8 +296,15 @@ export default function LoginPage() {
 
             {/* Right Section - Promotional */}
             <div className="relative hidden lg:block bg-[#111827] min-h-[400px] overflow-hidden">
-              {/* Background */}
-              <div className="absolute inset-0 bg-[#111827]" />
+              {/* Background Image */}
+              <div className="absolute inset-0">
+                <img
+                  src="https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFp7ZAqdZvRlS1GrWLQhwZMzocm87npUf63sV5v"
+                  alt="TIC Summit"
+                  className="w-full h-full object-cover opacity-90 transition-opacity duration-500"
+                />
+                <div className="absolute inset-0 bg-[#111827]/60 transition-opacity duration-500" />
+              </div>
               
               <div className="relative z-10 flex h-full flex-col items-center justify-center p-6">
                 {/* Summit Year Display */}
