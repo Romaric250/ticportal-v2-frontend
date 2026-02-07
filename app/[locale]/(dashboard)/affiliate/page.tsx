@@ -241,7 +241,7 @@ export default function AffiliateDashboardPage() {
       />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             Affiliate Performance
           </h1>
@@ -252,11 +252,11 @@ export default function AffiliateDashboardPage() {
         <button
           type="button"
           onClick={() => setWithdrawOpen(true)}
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-slate-900/20 transition-all hover:opacity-95 hover:shadow-xl hover:shadow-slate-900/25"
+          className="inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-slate-900/20 transition-all hover:opacity-95 hover:shadow-xl hover:shadow-slate-900/25 w-full sm:w-auto"
           style={{ backgroundColor: THEME }}
         >
           <Wallet size={18} />
-          Withdraw Funds
+          <span className="whitespace-nowrap">Withdraw Funds</span>
         </button>
       </div>
 
@@ -333,32 +333,32 @@ export default function AffiliateDashboardPage() {
           Referral Toolkit
         </h2>
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-sm transition-shadow hover:shadow-md">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Your Unique Referral Link
             </p>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <div className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5">
-                <span className="truncate text-sm font-medium" style={{ color: THEME }}>
+            <div className="mt-3 space-y-3">
+              <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5">
+                <p className="break-all text-sm font-medium leading-relaxed" style={{ color: THEME }}>
                   {referralLink || "Loading..."}
-                </span>
+                </p>
               </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={copyLink}
-                  className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90"
                   style={{ backgroundColor: THEME }}
                 >
                   <Copy size={16} />
-                  {copied ? "Copied!" : "Copy Link"}
+                  <span className="whitespace-nowrap">{copied ? "Copied!" : "Copy Link"}</span>
                 </button>
                 <Link
                   href={`/${locale}/affiliate/referral-toolkit`}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                 >
                   <Link2 size={16} />
-                  Create new link
+                  <span className="whitespace-nowrap">Create new link</span>
                 </Link>
               </div>
             </div>
@@ -387,12 +387,12 @@ export default function AffiliateDashboardPage() {
 
       {/* Referral Pipeline */}
       <section>
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
             Referral Pipeline
           </h2>
           <select
-            className="rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-700 transition-colors focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-700 transition-colors focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200 sm:w-auto"
             defaultValue="all"
           >
             <option value="all">All Status</option>
@@ -401,8 +401,8 @@ export default function AffiliateDashboardPage() {
           </select>
         </div>
         <div className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm">
+          <div className="overflow-x-auto -mx-1 sm:mx-0">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/90">
                   <th className="px-4 py-3.5 font-medium text-slate-600">Student Name</th>

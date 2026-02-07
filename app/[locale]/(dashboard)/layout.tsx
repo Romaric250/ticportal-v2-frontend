@@ -76,11 +76,28 @@ export default function DashboardLayout({ children }: Props) {
         // Token is valid, allow access
         setValidatingAuth(false);
       } catch (error: any) {
-        // Token is invalid (401 or other error)
-        console.error("Authentication validation failed:", error);
-        logout();
-        router.replace(`/${locale}/login`);
-        return;
+        // Only logout on 401 (Unauthorized) errors - not 403 (Forbidden) or other errors
+        // 403 means user is authenticated but lacks permission, which is fine for validation
+        const status = error?.response?.status;
+        if (status === 401) {
+          // Token is invalid or expired
+          console.error("Authentication validation failed: Unauthorized", error);
+          logout();
+          router.replace(`/${locale}/login`);
+          return;
+        } else if (status === 403) {
+          // User is authenticated but may not have permission for getProfile
+          // This is okay - they're still authenticated, just continue
+          console.warn("Permission denied during auth validation, but user is authenticated");
+          setValidatingAuth(false);
+          return;
+        } else {
+          // Other errors (network, 500, etc.) - don't logout, just allow access
+          // Token might still be valid, just a temporary server issue
+          console.warn("Auth validation error (non-401):", error);
+          setValidatingAuth(false);
+          return;
+        }
       }
     };
 
@@ -145,9 +162,11 @@ export default function DashboardLayout({ children }: Props) {
         if (!profile.country || !profile.school || !profile.grade || !hasRegion) {
           setShowOnboarding(true);
         }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        // If profile fetch fails, don't show modal
+      } catch (error: any) {
+        // Don't fail onboarding check on errors - might be permission issues
+        // Only log for debugging, don't block the UI
+        console.warn("Failed to load profile for onboarding check:", error);
+        // If profile fetch fails, don't show modal - user might not have permission
       } finally {
         setLoading(false);
       }
@@ -208,6 +227,9 @@ export default function DashboardLayout({ children }: Props) {
           school: profile.school,
           grade: profile.grade,
         });
+      }).catch((error) => {
+        // Don't fail on error - might be permission issues
+        console.warn("Failed to refresh profile after onboarding:", error);
       });
     }
   };

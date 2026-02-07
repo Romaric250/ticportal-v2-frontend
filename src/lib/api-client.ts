@@ -77,6 +77,29 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Handle 403 (Forbidden) errors - these are permission issues, not auth issues
+    // Don't clear tokens or redirect, just show the error
+    if (error.response?.status === 403) {
+      // Extract error message from response
+      if (error.response?.data) {
+        let errorMessage = "Forbidden - insufficient permissions";
+        
+        // Check for API error format: { success: false, error: {...} }
+        if (
+          typeof error.response.data === "object" &&
+          "error" in error.response.data &&
+          typeof (error.response.data as { error: unknown }).error === "object" &&
+          !Array.isArray((error.response.data as { error: unknown }).error)
+        ) {
+          const apiError = error.response.data as { error: { code: string; message: string } };
+          errorMessage = apiError.error.message || errorMessage;
+        }
+        
+        error.message = errorMessage;
+      }
+      return Promise.reject(error);
+    }
+
     // If error is not 401, reject immediately
     if (error.response?.status !== 401 || originalRequest._retry) {
       // Handle API error format and validation errors

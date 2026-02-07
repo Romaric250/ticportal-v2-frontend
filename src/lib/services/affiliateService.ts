@@ -304,6 +304,7 @@ export interface CreateCountryRequest {
   affiliateCommissionRate: number;
   regionalCommissionRate: number;
   nationalCommissionRate: number;
+  status?: CountryStatus;
 }
 
 export interface CreateRegionRequest {
@@ -447,23 +448,12 @@ export interface CommissionTierConfig {
     regionalRate: number;
     nationalRate: number;
   };
-  premium: {
-    affiliateRate: number;
-    regionalRate: number;
-    nationalRate: number;
-  };
-  vip: {
-    affiliateRate: number;
-    regionalRate: number;
-    nationalRate: number;
-  };
 }
 
 export interface UpdateCommissionTierRequest {
-  tier: "STANDARD" | "PREMIUM" | "VIP";
-  affiliateRate?: number;
-  regionalRate?: number;
-  nationalRate?: number;
+  affiliateRate: number;
+  regionalRate: number;
+  nationalRate: number;
 }
 
 // ============================================================================
@@ -616,6 +606,40 @@ export const affiliateService = {
   },
 
   /**
+   * Update country (Admin only)
+   * PUT /api/affiliate/admin/countries/:countryId
+   */
+  async updateCountry(countryId: string, payload: CreateCountryRequest): Promise<Country> {
+    const { data } = await apiClient.put<Country>(`/affiliate/admin/countries/${countryId}`, payload);
+    return data;
+  },
+
+  /**
+   * Delete country (Admin only)
+   * DELETE /api/affiliate/admin/countries/:countryId
+   */
+  async deleteCountry(countryId: string): Promise<void> {
+    await apiClient.delete(`/affiliate/admin/countries/${countryId}`);
+  },
+
+  /**
+   * Update region (Admin/National Coordinator)
+   * PUT /api/affiliate/admin/regions/:regionId
+   */
+  async updateRegion(regionId: string, payload: { name: string }): Promise<Region> {
+    const { data } = await apiClient.put<Region>(`/affiliate/admin/regions/${regionId}`, payload);
+    return data;
+  },
+
+  /**
+   * Delete region (Admin/National Coordinator)
+   * DELETE /api/affiliate/admin/regions/:regionId
+   */
+  async deleteRegion(regionId: string): Promise<void> {
+    await apiClient.delete(`/affiliate/admin/regions/${regionId}`);
+  },
+
+  /**
    * Update user role (Admin only)
    * PUT /api/affiliate/admin/users/role
    */
@@ -729,8 +753,30 @@ export const affiliateService = {
    * GET /api/affiliate/admin/commission-tiers
    */
   async getCommissionTiers(): Promise<CommissionTierConfig> {
-    const { data } = await apiClient.get<CommissionTierConfig>("/affiliate/admin/commission-tiers");
-    return data;
+    const { data } = await apiClient.get<CommissionTierConfig | { standard: { affiliateRate: number; regionalRate: number; nationalRate: number } }>("/affiliate/admin/commission-tiers");
+    // Ensure the response has the standard property
+    if (data && 'standard' in data) {
+      return data as CommissionTierConfig;
+    }
+    // If response is flat, wrap it in standard (shouldn't happen, but defensive)
+    if (data && 'affiliateRate' in data) {
+      const flatData = data as any;
+      return {
+        standard: {
+          affiliateRate: flatData.affiliateRate || 0.09,
+          regionalRate: flatData.regionalRate || 0.06,
+          nationalRate: flatData.nationalRate || 0.05,
+        },
+      };
+    }
+    // Default fallback
+    return {
+      standard: {
+        affiliateRate: 0.09,
+        regionalRate: 0.06,
+        nationalRate: 0.05,
+      },
+    };
   },
 
   /**
@@ -738,10 +784,17 @@ export const affiliateService = {
    * PUT /api/affiliate/admin/commission-tiers
    */
   async updateCommissionTier(payload: UpdateCommissionTierRequest): Promise<CommissionTierConfig> {
-    const { data } = await apiClient.put<CommissionTierConfig>(
+    const { data } = await apiClient.put<{ affiliateRate: number; regionalRate: number; nationalRate: number }>(
       "/affiliate/admin/commission-tiers",
       payload
     );
-    return data;
+    // Transform flat response to match CommissionTierConfig structure
+    return {
+      standard: {
+        affiliateRate: data.affiliateRate,
+        regionalRate: data.regionalRate,
+        nationalRate: data.nationalRate,
+      },
+    };
   },
 };

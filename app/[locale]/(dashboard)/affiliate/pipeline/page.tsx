@@ -113,14 +113,14 @@ export default function PipelinePage() {
         </p>
       </header>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <label className="text-sm font-medium text-slate-600">
           Filter by status
         </label>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as typeof filter)}
-          className="rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-700 transition-colors focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-700 transition-colors focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200 sm:w-auto"
         >
           <option value="all">All Status</option>
           <option value="confirmed">Payment Confirmed</option>
@@ -135,8 +135,8 @@ export default function PipelinePage() {
         </div>
       ) : (
         <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm">
+          <div className="overflow-x-auto -mx-1 sm:mx-0">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/90">
                   <th className="px-4 py-3.5 font-medium text-slate-600">Student Name</th>

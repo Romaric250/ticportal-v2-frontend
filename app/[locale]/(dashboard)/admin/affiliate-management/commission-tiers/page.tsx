@@ -11,7 +11,7 @@ export default function CommissionTiersPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<CommissionTierConfig | null>(null);
-  const [editingTier, setEditingTier] = useState<"STANDARD" | "PREMIUM" | "VIP" | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     affiliateRate: 0,
     regionalRate: 0,
@@ -27,6 +27,22 @@ export default function CommissionTiersPage() {
       setLoading(true);
       const data = await affiliateService.getCommissionTiers();
       setConfig(data);
+      // Handle both possible response structures (defensive)
+      if (data.standard) {
+        setFormData({
+          affiliateRate: data.standard.affiliateRate,
+          regionalRate: data.standard.regionalRate,
+          nationalRate: data.standard.nationalRate,
+        });
+      } else {
+        // Fallback if response is flat (shouldn't happen, but just in case)
+        const flatData = data as any;
+        setFormData({
+          affiliateRate: flatData.affiliateRate || 0,
+          regionalRate: flatData.regionalRate || 0,
+          nationalRate: flatData.nationalRate || 0,
+        });
+      }
     } catch (error: any) {
       console.error("Failed to load commission tiers:", error);
       toast.error(error?.message || "Failed to load commission tiers");
@@ -35,31 +51,30 @@ export default function CommissionTiersPage() {
     }
   };
 
-  const handleEdit = (tier: "STANDARD" | "PREMIUM" | "VIP") => {
-    if (!config) return;
-    const tierData = config[tier.toLowerCase() as keyof CommissionTierConfig];
+  const handleEdit = () => {
+    if (!config || !config.standard) return;
     setFormData({
-      affiliateRate: tierData.affiliateRate,
-      regionalRate: tierData.regionalRate,
-      nationalRate: tierData.nationalRate,
+      affiliateRate: config.standard.affiliateRate,
+      regionalRate: config.standard.regionalRate,
+      nationalRate: config.standard.nationalRate,
     });
-    setEditingTier(tier);
+    setIsEditing(true);
   };
 
   const handleSave = async () => {
-    if (!editingTier) return;
     try {
       setSaving(true);
       await affiliateService.updateCommissionTier({
-        tier: editingTier,
-        ...formData,
+        affiliateRate: formData.affiliateRate,
+        regionalRate: formData.regionalRate,
+        nationalRate: formData.nationalRate,
       });
-      toast.success(`${editingTier} tier updated successfully`);
-      setEditingTier(null);
+      toast.success("Commission rates updated successfully");
+      setIsEditing(false);
       await loadConfig();
     } catch (error: any) {
       console.error("Failed to update commission tier:", error);
-      toast.error(error?.message || "Failed to update commission tier");
+      toast.error(error?.message || "Failed to update commission rates");
     } finally {
       setSaving(false);
     }
@@ -81,146 +96,167 @@ export default function CommissionTiersPage() {
     );
   }
 
-  const tiers = [
-    { key: "STANDARD" as const, label: "Standard", data: config.standard },
-    { key: "PREMIUM" as const, label: "Premium", data: config.premium },
-    { key: "VIP" as const, label: "VIP", data: config.vip },
-  ];
-
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
-          Commission Tiers
+          Commission Rates
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Configure affiliate, regional, and national commission rates by tier. Rates are percentages (e.g., 0.09 = 9%).
+          Configure affiliate, regional, and national commission rates. Rates are percentages (e.g., 0.09 = 9%).
         </p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {tiers.map((tier) => {
-          const isEditing = editingTier === tier.key;
-          const displayData = isEditing ? formData : tier.data;
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Standard Commission Rates</h2>
 
-          return (
-            <div
-              key={tier.key}
-              className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">{tier.label} Tier</h2>
-
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Affiliate Rate (%)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1"
-                      value={displayData.affiliateRate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, affiliateRate: parseFloat(e.target.value) || 0 })
-                      }
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Regional Rate (%)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1"
-                      value={displayData.regionalRate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, regionalRate: parseFloat(e.target.value) || 0 })
-                      }
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      National Rate (%)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1"
-                      value={displayData.nationalRate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, nationalRate: parseFloat(e.target.value) || 0 })
-                      }
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-70"
-                      style={{ backgroundColor: THEME }}
-                    >
-                      {saving ? (
-                        <Loader2 className="animate-spin" size={16} />
-                      ) : (
-                        <Save size={16} />
-                      )}
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingTier(null);
-                        loadConfig();
-                      }}
-                      className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Affiliate:</span>
-                      <span className="font-medium text-slate-900">
-                        {(displayData.affiliateRate * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Regional:</span>
-                      <span className="font-medium text-slate-900">
-                        {(displayData.regionalRate * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">National:</span>
-                      <span className="font-medium text-slate-900">
-                        {(displayData.nationalRate * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(tier.key)}
-                    className="mt-4 w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    Edit
-                  </button>
-                </>
-              )}
+        {isEditing ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Affiliate Rate (%) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="1"
+                value={formData.affiliateRate}
+                onChange={(e) =>
+                  setFormData({ ...formData, affiliateRate: parseFloat(e.target.value) || 0 })
+                }
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                {(formData.affiliateRate * 100).toFixed(1)}% of commissionable amount
+              </p>
             </div>
-          );
-        })}
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Regional Rate (%) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="1"
+                value={formData.regionalRate}
+                onChange={(e) =>
+                  setFormData({ ...formData, regionalRate: parseFloat(e.target.value) || 0 })
+                }
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                {(formData.regionalRate * 100).toFixed(1)}% of commissionable amount
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                National Rate (%) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="1"
+                value={formData.nationalRate}
+                onChange={(e) =>
+                  setFormData({ ...formData, nationalRate: parseFloat(e.target.value) || 0 })
+                }
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                {(formData.nationalRate * 100).toFixed(1)}% of commissionable amount
+              </p>
+            </div>
+            <div className="pt-2">
+              <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs font-medium text-amber-900">Total Commission Rate</p>
+                <p className="mt-1 text-sm font-bold text-amber-900">
+                  {((formData.affiliateRate + formData.regionalRate + formData.nationalRate) * 100).toFixed(1)}%
+                </p>
+                {(formData.affiliateRate + formData.regionalRate + formData.nationalRate) > 1 && (
+                  <p className="mt-1 text-xs text-red-600">
+                    ⚠️ Total exceeds 100%. Please adjust rates.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving || (formData.affiliateRate + formData.regionalRate + formData.nationalRate) > 1}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-70"
+                style={{ backgroundColor: THEME }}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Save Changes
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                  if (config?.standard) {
+                    setFormData({
+                      affiliateRate: config.standard.affiliateRate,
+                      regionalRate: config.standard.regionalRate,
+                      nationalRate: config.standard.nationalRate,
+                    });
+                  }
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-sm text-slate-600">Affiliate Rate:</span>
+                <span className="text-sm font-medium text-slate-900">
+                  {config?.standard ? (config.standard.affiliateRate * 100).toFixed(1) : "0.0"}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-sm text-slate-600">Regional Rate:</span>
+                <span className="text-sm font-medium text-slate-900">
+                  {config?.standard ? (config.standard.regionalRate * 100).toFixed(1) : "0.0"}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-sm text-slate-600">National Rate:</span>
+                <span className="text-sm font-medium text-slate-900">
+                  {config?.standard ? (config.standard.nationalRate * 100).toFixed(1) : "0.0"}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 pt-3 border-t border-slate-200">
+                <span className="text-sm font-semibold text-slate-900">Total Commission Rate:</span>
+                <span className="text-sm font-bold text-slate-900">
+                  {config?.standard ? ((config.standard.affiliateRate + config.standard.regionalRate + config.standard.nationalRate) * 100).toFixed(1) : "0.0"}%
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="mt-6 w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Edit Rates
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

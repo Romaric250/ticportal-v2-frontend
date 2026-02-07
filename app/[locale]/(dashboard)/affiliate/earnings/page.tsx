@@ -120,13 +120,13 @@ export default function EarningsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-sm">
         <h2 className="mb-4 text-base font-semibold text-slate-900">Recent Commissions</h2>
         {commissions.length === 0 ? (
           <p className="text-sm text-slate-500">No commissions yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto -mx-1 sm:mx-0">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/90">
                   <th className="px-4 py-3 font-medium text-slate-600">Student</th>

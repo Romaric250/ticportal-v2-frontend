@@ -20,7 +20,7 @@ type Props = {
   role: "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate";
 };
 
-export function Sidebar({ role }: Props) {
+export function Sidebar({ role, affiliateProfile }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const locale = useLocale();

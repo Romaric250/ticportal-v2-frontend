@@ -73,12 +73,12 @@ export default function ReferralToolkitPage() {
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-sm transition-shadow hover:shadow-md">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Your Unique Referral Link
           </p>
-          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5">
-            <p className="break-all text-sm font-medium" style={{ color: THEME }}>
+          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5">
+            <p className="break-all text-sm font-medium leading-relaxed" style={{ color: THEME }}>
               {link || "Loading..."}
             </p>
           </div>
@@ -86,24 +86,24 @@ export default function ReferralToolkitPage() {
             <button
               type="button"
               onClick={copyLink}
-              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90"
               style={{ backgroundColor: THEME }}
             >
               <Copy size={16} />
-              {copied ? "Copied!" : "Copy Link"}
+              <span className="whitespace-nowrap">{copied ? "Copied!" : "Copy Link"}</span>
             </button>
             <button
               type="button"
               onClick={createNewLink}
               disabled={creatingNew}
-              className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50"
             >
               {creatingNew ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <Link2 size={16} />
               )}
-              Create new link
+              <span className="whitespace-nowrap">Create new link</span>
             </button>
           </div>
           <p className="mt-3 text-xs text-amber-600/90">
