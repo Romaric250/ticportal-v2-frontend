@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, AlertCircle, GraduationCap, Gavel, TrendingUp, Activity } from "lucide-react";
+import { Users, AlertCircle, GraduationCap, Gavel, TrendingUp, Activity, Loader2 } from "lucide-react";
 import { adminService } from "../../../../src/lib/services/adminService";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -35,7 +35,8 @@ type DashboardStats = {
   activeTeams: number;
 };
 
-const COLORS = ["#111827", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const THEME = "#111827";
+const CHART_COLORS = ["#111827", "#475569", "#64748b", "#94a3b8", "#cbd5e1"];
 
 export default function AdminDashboardPage() {
   const locale = useLocale();
@@ -57,13 +58,83 @@ export default function AdminDashboardPage() {
     const loadStats = async () => {
       try {
         setLoading(true);
-        const statsData = await adminService.getStats();
-        const dashboardStats = await adminService.getDashboardStats();
+        const [statsData, dashboardStats] = await Promise.all([
+          adminService.getStats().catch((err) => {
+            console.error("Error fetching stats:", err);
+            return null;
+          }),
+          adminService.getDashboardStats().catch((err) => {
+            console.error("Error fetching dashboard stats:", err);
+            return null;
+          }),
+        ]);
         
-        setStats({
-          ...statsData,
-          ...dashboardStats,
-        });
+        console.log("=== RAW API RESPONSES ===");
+        console.log("Stats data:", statsData);
+        console.log("Dashboard stats:", dashboardStats);
+        console.log("Dashboard stats type:", typeof dashboardStats);
+        console.log("Dashboard stats keys:", dashboardStats ? Object.keys(dashboardStats) : "null");
+        
+        // Extract chart data with proper fallbacks - handle both direct and nested structures
+        let usersByRole: { role: string; count: number }[] = [];
+        let usersByStatus: { status: string; count: number }[] = [];
+        let usersOverTime: { date: string; users: number }[] = [];
+        let teamsCount = 0;
+        let activeTeams = 0;
+        
+        if (dashboardStats) {
+          // Handle direct structure
+          if (Array.isArray(dashboardStats.usersByRole)) {
+            usersByRole = dashboardStats.usersByRole;
+          }
+          if (Array.isArray(dashboardStats.usersByStatus)) {
+            usersByStatus = dashboardStats.usersByStatus;
+          }
+          if (Array.isArray(dashboardStats.usersOverTime)) {
+            usersOverTime = dashboardStats.usersOverTime;
+          }
+          if (typeof dashboardStats.teamsCount === 'number') {
+            teamsCount = dashboardStats.teamsCount;
+          }
+          if (typeof dashboardStats.activeTeams === 'number') {
+            activeTeams = dashboardStats.activeTeams;
+          }
+        }git 
+        
+        console.log("=== PROCESSED ARRAYS ===");
+        console.log("usersByRole:", usersByRole);
+        console.log("usersByStatus:", usersByStatus);
+        console.log("usersOverTime:", usersOverTime);
+        console.log("usersByRole.length:", usersByRole.length);
+        console.log("usersByStatus.length:", usersByStatus.length);
+        console.log("usersOverTime.length:", usersOverTime.length);
+        
+        const mergedStats: DashboardStats = {
+          totalUsers: statsData?.totalUsers ?? 0,
+          pendingApprovals: statsData?.pendingApprovals ?? 0,
+          mentorsAndLeads: statsData?.mentorsAndLeads ?? 0,
+          unassignedJudges: statsData?.unassignedJudges ?? 0,
+          totalUsersChange: statsData?.totalUsersChange ?? 0,
+          usersByRole,
+          usersByStatus,
+          usersOverTime,
+          teamsCount,
+          activeTeams,
+        };
+        
+        console.log("=== FINAL MERGED STATS ===");
+        console.log("Merged stats:", mergedStats);
+        console.log("usersByRole check:", mergedStats.usersByRole?.length > 0);
+        console.log("usersByStatus check:", mergedStats.usersByStatus?.length > 0);
+        console.log("usersOverTime check:", mergedStats.usersOverTime?.length > 0);
+        
+        // Force state update
+        setStats(mergedStats);
+        
+        // Verify state was set
+        setTimeout(() => {
+          console.log("State after update:", mergedStats);
+        }, 100);
       } catch (error: any) {
         console.error("Error loading stats:", error);
         toast.error(error?.message || "Failed to load dashboard statistics");
@@ -76,27 +147,27 @@ export default function AdminDashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-w-0 space-y-4">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Overview of users, teams, and system activity for your jurisdiction.
+        <h1 className="text-xl font-bold text-slate-900">Admin Dashboard</h1>
+        <p className="mt-1 text-xs text-slate-500">
+          Overview of users, teams, and system activity
         </p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Key Metrics - Black Cards */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {loading ? (
           <>
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="rounded-lg border border-slate-200 bg-white p-4">
+              <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="h-4 w-24 animate-pulse rounded bg-slate-200"></div>
-                    <div className="mt-3 h-8 w-16 animate-pulse rounded bg-slate-200"></div>
-                    <div className="mt-2 h-3 w-20 animate-pulse rounded bg-slate-200"></div>
+                    <div className="h-3 w-20 animate-pulse rounded bg-slate-200"></div>
+                    <div className="mt-2 h-6 w-16 animate-pulse rounded bg-slate-200"></div>
                   </div>
-                  <div className="h-12 w-12 animate-pulse rounded-lg bg-slate-200"></div>
+                  <div className="h-10 w-10 animate-pulse rounded-lg bg-slate-200"></div>
                 </div>
               </div>
             ))}
@@ -105,71 +176,73 @@ export default function AdminDashboardPage() {
           <>
             <Link
               href={`/${locale}/admin/users`}
-              className="rounded-lg border border-slate-200 bg-white p-4 transition hover:border-[#111827] hover:shadow-md"
+              className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">Total Users</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {stats.totalUsers.toLocaleString()}
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-slate-600">Total Users</p>
+                  <p className="mt-1.5 text-xl font-bold text-slate-900">
+                    {(stats.totalUsers ?? 0).toLocaleString()}
                   </p>
                   {stats.totalUsersChange && (
-                    <p className="mt-1 text-xs text-emerald-600">+{stats.totalUsersChange}%</p>
+                    <p className="mt-1 text-xs font-medium text-slate-600">
+                      <span className="text-slate-900">+{stats.totalUsersChange}%</span> from last period
+                    </p>
                   )}
                 </div>
-                <div className="rounded-lg bg-slate-100 p-3">
-                  <Users size={20} className="text-slate-600" />
+                <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 transition-transform group-hover:scale-105">
+                  <Users size={18} className="text-white" />
                 </div>
               </div>
             </Link>
 
             <Link
               href={`/${locale}/admin/users?status=PENDING`}
-              className="relative rounded-lg border border-slate-200 bg-white p-4 transition hover:border-[#111827] hover:shadow-md"
+              className="group relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md"
             >
-              <div className="absolute right-4 top-4">
+              <div className="absolute right-3 top-3">
                 <div className="h-2 w-2 rounded-full bg-amber-500" />
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">Pending Approvals</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {stats.pendingApprovals}
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-slate-600">Pending Approvals</p>
+                  <p className="mt-1.5 text-xl font-bold text-slate-900">
+                    {stats.pendingApprovals ?? 0}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">Requires attention</p>
                 </div>
-                <div className="rounded-lg bg-slate-100 p-3">
-                  <AlertCircle size={20} className="text-slate-600" />
+                <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 transition-transform group-hover:scale-105">
+                  <AlertCircle size={18} className="text-amber-600" />
                 </div>
               </div>
             </Link>
 
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">Mentors & Leads</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {stats.mentorsAndLeads}
+            <div className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-slate-600">Mentors & Leads</p>
+                  <p className="mt-1.5 text-xl font-bold text-slate-900">
+                    {stats.mentorsAndLeads ?? 0}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">Active mentors</p>
                 </div>
-                <div className="rounded-lg bg-slate-100 p-3">
-                  <GraduationCap size={20} className="text-slate-600" />
+                <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 transition-transform group-hover:scale-105">
+                  <GraduationCap size={18} className="text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">Unassigned Judges</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {stats.unassignedJudges}
+            <div className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-slate-600">Unassigned Judges</p>
+                  <p className="mt-1.5 text-xl font-bold text-slate-900">
+                    {stats.unassignedJudges ?? 0}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">Need assignment</p>
                 </div>
-                <div className="rounded-lg bg-slate-100 p-3">
-                  <Gavel size={20} className="text-slate-600" />
+                <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 transition-transform group-hover:scale-105">
+                  <Gavel size={18} className="text-white" />
                 </div>
               </div>
             </div>
@@ -177,172 +250,206 @@ export default function AdminDashboardPage() {
         )}
       </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Users by Role - Pie Chart */}
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-slate-900">Users by Role</h3>
-          <p className="mb-4 text-sm text-slate-600">Distribution of users across different roles</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-slate-900">Users by Role</h3>
+            <p className="mt-0.5 text-xs text-slate-500">Distribution across different roles</p>
+          </div>
           {loading ? (
             <div className="flex h-64 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
+              <Loader2 className="animate-spin text-slate-400" size={24} />
             </div>
-          ) : stats.usersByRole && stats.usersByRole.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+          ) : (stats.usersByRole?.length ?? 0) > 0 ? (
+            <ResponsiveContainer width="100%" height={280} key={`pie-${stats.usersByRole?.length}`}>
               <PieChart>
                 <Pie
                   data={stats.usersByRole}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }: { name?: string; percent?: number }) => 
-                    `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`
+                  label={({ role, percent }: { role?: string; percent?: number }) => 
+                    `${role ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`
                   }
-                  outerRadius={80}
+                  outerRadius={90}
                   fill="#8884d8"
                   dataKey="count"
+                  nameKey="role"
                 >
-                  {stats.usersByRole.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {stats.usersByRole?.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: any, name: any, props: any) => [
+                    `${value} users`,
+                    props?.payload?.role || name
+                  ]}
+                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex h-64 items-center justify-center">
-              <p className="text-slate-400">No data available</p>
+              <p className="text-xs text-slate-400">
+                No data available {stats.usersByRole?.length !== undefined && `(${stats.usersByRole.length} items)`}
+              </p>
             </div>
           )}
         </div>
 
         {/* Users by Status - Bar Chart */}
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-slate-900">Users by Status</h3>
-          <p className="mb-4 text-sm text-slate-600">User account status breakdown</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-slate-900">Users by Status</h3>
+            <p className="mt-0.5 text-xs text-slate-500">Account status breakdown</p>
+          </div>
           {loading ? (
             <div className="flex h-64 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
+              <Loader2 className="animate-spin text-slate-400" size={24} />
             </div>
-          ) : stats.usersByStatus && stats.usersByStatus.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+          ) : (stats.usersByStatus?.length ?? 0) > 0 ? (
+            <ResponsiveContainer width="100%" height={280} key={`bar-${stats.usersByStatus?.length}`}>
               <BarChart data={stats.usersByStatus}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis 
+                  dataKey="status" 
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  stroke="#cbd5e1"
+                />
+                <YAxis 
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  stroke="#cbd5e1"
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: any) => [`${value} users`, 'Count']}
+                />
+                <Bar dataKey="count" fill={THEME} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex h-64 items-center justify-center">
-              <p className="text-slate-400">No data available</p>
+              <p className="text-xs text-slate-400">
+                No data available {stats.usersByStatus?.length !== undefined && `(${stats.usersByStatus.length} items)`}
+              </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* User Growth & Teams */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Users Over Time - Line Chart */}
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-slate-900">User Growth</h3>
-          <p className="mb-4 text-sm text-slate-600">New user registrations over time</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-slate-900">User Growth</h3>
+            <p className="mt-0.5 text-xs text-slate-500">New registrations over time</p>
+          </div>
           {loading ? (
             <div className="flex h-64 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
+              <Loader2 className="animate-spin text-slate-400" size={24} />
             </div>
-          ) : stats.usersOverTime && stats.usersOverTime.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+          ) : (stats.usersOverTime?.length ?? 0) > 0 ? (
+            <ResponsiveContainer width="100%" height={280} key={`line-${stats.usersOverTime?.length}`}>
               <LineChart data={stats.usersOverTime}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="users" stroke="#111827" strokeWidth={2} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  stroke="#cbd5e1"
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  stroke="#cbd5e1"
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: any) => [`${value} users`, 'Users']}
+                  labelFormatter={(label) => {
+                    const date = new Date(label);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  }}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="users" 
+                  stroke={THEME} 
+                  strokeWidth={2}
+                  dot={{ fill: THEME, r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Users"
+                />
               </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex h-64 items-center justify-center">
-              <p className="text-slate-400">No data available</p>
+              <p className="text-xs text-slate-400">
+                No data available {stats.usersOverTime?.length !== undefined && `(${stats.usersOverTime.length} items)`}
+              </p>
             </div>
           )}
         </div>
 
-        {/* Teams Overview */}
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-slate-900">Teams Overview</h3>
-          <p className="mb-4 text-sm text-slate-600">Team statistics and activity</p>
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-4">
-              <div>
-                <p className="text-sm text-slate-600">Total Teams</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">
-                  {loading ? "..." : stats.teamsCount}
-                </p>
+        {/* Teams Overview - Black Card */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-slate-900">Teams Overview</h3>
+            <p className="mt-0.5 text-xs text-slate-500">Team statistics and activity</p>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-slate-900 p-4 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-white/80">Total Teams</p>
+                  <p className="mt-1.5 text-2xl font-bold">
+                    {loading ? "..." : (stats.teamsCount ?? 0).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10">
+                  <Users size={20} />
+                </div>
               </div>
-              <Users size={24} className="text-slate-400" />
             </div>
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-4">
-              <div>
-                <p className="text-sm text-slate-600">Active Teams</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">
-                  {loading ? "..." : stats.activeTeams}
-                </p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-slate-600">Active Teams</p>
+                  <p className="mt-1.5 text-xl font-bold text-slate-900">
+                    {loading ? "..." : (stats.activeTeams ?? 0).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900">
+                  <Activity size={18} className="text-white" />
+                </div>
               </div>
-              <Activity size={24} className="text-slate-400" />
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Link
-          href={`/${locale}/admin/users`}
-          className="rounded-lg border border-slate-200 bg-white p-6 transition hover:border-[#111827] hover:shadow-md"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-[#111827] p-3">
-              <Users size={24} className="text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900">User Management</h3>
-              <p className="mt-1 text-sm text-slate-600">Manage users and approvals</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link
-          href={`/${locale}/admin/hackathons`}
-          className="rounded-lg border border-slate-200 bg-white p-6 transition hover:border-[#111827] hover:shadow-md"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-[#111827] p-3">
-              <Activity size={24} className="text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900">Hackathons</h3>
-              <p className="mt-1 text-sm text-slate-600">Manage hackathon events</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link
-          href={`/${locale}/admin/teams`}
-          className="rounded-lg border border-slate-200 bg-white p-6 transition hover:border-[#111827] hover:shadow-md"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-[#111827] p-3">
-              <Users size={24} className="text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900">Teams</h3>
-              <p className="mt-1 text-sm text-slate-600">View and manage teams</p>
-            </div>
-          </div>
-        </Link>
       </div>
     </div>
   );

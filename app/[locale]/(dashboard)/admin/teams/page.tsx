@@ -211,84 +211,95 @@ export default function AdminTeamsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Teams Management</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-500">
             View all teams, manage team members, and oversee team activities.
           </p>
         </div>
-        <Link
-          href={`/${locale}/admin/teams/deliverables`}
-          className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          <FileText size={16} />
-          Deliverables
-        </Link>
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Users size={16} className="text-slate-600" />
+              <span className="text-sm font-semibold text-slate-900">{pagination.total}</span>
+              <span className="text-xs text-slate-500">teams</span>
+            </div>
+          </div>
+          <Link
+            href={`/${locale}/admin/teams/deliverables`}
+            className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+          >
+            <FileText size={16} />
+            Deliverables
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 md:flex-row md:items-center">
-        <div className="relative flex-1">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by team name or project title..."
-            value={filters.search}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by team name or project title..."
+              value={filters.search}
+              onChange={(e) => {
+                setFilters({ ...filters, search: e.target.value });
+                setPagination({ ...pagination, page: 1 });
+              }}
+              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+            />
+          </div>
+          <select
+            value={filters.school}
             onChange={(e) => {
-              setFilters({ ...filters, search: e.target.value });
+              setFilters({ ...filters, school: e.target.value });
               setPagination({ ...pagination, page: 1 });
             }}
-            className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#111827] focus:outline-none"
-          />
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+          >
+            <option>All Schools</option>
+            {/* TODO: Populate from API */}
+          </select>
+          <select
+            value={filters.status}
+            onChange={(e) => {
+              setFilters({ ...filters, status: e.target.value });
+              setPagination({ ...pagination, page: 1 });
+            }}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+          >
+            <option>All Statuses</option>
+            <option>ACTIVE</option>
+            <option>INACTIVE</option>
+          </select>
         </div>
-        <select
-          value={filters.school}
-          onChange={(e) => {
-            setFilters({ ...filters, school: e.target.value });
-            setPagination({ ...pagination, page: 1 });
-          }}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#111827] focus:outline-none"
-        >
-          <option>All Schools</option>
-          {/* TODO: Populate from API */}
-        </select>
-        <select
-          value={filters.status}
-          onChange={(e) => {
-            setFilters({ ...filters, status: e.target.value });
-            setPagination({ ...pagination, page: 1 });
-          }}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#111827] focus:outline-none"
-        >
-          <option>All Statuses</option>
-          <option>ACTIVE</option>
-          <option>INACTIVE</option>
-        </select>
       </div>
 
       {/* Teams Table */}
-      <div className="rounded-lg border border-slate-200 bg-white">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Team
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   School
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Project
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Members
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Created
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Actions
                 </th>
               </tr>
@@ -296,71 +307,76 @@ export default function AdminTeamsPage() {
             <tbody className="divide-y divide-slate-100 bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-16 text-center">
                     <div className="flex items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent"></div>
                     </div>
                   </td>
                 </tr>
               ) : teams.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500">
-                    No teams found
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <p className="text-sm font-medium text-slate-500">No teams found</p>
+                    <p className="mt-1 text-xs text-slate-400">Try adjusting your filters or search query</p>
                   </td>
                 </tr>
               ) : (
                 teams.map((team) => (
-                  <tr key={team.id} className="hover:bg-slate-50">
+                  <tr key={team.id} className="transition-colors hover:bg-slate-50/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {team.profileImage ? (
                           <img
                             src={team.profileImage}
                             alt={team.name}
-                            className="h-10 w-10 rounded-full object-cover"
+                            className="h-11 w-11 rounded-full object-cover ring-2 ring-slate-100"
                           />
                         ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200">
-                            <Users size={16} className="text-slate-500" />
+                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 ring-2 ring-slate-100">
+                            <Users size={18} className="text-white" />
                           </div>
                         )}
                         <div>
-                          <div className="font-medium text-slate-900">{team.name}</div>
+                          <div className="text-sm font-semibold text-slate-900">{team.name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{team.school}</td>
-                    <td className="px-6 py-4 text-sm text-slate-700">
-                      {team.projectTitle || "-"}
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-slate-700">{team.school}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-slate-700">{team.projectTitle || "-"}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <Users size={16} className="text-slate-400" />
-                        <span className="text-sm text-slate-700">{team.members?.length || 0}</span>
+                        <Users size={16} className="text-slate-500" />
+                        <span className="text-sm font-medium text-slate-700">{team.members?.length || 0}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(team.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-slate-500">
+                        {new Date(team.createdAt).toLocaleDateString()}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleViewDetails(team.id)}
-                          className="cursor-pointer rounded p-1 text-slate-600 hover:bg-slate-100"
+                          className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
                           title="View Details"
                         >
                           <Eye size={16} />
                         </button>
                         <button
                           onClick={() => handleEdit(team)}
-                          className="cursor-pointer rounded p-1 text-slate-600 hover:bg-slate-100"
+                          className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
                           title="Edit"
                         >
                           <Edit2 size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(team)}
-                          className="cursor-pointer rounded p-1 text-red-600 hover:bg-red-50"
+                          className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
                           title="Delete"
                         >
                           <Trash2 size={16} />
@@ -376,32 +392,30 @@ export default function AdminTeamsPage() {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="border-t border-slate-200 bg-white px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                {pagination.total} teams
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-                  disabled={pagination.page === 1}
-                  className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-slate-600">
-                  Page {pagination.page} of {pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-                  disabled={pagination.page >= pagination.totalPages}
-                  className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
+          <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 sm:flex-row">
+            <p className="text-sm font-medium text-slate-600">
+              Showing <span className="font-semibold text-slate-900">{((pagination.page - 1) * pagination.limit) + 1}</span> to{" "}
+              <span className="font-semibold text-slate-900">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{" "}
+              <span className="font-semibold text-slate-900">{pagination.total}</span> teams
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                disabled={pagination.page === 1}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:border-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-300"
+              >
+                Previous
+              </button>
+              <span className="text-sm font-medium text-slate-600">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <button
+                onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                disabled={pagination.page >= pagination.totalPages}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:border-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-300"
+              >
+                Next
+              </button>
             </div>
           </div>
         )}
@@ -464,7 +478,7 @@ export default function AdminTeamsPage() {
                 <button
                   onClick={handleSaveEdit}
                   disabled={loading || !editForm.name}
-                  className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="cursor-pointer rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Saving..." : "Save Changes"}
                 </button>
@@ -533,8 +547,8 @@ export default function AdminTeamsPage() {
                     className="h-16 w-16 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-200">
-                    <Users size={24} className="text-slate-500" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-900">
+                    <Users size={24} className="text-white" />
                   </div>
                 )}
                 <div className="flex-1">
@@ -559,7 +573,7 @@ export default function AdminTeamsPage() {
               <h3 className="text-lg font-semibold text-slate-900">Team Members</h3>
               <button
                 onClick={() => setShowAddMemberModal(true)}
-                className="cursor-pointer flex items-center gap-2 rounded-lg bg-[#111827] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#1f2937]"
+                className="cursor-pointer flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-slate-800"
               >
                 <Plus size={16} />
                 Add Member
@@ -568,7 +582,7 @@ export default function AdminTeamsPage() {
 
             {loadingMembers ? (
               <div className="flex items-center justify-center py-8">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent"></div>
               </div>
             ) : !teamMembers || teamMembers.length === 0 ? (
               <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
@@ -608,8 +622,8 @@ export default function AdminTeamsPage() {
                                 className="h-8 w-8 rounded-full object-cover"
                               />
                             ) : (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
-                                <Users size={14} className="text-slate-500" />
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900">
+                                <Users size={14} className="text-white" />
                               </div>
                             )}
                             <div>
@@ -742,8 +756,8 @@ export default function AdminTeamsPage() {
                                   className="h-8 w-8 rounded-full object-cover"
                                 />
                               ) : (
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
-                                  <Users size={14} className="text-slate-500" />
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900">
+                                  <Users size={14} className="text-white" />
                                 </div>
                               )}
                               <div className="flex-1">
@@ -814,7 +828,7 @@ export default function AdminTeamsPage() {
                 <button
                   onClick={handleAddMember}
                   disabled={loadingMembers || !addMemberForm.userId || !selectedStudent}
-                  className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="cursor-pointer rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loadingMembers ? "Adding..." : "Add Member"}
                 </button>

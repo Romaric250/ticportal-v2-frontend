@@ -109,8 +109,13 @@ export const adminService = {
    * Get dashboard statistics with charts data
    */
   async getDashboardStats(): Promise<DashboardStats> {
-    const { data } = await apiClient.get<{ success: true; data: DashboardStats }>("/admin/dashboard-stats");
-    return data.data;
+    const response = await apiClient.get<{ success: true; data: DashboardStats }>("/admin/dashboard-stats");
+    console.log("Raw API response for dashboard-stats:", response);
+    console.log("Response data:", response.data);
+    // Handle both { success: true, data: {...} } and direct {...} structures
+    const result = response.data?.data || response.data;
+    console.log("Extracted dashboard stats:", result);
+    return result;
   },
 
   /**
