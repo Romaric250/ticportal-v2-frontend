@@ -17,6 +17,13 @@ import {
   Palette,
   Leaf,
   Loader2,
+  BookOpen,
+  GraduationCap,
+  MessageSquare,
+  Sparkles,
+  TrendingUp,
+  Clock,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { portfolioService, type PortfolioData } from "@/src/lib/services/portfolioService";
@@ -159,72 +166,92 @@ export default function StudentPortfolioPage() {
   return (
     <div className="space-y-6">
       {/* Action Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Portfolio</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-400 transition-all">
-            <Share2 size={16} />
-            <span className="hidden sm:inline">Share</span>
+          <div className="relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 shadow-lg">
+              <Award className="h-5 w-5 text-white" />
+            </div>
+            <div className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white"></div>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">My Portfolio</h1>
+            <p className="text-xs text-slate-500 mt-0.5">Showcasing your achievements & journey</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="group inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 shadow-sm transition-all hover:bg-slate-900 hover:text-white hover:shadow-lg">
+            <Share2 size={16} className="transition-transform group-hover:rotate-12" />
+            <span className="hidden sm:inline">Share Portfolio</span>
           </button>
         </div>
       </div>
 
       {/* Portfolio Content - for PDF export */}
-      <div id="portfolio-content" className="space-y-6 bg-white p-6 sm:p-8">
-        {/* Profile Header */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3 sm:gap-4">
+      <div id="portfolio-content" className="space-y-6">
+        {/* Profile Header - Hero Section */}
+        <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-xl sm:p-8">
+          {/* Decorative elements */}
+          <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-gradient-to-br from-slate-900/10 to-transparent blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-gradient-to-tr from-slate-900/10 to-transparent blur-2xl" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] opacity-50" />
+          
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4 sm:gap-6">
               <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-900 to-slate-700 blur-lg opacity-30"></div>
                 {profile.avatarUrl ? (
                   <img
                     src={profile.avatarUrl}
                     alt={profile.name}
-                    className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-2 border-slate-200"
+                    className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover border-4 border-white shadow-2xl ring-4 ring-slate-900/10"
                   />
                 ) : (
-                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 text-xl sm:text-2xl font-bold border-2 border-slate-200">
+                  <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-white text-xl sm:text-2xl font-bold border-4 border-white shadow-2xl ring-4 ring-slate-900/10">
                     {profile.initials}
                   </div>
                 )}
-                <div className="absolute -bottom-1 -right-1 rounded-full bg-white border border-slate-200 px-2 py-0.5 shadow-sm">
-                  <span className="text-[10px] font-bold text-slate-700">Level {profile.level} {profile.levelTitle}</span>
+                <div className="absolute -bottom-2 -right-2 flex items-center gap-1 rounded-xl bg-gradient-to-r from-slate-900 to-slate-700 border-2 border-white px-3 py-1 shadow-xl">
+                  <Trophy className="h-3 w-3 text-white" />
+                  <span className="text-[10px] font-bold text-white">Level {profile.level}</span>
                 </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-xl sm:text-2xl font-bold truncate text-slate-900">{profile.name}</h2>
-                <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                  {profile.grade ? `Grade ${profile.grade}` : ""}{profile.grade && profile.school ? ", " : ""}{profile.school || ""}
-                </p>
+              <div className="flex-1 min-w-0 pt-1">
+                <div className="mb-2">
+                  <h2 className="text-2xl sm:text-3xl font-bold truncate bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">{profile.name}</h2>
+                  <p className="mt-1 text-sm font-medium text-slate-600">
+                    {profile.grade ? `Grade ${profile.grade}` : ""}{profile.grade && profile.school ? " · " : ""}{profile.school || ""}
+                  </p>
+                </div>
                 {profile.bio && (
-                  <p className="mt-2 text-sm text-slate-600 line-clamp-2">{profile.bio}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600 line-clamp-2">{profile.bio}</p>
                 )}
-                <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-3 sm:gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 flex-shrink-0">
-                      <Circle size={16} className="fill-slate-600 text-slate-600" />
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <div className="group/stat flex items-center gap-2.5 rounded-xl bg-white border-2 border-slate-200 px-3.5 py-2.5 shadow-sm hover:border-slate-900 hover:shadow-md transition-all">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-slate-900 to-slate-700 flex-shrink-0 shadow-md">
+                      <Sparkles className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <p className="text-[10px] sm:text-xs text-slate-500">TOTAL XP</p>
-                      <p className="text-xs sm:text-sm font-bold text-slate-900">{formatNumber(profile.totalXP)}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Total XP</p>
+                      <p className="text-sm font-bold text-slate-900">{formatNumber(profile.totalXP)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 flex-shrink-0">
-                      <Trophy size={16} className="text-slate-600" />
+                  <div className="group/stat flex items-center gap-2.5 rounded-xl bg-white border-2 border-slate-200 px-3.5 py-2.5 shadow-sm hover:border-slate-900 hover:shadow-md transition-all">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-slate-900 to-slate-700 flex-shrink-0 shadow-md">
+                      <Trophy className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <p className="text-[10px] sm:text-xs text-slate-500">GLOBAL RANK</p>
-                      <p className="text-xs sm:text-sm font-bold text-slate-900">#{profile.globalRank}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Global Rank</p>
+                      <p className="text-sm font-bold text-slate-900">#{profile.globalRank}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 flex-shrink-0">
-                      <Circle size={16} className="fill-slate-600 text-slate-600" />
+                  <div className="group/stat flex items-center gap-2.5 rounded-xl bg-white border-2 border-slate-200 px-3.5 py-2.5 shadow-sm hover:border-slate-900 hover:shadow-md transition-all">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-slate-900 to-slate-700 flex-shrink-0 shadow-md">
+                      <Clock className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <p className="text-[10px] sm:text-xs text-slate-500">HOURS</p>
-                      <p className="text-xs sm:text-sm font-bold text-slate-900">{formatHours(profile.hoursLogged)}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Hours</p>
+                      <p className="text-sm font-bold text-slate-900">{formatHours(profile.hoursLogged)}</p>
                     </div>
                   </div>
                 </div>
@@ -237,67 +264,88 @@ export default function StudentPortfolioPage() {
         {/* Left Column */}
         <div className="space-y-6">
           {/* Hackathon Journey */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-            <div className="mb-4 sm:mb-6 flex items-center gap-2">
-              <Rocket size={20} className="text-slate-700" />
-              <h2 className="text-lg font-semibold text-slate-900">Hackathon Journey</h2>
+          <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-white p-5 sm:p-6 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 shadow-lg">
+                  <Rocket className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Hackathon Journey</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Your path to innovation</p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-6">
+            <div className="relative space-y-6">
+              {/* Timeline line */}
+              <div className="absolute left-[18px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200" />
+              
               {hackathonJourney.map((phase, index) => {
                 const isLast = index === hackathonJourney.length - 1;
+                const isCompleted = phase.status === "completed";
                 return (
-                  <div key={phase.id} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${getPhaseCircleClass(phase.status)}`}>
+                  <div key={phase.id} className="relative flex gap-4 group/item">
+                    <div className="flex flex-col items-center z-10">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all group-hover/item:scale-110 ${
+                        isCompleted 
+                          ? "bg-gradient-to-br from-slate-900 to-slate-700 ring-4 ring-slate-900/20" 
+                          : phase.status === "in_progress"
+                          ? "bg-white border-2 border-slate-900 ring-4 ring-slate-900/10"
+                          : "bg-white border-2 border-slate-300 ring-2 ring-slate-200"
+                      }`}>
                         {getPhaseIcon(phase.icon, phase.status)}
                       </div>
-                      {!isLast && <div className="mt-2 h-16 w-px bg-slate-200" />}
+                      {!isLast && <div className="mt-2 h-16 w-0.5 bg-gradient-to-b from-slate-300 to-slate-200" />}
                     </div>
-                    <div className="flex-1">
-                      <div className="mb-1 flex items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-900">{phase.phase}</span>
+                    <div className="flex-1 pb-2">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="text-base font-bold text-slate-900">{phase.phase}</span>
                         {getPhaseStatusBadge(phase.status, phase.completedAt)}
                       </div>
-                      <p className="mb-2 text-sm text-slate-600">{phase.description}</p>
+                      <p className="mb-3 text-sm leading-relaxed text-slate-600">{phase.description}</p>
                       {phase.tags && phase.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="mb-3 flex flex-wrap gap-2">
                           {phase.tags.map((tag, tagIndex) => (
-                            <span key={tagIndex} className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                            <span key={tagIndex} className="rounded-lg bg-gradient-to-r from-slate-900 to-slate-700 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
                               {tag}
                             </span>
                           ))}
                         </div>
                       )}
                       {phase.teamMembers && phase.teamMembers.length > 0 && (
-                        <div className="mt-2 flex gap-2">
-                          {phase.teamMembers.map((member) => (
-                            <div
-                              key={member.id}
-                              className="h-8 w-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-xs font-semibold text-slate-700"
-                              title={member.name}
-                            >
-                              {member.avatarUrl ? (
-                                <img
-                                  src={member.avatarUrl}
-                                  alt={member.name}
-                                  className="h-full w-full rounded-full object-cover"
-                                />
-                              ) : (
-                                member.initials
-                              )}
-                            </div>
-                          ))}
+                        <div className="mb-3 flex items-center gap-2">
+                          <Users className="h-3.5 w-3.5 text-slate-400" />
+                          <div className="flex -space-x-2">
+                            {phase.teamMembers.map((member) => (
+                              <div
+                                key={member.id}
+                                className="h-8 w-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-700 shadow-md hover:z-10 hover:scale-110 transition-transform"
+                                title={member.name}
+                              >
+                                {member.avatarUrl ? (
+                                  <img
+                                    src={member.avatarUrl}
+                                    alt={member.name}
+                                    className="h-full w-full rounded-full object-cover"
+                                  />
+                                ) : (
+                                  member.initials
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                       {phase.status === "in_progress" && phase.progress > 0 && (
                         <>
-                          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-200 shadow-inner">
                             <div
-                              className="h-full rounded-full bg-[#111827] transition-all"
+                              className="h-full rounded-full bg-gradient-to-r from-slate-900 to-slate-700 transition-all shadow-sm"
                               style={{ width: `${phase.progress}%` }}
                             />
                           </div>
-                          <p className="mt-1 text-xs text-slate-500">{phase.progress}% complete</p>
+                          <p className="mt-1.5 text-xs font-medium text-slate-500">{phase.progress}% complete</p>
                         </>
                       )}
                     </div>
@@ -309,94 +357,118 @@ export default function StudentPortfolioPage() {
 
           {/* Featured Project */}
           {featuredProject ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-              <div className="mb-4 sm:mb-6 flex items-center gap-2">
-                <Lightbulb size={20} className="text-[#111827]" />
-                <h2 className="text-lg font-semibold text-slate-900">Featured Project</h2>
-              </div>
-              <div className="grid gap-6 md:grid-cols-[240px_minmax(0,1fr)]">
-                <div className="relative h-48 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 overflow-hidden">
-                  {featuredProject.thumbnailUrl || featuredProject.imageUrl ? (
-                    <img
-                      src={featuredProject.thumbnailUrl || featuredProject.imageUrl}
-                      alt={featuredProject.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="h-32 w-24 rounded-lg border-2 border-blue-300 bg-white/80 p-2">
-                        <div className="h-full w-full rounded bg-gradient-to-b from-blue-200 via-blue-100 to-emerald-100" />
+            <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-white p-0 shadow-lg hover:shadow-xl transition-all">
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative p-5 sm:p-6">
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 shadow-lg">
+                      <Lightbulb className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900">Featured Project</h2>
+                      <p className="text-xs text-slate-500 mt-0.5">Your standout work</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
+                  <div className="group/image relative h-48 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 overflow-hidden shadow-xl">
+                    {featuredProject.thumbnailUrl || featuredProject.imageUrl ? (
+                      <img
+                        src={featuredProject.thumbnailUrl || featuredProject.imageUrl}
+                        alt={featuredProject.title}
+                        className="h-full w-full object-cover transition-transform group-hover/image:scale-110"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+                        <Code className="h-16 w-16 text-white/40" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                    <span className="absolute left-3 top-3 rounded-lg bg-white/95 backdrop-blur-sm px-3 py-1 text-[11px] font-bold text-slate-900 shadow-lg">
+                      {featuredProject.category}
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">{featuredProject.title}</h3>
+                      <p className="text-sm leading-relaxed text-slate-600">{featuredProject.description}</p>
+                    </div>
+                    <div className="flex items-center gap-5 text-sm text-slate-600">
+                      <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1.5">
+                        <Eye className="h-4 w-4 text-slate-700" />
+                        <span className="font-bold text-slate-900">{formatNumber(featuredProject.views)}</span>
+                        <span className="text-xs text-slate-500">Views</span>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1.5">
+                        <Heart className="h-4 w-4 text-slate-700" />
+                        <span className="font-bold text-slate-900">{formatNumber(featuredProject.likes)}</span>
+                        <span className="text-xs text-slate-500">Likes</span>
                       </div>
                     </div>
-                  )}
-                  <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm">
-                    {featuredProject.category}
-                  </span>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">{featuredProject.title}</h3>
-                    <p className="mt-2 text-sm text-slate-600">{featuredProject.description}</p>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-slate-600">
-                    <div className="flex items-center gap-1.5">
-                      <Eye size={16} />
-                      <span className="font-semibold">{formatNumber(featuredProject.views)} Views</span>
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <button className="group/btn cursor-pointer rounded-xl bg-gradient-to-r from-slate-900 to-slate-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
+                        View Case Study
+                        <ChevronRight className="inline-block h-4 w-4 ml-1 transition-transform group-hover/btn:translate-x-1" />
+                      </button>
+                      {featuredProject.tags.map((tag, index) => (
+                        <span key={index} className="rounded-lg bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
+                          {tag}
+                        </span>
+                      ))}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Heart size={16} />
-                      <span className="font-semibold">{formatNumber(featuredProject.likes)} Likes</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1f2937] transition">
-                      View Case Study
-                    </button>
-                    {featuredProject.tags.map((tag, index) => (
-                      <span key={index} className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                        {tag}
-                      </span>
-                    ))}
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-              <div className="mb-4 sm:mb-6 flex items-center gap-2">
-                <Lightbulb size={20} className="text-[#111827]" />
-                <h2 className="text-lg font-semibold text-slate-900">Featured Project</h2>
+            <div className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-5 sm:p-6">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-200">
+                  <Lightbulb className="h-5 w-5 text-slate-400" />
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">Featured Project</h2>
               </div>
-              <p className="text-sm text-slate-500 py-8 text-center">No featured project yet</p>
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-200">
+                  <Code className="h-8 w-8 text-slate-400" />
+                </div>
+                <p className="text-sm font-medium text-slate-500">No featured project yet</p>
+                <p className="text-xs text-slate-400 mt-1">Complete a project to feature it here</p>
+              </div>
             </div>
           )}
 
           {/* Certifications */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-            <div className="mb-4 sm:mb-6 flex items-center gap-2">
-              <Award size={20} className="text-[#111827]" />
-              <h2 className="text-lg font-semibold text-slate-900">Certifications</h2>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
+                <GraduationCap className="h-4 w-4 text-white" />
+              </div>
+              <h2 className="text-base font-bold text-slate-900">Certifications</h2>
             </div>
             {certifications.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {certifications.map((cert) => (
-                  <div key={cert.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                  <div key={cert.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3.5">
+                    <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
                       {cert.icon === "check" ? (
-                        <CheckCircle size={20} className="sm:w-6 sm:h-6 text-[#111827] flex-shrink-0" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 flex-shrink-0">
+                          <CheckCircle className="h-4 w-4 text-white" />
+                        </div>
                       ) : (
-                        <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-purple-100 flex-shrink-0">
-                          <Trophy size={16} className="sm:w-5 sm:h-5 text-purple-600" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 flex-shrink-0">
+                          <Trophy className="h-4 w-4 text-white" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-slate-900">{cert.title}</h3>
-                        <p className="mt-0.5 text-xs text-slate-500">ISSUED BY {cert.issuer}</p>
-                        <p className="mt-1 text-xs text-slate-600">{cert.description}</p>
+                        <h3 className="text-xs font-bold text-slate-900">{cert.title}</h3>
+                        <p className="mt-0.5 text-[10px] text-slate-500 uppercase tracking-wide">Issued by {cert.issuer}</p>
+                        <p className="mt-1 text-[11px] text-slate-600">{cert.description}</p>
                       </div>
                     </div>
                     {cert.certificateUrl && (
-                      <button className="cursor-pointer w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-[#111827] hover:bg-slate-50 transition whitespace-nowrap">
+                      <button className="cursor-pointer w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-900 hover:bg-slate-50 transition whitespace-nowrap">
                         View Certificate
                       </button>
                     )}
@@ -404,7 +476,10 @@ export default function StudentPortfolioPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-500 py-8 text-center">No certifications yet</p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <GraduationCap className="h-8 w-8 text-slate-400 mb-2" />
+                <p className="text-xs text-slate-500">No certifications yet</p>
+              </div>
             )}
           </div>
         </div>
@@ -412,10 +487,19 @@ export default function StudentPortfolioPage() {
         {/* Right Sidebar */}
         <div className="space-y-6">
           {/* Trophy Case */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Trophy Case</h2>
-              <button className="cursor-pointer text-xs font-semibold text-[#111827] hover:underline">
+          <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 shadow-lg">
+                  <Trophy className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Trophy Case</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Your badges & awards</p>
+                </div>
+              </div>
+              <button className="cursor-pointer text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
                 VIEW ALL
               </button>
             </div>
@@ -424,66 +508,110 @@ export default function StudentPortfolioPage() {
                 {badges.slice(0, 6).map((badge) => (
                   <div
                     key={badge.id}
-                    className={`flex flex-col items-center gap-2 rounded-full p-4 text-[10px] font-semibold ${
-                      badge.locked ? "bg-slate-100 text-slate-500" : getBadgeColorClass(badge.color)
+                    className={`group/badge relative flex flex-col items-center gap-2 rounded-xl p-3.5 text-[10px] font-semibold transition-all hover:scale-110 hover:z-10 ${
+                      badge.locked 
+                        ? "bg-slate-100 text-slate-500 border-2 border-slate-200" 
+                        : `${getBadgeColorClass(badge.color)} border-2 border-transparent hover:border-slate-900 shadow-sm`
                     }`}
                     title={badge.name}
                   >
-                    <span className="text-lg">{badge.icon}</span>
-                    <span className="text-center leading-tight">{badge.name}</span>
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-md ${
+                      badge.locked ? "bg-slate-200" : "bg-gradient-to-br from-slate-900 to-slate-700"
+                    }`}>
+                      <Trophy className={`h-5 w-5 ${badge.locked ? "text-slate-400" : "text-white"}`} />
+                    </div>
+                    <span className="text-center leading-tight px-1">{badge.name}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-500 py-8 text-center">No badges yet</p>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                  <Trophy className="h-8 w-8 text-slate-400" />
+                </div>
+                <p className="text-sm font-medium text-slate-500">No badges yet</p>
+                <p className="text-xs text-slate-400 mt-1">Earn badges by completing milestones</p>
+              </div>
             )}
           </div>
 
           {/* Mentor Feedback */}
           {mentorFeedback.length > 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Mentor Feedback</h2>
-              {mentorFeedback.map((feedback) => (
-                <div key={feedback.id} className="mb-4 last:mb-0">
-                  <p className="mb-4 text-sm leading-relaxed text-slate-600">&quot;{feedback.feedback}&quot;</p>
-                  <div className="flex items-center gap-3">
-                    {feedback.mentor.avatarUrl ? (
-                      <img
-                        src={feedback.mentor.avatarUrl}
-                        alt={feedback.mentor.name}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-xs font-semibold text-slate-700">
-                        {feedback.mentor.name.charAt(0)}
+            <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl transition-all">
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 shadow-lg">
+                  <MessageSquare className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Mentor Feedback</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Words from your mentors</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {mentorFeedback.map((feedback) => (
+                  <div key={feedback.id} className="group/feedback relative rounded-xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50/50 p-4 shadow-sm hover:border-slate-900 hover:shadow-md transition-all">
+                    <div className="absolute top-3 left-3 text-4xl text-slate-900/5 font-serif">&quot;</div>
+                    <p className="relative mb-4 pl-6 text-sm leading-relaxed text-slate-700 italic">&quot;{feedback.feedback}&quot;</p>
+                    <div className="flex items-center gap-3 border-t border-slate-200 pt-3">
+                      {feedback.mentor.avatarUrl ? (
+                        <img
+                          src={feedback.mentor.avatarUrl}
+                          alt={feedback.mentor.name}
+                          className="h-10 w-10 rounded-full object-cover border-2 border-slate-200 shadow-sm"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-xs font-bold text-white border-2 border-white shadow-sm">
+                          {feedback.mentor.name.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">{feedback.mentor.name}</p>
+                        <p className="text-[11px] text-slate-500">
+                          {feedback.mentor.title}{feedback.mentor.company ? `, ${feedback.mentor.company}` : ""}
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{feedback.mentor.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {feedback.mentor.title}{feedback.mentor.company ? `, ${feedback.mentor.company}` : ""}
-                      </p>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Mentor Feedback</h2>
-              <p className="text-sm text-slate-500 py-4 text-center">No mentor feedback yet</p>
+            <div className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-200">
+                  <MessageSquare className="h-5 w-5 text-slate-400" />
+                </div>
+                <h2 className="text-base font-bold text-slate-900">Mentor Feedback</h2>
+              </div>
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                  <MessageSquare className="h-8 w-8 text-slate-400" />
+                </div>
+                <p className="text-sm font-medium text-slate-500">No mentor feedback yet</p>
+                <p className="text-xs text-slate-400 mt-1">Receive feedback from mentors here</p>
+              </div>
             </div>
           )}
 
           {/* Core Skills */}
           {skills.length > 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Core Skills</h2>
+            <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl transition-all">
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 shadow-lg">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Core Skills</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Your expertise areas</p>
+                </div>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill) => (
                   <span
                     key={skill.id}
-                    className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700"
+                    className="group/skill inline-flex items-center rounded-xl bg-gradient-to-r from-slate-900 to-slate-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-default"
                   >
                     {skill.name}
                   </span>
@@ -491,9 +619,20 @@ export default function StudentPortfolioPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Core Skills</h2>
-              <p className="text-sm text-slate-500 py-4 text-center">No skills added yet</p>
+            <div className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-200">
+                  <TrendingUp className="h-5 w-5 text-slate-400" />
+                </div>
+                <h2 className="text-base font-bold text-slate-900">Core Skills</h2>
+              </div>
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                  <TrendingUp className="h-8 w-8 text-slate-400" />
+                </div>
+                <p className="text-sm font-medium text-slate-500">No skills added yet</p>
+                <p className="text-xs text-slate-400 mt-1">Add your skills to showcase expertise</p>
+              </div>
             </div>
           )}
         </div>

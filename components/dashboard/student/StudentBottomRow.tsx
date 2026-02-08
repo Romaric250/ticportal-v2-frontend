@@ -1,6 +1,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
+import { Calendar, Award, Lightbulb, BookOpen, HelpCircle, Trophy } from "lucide-react";
 import { BadgePoints } from "../../../components/gamification/BadgePoints";
 import { QuickAccessTile } from "./StudentQuickAccessTile";
 import { UpcomingDeadlineItem } from "./StudentUpcomingDeadlineItem";
@@ -36,13 +37,11 @@ const getBadgeColorClass = (color: string) => {
   return colorMap[color] || "bg-slate-50 text-slate-400";
 };
 
-// Helper to get a fallback icon if the provided icon is invalid
-const getBadgeIcon = (icon: string | null | undefined): string => {
-  if (!icon || icon.trim().length === 0) {
-    return "🏆"; // Default fallback
-  }
-  // Return the icon as-is - browser should handle UTF-8 encoding
-  return icon;
+// Helper to get a fallback icon component if the provided icon is invalid
+const getBadgeIconComponent = (icon: string | null | undefined): React.ReactNode => {
+  // For now, we'll use a default Trophy icon component instead of emoji
+  // In the future, you could map icon strings to specific icon components
+  return <Trophy className="h-5 w-5" />;
 };
 
 export function StudentBottomRow({ deadlines, badges, badgeStats }: Props) {
@@ -55,19 +54,21 @@ export function StudentBottomRow({ deadlines, badges, badgeStats }: Props) {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="grid gap-3 lg:grid-cols-3">
       {/* Upcoming deadlines */}
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm text-sm border-l-4 border-l-[#111827]">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-            Upcoming deadlines
-          </h2>
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-xs text-slate-600">
-            📅
+      <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md border-l-4 border-l-slate-900 sm:p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900">
+              <Calendar className="h-3.5 w-3.5 text-white" />
+            </div>
+            <h2 className="text-[10px] font-bold uppercase tracking-wide text-slate-900">
+              Upcoming Deadlines
+            </h2>
           </div>
         </div>
         {deadlines.length > 0 ? (
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {deadlines.slice(0, 3).map((deadline) => (
               <UpcomingDeadlineItem
                 key={deadline.id}
@@ -79,19 +80,27 @@ export function StudentBottomRow({ deadlines, badges, badgeStats }: Props) {
             ))}
           </ul>
         ) : (
-          <p className="text-xs text-slate-500 py-4">No upcoming deadlines</p>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <Calendar className="h-6 w-6 text-slate-400 mb-1.5" />
+            <p className="text-[11px] text-slate-500">No upcoming deadlines</p>
+          </div>
         )}
       </div>
 
       {/* Recent badges */}
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm text-sm border-l-4 border-l-[#111827]">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-            Recent badges
-          </h2>
+      <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md border-l-4 border-l-slate-900 sm:p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900">
+              <Award className="h-3.5 w-3.5 text-white" />
+            </div>
+            <h2 className="text-[10px] font-bold uppercase tracking-wide text-slate-900">
+              Recent Badges
+            </h2>
+          </div>
           <button
             onClick={handleViewAllBadges}
-            className="cursor-pointer text-xs font-medium text-[#111827] hover:underline"
+            className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition-colors"
           >
             View all
           </button>
@@ -99,37 +108,47 @@ export function StudentBottomRow({ deadlines, badges, badgeStats }: Props) {
 
         {badges.length > 0 ? (
           <>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 mb-3">
               {badges.slice(0, 3).map((badge) => (
                 <div
                   key={badge.id}
-                  className={`flex h-14 w-16 flex-col items-center justify-center rounded-xl text-xs font-semibold ${
+                  className={`flex h-14 w-16 flex-col items-center justify-center gap-1 rounded-lg text-xs font-semibold transition-all hover:scale-105 ${
                     badge.locked ? "bg-slate-50 text-slate-400" : getBadgeColorClass(badge.color)
                   }`}
                   title={badge.name}
                 >
-                  <span className="text-lg">{getBadgeIcon(badge.icon)}</span>
-                  <span className="text-center text-[10px] leading-tight">{badge.name}</span>
+                  <div className="flex items-center justify-center">
+                    {getBadgeIconComponent(badge.icon)}
+                  </div>
+                  <span className="text-center text-[9px] leading-tight px-1">{badge.name}</span>
                 </div>
               ))}
             </div>
             <BadgePoints badgesCount={badgeStats.totalBadges} points={badgeStats.totalPoints} />
           </>
         ) : (
-          <p className="text-xs text-slate-500 py-4">No badges earned yet</p>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <Award className="h-6 w-6 text-slate-400 mb-1.5" />
+            <p className="text-[11px] text-slate-500">No badges earned yet</p>
+          </div>
         )}
       </div>
 
       {/* Quick access */}
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm text-sm border-l-4 border-l-[#111827]">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-          Quick access
-        </h2>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <QuickAccessTile icon="💡" label="Hackathon" />
-          <QuickAccessTile icon="📚" label="Resources" />
-          <QuickAccessTile icon="📅" label="Calendar" />
-          <QuickAccessTile icon="❓" label="Support" />
+      <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md border-l-4 border-l-slate-900 sm:p-5">
+        <div className="flex items-center gap-1.5 mb-3">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900">
+            <Lightbulb className="h-3.5 w-3.5 text-white" />
+          </div>
+          <h2 className="text-[10px] font-bold uppercase tracking-wide text-slate-900">
+            Quick Access
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <QuickAccessTile icon={<Lightbulb className="h-4 w-4" />} label="Hackathon" />
+          <QuickAccessTile icon={<BookOpen className="h-4 w-4" />} label="Resources" />
+          <QuickAccessTile icon={<Calendar className="h-4 w-4" />} label="Calendar" />
+          <QuickAccessTile icon={<HelpCircle className="h-4 w-4" />} label="Support" />
         </div>
       </div>
     </div>

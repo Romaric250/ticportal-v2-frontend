@@ -12,6 +12,7 @@ import { useAuthStore } from "../../../src/state/auth-store";
 import { userService } from "../../../src/lib/services/userService";
 import { teamService } from "../../../src/lib/services/teamService";
 import { paymentService } from "../../../src/lib/services/paymentService";
+import { affiliateService, type AffiliateProfile } from "../../../src/lib/services/affiliateService";
 import { tokenStorage } from "../../../src/lib/api-client";
 import { toast } from "sonner";
 
@@ -53,6 +54,8 @@ export default function DashboardLayout({ children }: Props) {
   const [authChecked, setAuthChecked] = useState(false);
   const [validatingAuth, setValidatingAuth] = useState(true);
   const [paymentChecked, setPaymentChecked] = useState(false);
+  const [affiliateProfileChecked, setAffiliateProfileChecked] = useState(false);
+  const [affiliateProfile, setAffiliateProfile] = useState<AffiliateProfile | null>(null);
 
   // Validate authentication on mount - check if tokens are valid
   useEffect(() => {
@@ -137,6 +140,52 @@ export default function DashboardLayout({ children }: Props) {
       setAuthChecked(true);
     }
   }, [role, user, router, locale, initialized, validatingAuth]);
+
+  // Check affiliate profile - verify user is affiliate and fetch profile before showing dashboard
+  useEffect(() => {
+    const checkAffiliateProfile = async () => {
+      // Wait for auth validation and role check to complete
+      if (validatingAuth || !initialized || !authChecked) {
+        return;
+      }
+
+      // Only check for affiliate role
+      if (role !== "affiliate") {
+        setAffiliateProfileChecked(true);
+        return;
+      }
+
+      // Verify user role is affiliate
+      if (!user || user.role?.toLowerCase() !== "affiliate") {
+        logout();
+        router.replace(`/${locale}/login`);
+        return;
+      }
+
+      // Fetch affiliate profile
+      try {
+        const profile = await affiliateService.getProfile();
+        setAffiliateProfile(profile);
+        setAffiliateProfileChecked(true);
+      } catch (error: any) {
+        console.error("Error fetching affiliate profile:", error);
+        const status = error?.response?.status;
+        if (status === 404 || status === 403 || status === 401) {
+          // User doesn't have an affiliate profile, doesn't have permission, or is unauthorized
+          toast.error("Affiliate profile not found. Please contact admin.");
+          logout();
+          router.replace(`/${locale}/login`);
+          return;
+        } else {
+          // Other errors - allow access but log the error
+          console.warn("Failed to fetch affiliate profile:", error);
+          setAffiliateProfileChecked(true);
+        }
+      }
+    };
+
+    checkAffiliateProfile();
+  }, [validatingAuth, initialized, authChecked, role, user, router, locale]);
 
   // Check payment status - redirect to payment page if payment is required but not paid
   useEffect(() => {
@@ -300,6 +349,7 @@ export default function DashboardLayout({ children }: Props) {
   if (
     validatingAuth || 
     ((role === "admin" || role === "super-admin" || role === "affiliate") && !authChecked) ||
+    (role === "affiliate" && !affiliateProfileChecked) ||
     (role === "student" && !paymentChecked)
   ) {
     return null; // Render nothing - completely invisible
@@ -307,7 +357,7 @@ export default function DashboardLayout({ children }: Props) {
 
   return (
     <div className="flex h-screen bg-[#f9fafb] text-slate-900" style={{ overflow: 'visible', position: 'relative' }}>
-      <Sidebar role={role} />
+      <Sidebar role={role} affiliateProfile={affiliateProfile || undefined} />
       <div className="flex h-screen flex-1 flex-col overflow-hidden">
         <TopNav />
         <main className="flex-1 overflow-y-auto px-1 py-4 sm:px-5 sm:py-5 md:px-8 md:py-6">{children}</main>

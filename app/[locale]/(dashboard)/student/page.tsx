@@ -61,7 +61,7 @@ export default function StudentDashboardPage() {
   }
 
   return (
-    <div className="space-y-6 text-slate-900">
+    <div className="space-y-5 text-slate-900">
       <StudentHeader user={data.user} stats={data.stats} />
       <StudentStatsRow stats={data.stats} />
       <StudentNextUpAndTeam nextUp={data.nextUp} team={data.team} />
