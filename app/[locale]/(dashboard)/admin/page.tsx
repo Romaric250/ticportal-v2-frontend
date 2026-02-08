@@ -99,7 +99,7 @@ export default function AdminDashboardPage() {
           if (typeof dashboardStats.activeTeams === 'number') {
             activeTeams = dashboardStats.activeTeams;
           }
-        }git 
+        }
         
         console.log("=== PROCESSED ARRAYS ===");
         console.log("usersByRole:", usersByRole);
