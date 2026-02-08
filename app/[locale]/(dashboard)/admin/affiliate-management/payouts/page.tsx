@@ -20,7 +20,7 @@ export default function PayoutsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<"PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<"PENDING" | "PROCESSING" | "PAID" | "FAILED" | undefined>(undefined);
 
   useEffect(() => {
     loadPayouts();
@@ -58,7 +58,7 @@ export default function PayoutsPage() {
 
       {/* Status Filter */}
       <div className="flex gap-2">
-        {(["all", "PENDING", "PROCESSING", "COMPLETED", "FAILED"] as const).map((status) => (
+        {(["all", "PENDING", "PROCESSING", "PAID", "FAILED"] as const).map((status) => (
           <button
             key={status}
             type="button"
@@ -111,7 +111,7 @@ export default function PayoutsPage() {
               payouts.map((row) => (
                 <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                   <td className="px-3 py-2.5 font-medium text-slate-900">
-                    {row.batchNumber || row.id}
+                    {row.id}
                   </td>
                   <td className="px-3 py-2.5 text-slate-600">
                     <div>
@@ -124,7 +124,7 @@ export default function PayoutsPage() {
                     </div>
                   </td>
                   <td className="px-3 py-2.5 font-medium text-slate-900">
-                    {formatXAF(row.totalAmount)}
+                    {formatXAF(row.amount)}
                   </td>
                   <td className="px-3 py-2.5 text-slate-600">
                     {row.commissionCount} commission{row.commissionCount !== 1 ? "s" : ""}
@@ -132,7 +132,7 @@ export default function PayoutsPage() {
                   <td className="px-3 py-2.5">
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                        row.status === "COMPLETED"
+                        row.status === "PAID"
                           ? "bg-emerald-100 text-emerald-700"
                           : row.status === "FAILED"
                           ? "bg-red-100 text-red-700"

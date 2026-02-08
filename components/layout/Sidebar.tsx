@@ -9,6 +9,7 @@ import { useAuthStore } from "../../src/state/auth-store";
 import { authService } from "../../src/lib/services/authService";
 import { toast } from "sonner";
 import { cn } from "../../src/utils/cn";
+import type { AffiliateProfile } from "../../src/lib/services/affiliateService";
 
 type SidebarLink = {
   href: string;
@@ -18,6 +19,7 @@ type SidebarLink = {
 
 type Props = {
   role: "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate";
+  affiliateProfile?: AffiliateProfile;
 };
 
 export function Sidebar({ role, affiliateProfile }: Props) {

@@ -324,7 +324,7 @@ export default function AffiliateMarketersPage() {
 
   const handleEdit = (affiliate: AffiliateMarketer) => {
     setEditingAffiliate(affiliate);
-    setEditRegionId(affiliate.regionId || "");
+    setEditRegionId(affiliate.region?.id || "");
     setEditSubRole(affiliate.subRole);
     setEditStatus(affiliate.status);
     setEditTier(affiliate.tier || "STANDARD");
@@ -334,8 +334,8 @@ export default function AffiliateMarketersPage() {
     setEditMobileMoneyNumber(affiliate.mobileMoneyNumber || "");
     setEditMobileMoneyProvider(affiliate.mobileMoneyProvider || "");
     
-    // Load regions if regionId exists
-    if (affiliate.regionId && affiliate.region?.country?.id) {
+    // Load regions if region exists
+    if (affiliate.region?.id && affiliate.region?.country?.id) {
       loadRegions(affiliate.region.country.id);
       setSelectedCountryId(affiliate.region.country.id);
     }

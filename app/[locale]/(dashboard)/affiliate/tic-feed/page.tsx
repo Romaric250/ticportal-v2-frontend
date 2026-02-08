@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 // Affiliate sees TIC Feed (read-only): like, comment, view. No create/edit/delete.
 export default function AffiliateTicFeedPage() {
-  const { user } = useAuthStore();
+  const { user, accessToken } = useAuthStore();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -77,8 +77,10 @@ export default function AffiliateTicFeedPage() {
   };
 
   useEffect(() => {
-    connectSocket();
-  }, []);
+    if (accessToken) {
+      connectSocket(accessToken);
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     loadPosts(true);
