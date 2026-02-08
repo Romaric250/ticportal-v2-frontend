@@ -24,12 +24,15 @@ export interface InitiatePaymentRequest {
   phoneNumber: string;
   amount: number;
   countryId: string;
+  userId: string; // ID of the user being paid for (selected student or current user)
   referralCode?: string;
 }
 
 export interface InitiatePaymentResponse {
   paymentId: string;
   paymentReference: string;
+  fapshiTransId?: string;
+  paymentLink?: string;
   status: "PENDING" | "CONFIRMED" | "FAILED" | "REFUNDED";
   amount: number;
   currency: string;
@@ -96,7 +99,9 @@ export const paymentService = {
    * POST /api/payment/initiate
    */
   async initiatePayment(payload: InitiatePaymentRequest): Promise<InitiatePaymentResponse> {
-    const { data } = await apiClient.post<InitiatePaymentResponse>("/payment/initiate", payload);
+    const { data } = await apiClient.post<InitiatePaymentResponse>("/payment/initiate", payload, {
+      skipRefresh: true, // Skip automatic token refresh - let error handling handle 401
+    });
     return data;
   },
 
@@ -110,11 +115,29 @@ export const paymentService = {
   },
 
   /**
+   * Check if current user has paid
+   * GET /api/payment/status
+   */
+  async checkUserPaymentStatus(): Promise<{ hasPaid: boolean; isRequired: boolean }> {
+    const { data } = await apiClient.get<{ hasPaid: boolean; isRequired: boolean }>("/payment/status");
+    return data;
+  },
+
+  /**
    * Get payment history
    * GET /api/payment/history
    */
   async getPaymentHistory(params?: { page?: number; limit?: number }): Promise<PaymentHistoryResponse> {
     const { data } = await apiClient.get<PaymentHistoryResponse>("/payment/history", { params });
+    return data;
+  },
+
+  /**
+   * Confirm payment success (called after Fapshi redirect)
+   * POST /api/payment/confirm-success
+   */
+  async confirmPaymentSuccess(payload: { transId: string; status: string }): Promise<{ success: boolean }> {
+    const { data } = await apiClient.post<{ success: boolean }>("/payment/confirm-success", payload);
     return data;
   },
 };

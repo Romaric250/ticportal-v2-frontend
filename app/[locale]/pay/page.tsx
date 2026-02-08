@@ -369,14 +369,22 @@ export default function PaymentPage() {
       return;
     }
 
-    // Note: Backend will use the authenticated user's ID from token
-    // If paying for different student, that would need backend support
+    // Determine which user we're paying for (selected student or current user)
+    const payingForUserId = selectedStudent?.id || currentUserProfile?.id;
+    
+    if (!payingForUserId) {
+      toast.error("Unable to determine user. Please try again.");
+      setSubmitting(false);
+      return;
+    }
+
     setSubmitting(true);
     try {
       console.log("Initiating payment with:", {
         phoneNumber,
         amount: totalAmount,
         countryId: selectedCountry.id,
+        userId: payingForUserId,
         referralCode: referralCode || undefined,
         hasToken: !!finalToken,
         tokenLength: finalToken?.length,
@@ -386,65 +394,42 @@ export default function PaymentPage() {
         phoneNumber,
         amount: totalAmount,
         countryId: selectedCountry.id,
+        userId: payingForUserId,
         referralCode: referralCode || undefined,
       });
       
-      toast.success(result.message || "Payment initiated. Please check your phone and enter your PIN.");
+      // Verify the response is valid - axios throws errors for non-200 status codes,
+      // so if we reach here, the API call was successful (status 200)
+      if (!result || !result.paymentId) {
+        console.error("Invalid payment response:", result);
+        throw new Error("Invalid response from payment service - missing paymentId");
+      }
       
-      pollPaymentStatus(result.paymentId);
+      console.log("Payment initiated successfully (status 200):", result);
+      
+      // Redirect to Fapshi payment link
+      if (result.paymentLink) {
+        window.location.href = result.paymentLink;
+      } else {
+        throw new Error("Payment link not provided in response");
+      }
     } catch (error: any) {
       console.error("Failed to initiate payment:", error);
       
+      // Stay on payment form modal on error
       if (error?.response?.status === 401) {
-        toast.error("Authentication failed. Please log in again.");
-        router.push(`/${locale}/login?redirect=/pay${referralCode ? `?ref=${referralCode}` : ""}`);
+        toast.error("Authentication failed. Please check your login and try again.");
+      } else if (error?.response?.status === 400) {
+        toast.error(error?.response?.data?.error || error?.message || "Invalid payment request. Please check your details.");
+      } else if (error?.response?.status >= 500) {
+        toast.error("Server error. Please try again later.");
       } else {
-        toast.error(error?.message || "Failed to initiate payment");
+        toast.error(error?.message || "Failed to initiate payment. Please try again.");
       }
+      
+      // Reset submitting state so user can try again
       setSubmitting(false);
     }
-  };
-
-  const pollPaymentStatus = async (paymentId: string) => {
-    const maxAttempts = 30;
-    let attempts = 0;
-    
-    const poll = async () => {
-      try {
-        const status = await paymentService.getPaymentStatus(paymentId);
-        
-        if (status.status === "CONFIRMED") {
-          toast.success("Payment confirmed successfully!");
-          setSubmitting(false);
-          router.push(`/${locale}/student`);
-          return;
-        }
-        
-        if (status.status === "FAILED") {
-          toast.error("Payment failed. Please try again.");
-          setSubmitting(false);
-          return;
-        }
-        
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(poll, 2000);
-        } else {
-          toast.info("Payment is still processing. We'll notify you when it's confirmed.");
-          setSubmitting(false);
-        }
-      } catch (error) {
-        console.error("Error polling payment status:", error);
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(poll, 2000);
-        } else {
-          setSubmitting(false);
-        }
-      }
-    };
-    
-    poll();
   };
 
   const handleClose = () => {
@@ -470,13 +455,15 @@ export default function PaymentPage() {
   } : null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ overflow: "hidden" }}>
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-        onClick={handleClose}
-        aria-hidden
-      />
+    <>
+      {/* Payment Form Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ overflow: "hidden" }}>
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          onClick={handleClose}
+          aria-hidden
+        />
       
       {/* Modal - Fixed height, no scrolling */}
       <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5 max-h-[90vh] flex flex-col overflow-hidden">
@@ -925,6 +912,7 @@ export default function PaymentPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

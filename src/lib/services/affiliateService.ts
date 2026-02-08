@@ -65,6 +65,7 @@ export interface AffiliateProfile {
   referralLink: string;
   status: AffiliateStatus;
   tier: AffiliateTier;
+  commissionRate?: number;
   region: Region | null;
   country: Country | null;
   totalReferrals: number;

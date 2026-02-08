@@ -1,6 +1,13 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { getEncryptedItem, setEncryptedItem, removeEncryptedItem } from "../utils/encryption";
 
+// Extend AxiosRequestConfig to include skipRefresh option
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    skipRefresh?: boolean;
+  }
+}
+
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
 
@@ -79,6 +86,11 @@ apiClient.interceptors.response.use(
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Skip refresh if explicitly requested (e.g., for payment endpoints)
+    if (originalRequest?.skipRefresh) {
+      return Promise.reject(error);
+    }
 
     // Handle 403 (Forbidden) errors - these are permission issues, not auth issues
     // Don't clear tokens or redirect, just show the error

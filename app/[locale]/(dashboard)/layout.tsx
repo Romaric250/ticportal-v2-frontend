@@ -11,6 +11,7 @@ import { TeamModal } from "../../../components/dashboard/TeamModal";
 import { useAuthStore } from "../../../src/state/auth-store";
 import { userService } from "../../../src/lib/services/userService";
 import { teamService } from "../../../src/lib/services/teamService";
+import { paymentService } from "../../../src/lib/services/paymentService";
 import { tokenStorage } from "../../../src/lib/api-client";
 import { toast } from "sonner";
 
@@ -51,6 +52,7 @@ export default function DashboardLayout({ children }: Props) {
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
   const [validatingAuth, setValidatingAuth] = useState(true);
+  const [paymentChecked, setPaymentChecked] = useState(false);
 
   // Validate authentication on mount - check if tokens are valid
   useEffect(() => {
@@ -136,6 +138,40 @@ export default function DashboardLayout({ children }: Props) {
     }
   }, [role, user, router, locale, initialized, validatingAuth]);
 
+  // Check payment status - redirect to payment page if payment is required but not paid
+  useEffect(() => {
+    const checkPaymentStatus = async () => {
+      // Wait for auth validation to complete
+      if (validatingAuth || !initialized || !user) {
+        return;
+      }
+
+      // Only check payment for student role (other roles don't need payment)
+      if (role !== "student") {
+        setPaymentChecked(true);
+        return;
+      }
+
+      try {
+        const paymentStatus = await paymentService.checkUserPaymentStatus();
+        
+        // If payment is required but user hasn't paid, redirect to payment page
+        if (paymentStatus.isRequired && !paymentStatus.hasPaid) {
+          router.replace(`/${locale}/pay`);
+          return;
+        }
+
+        setPaymentChecked(true);
+      } catch (error: any) {
+        console.error("Error checking payment status:", error);
+        // On error, allow access (might be network issue or user doesn't need payment)
+        // Don't block dashboard access on payment check errors
+        setPaymentChecked(true);
+      }
+    };
+
+    checkPaymentStatus();
+  }, [validatingAuth, initialized, user, role, router, locale]);
 
   // Check if student needs onboarding
   useEffect(() => {
@@ -261,7 +297,11 @@ export default function DashboardLayout({ children }: Props) {
 
   // Don't render anything until auth is validated and checked - show nothing (invisible)
   // This check happens AFTER all hooks are called to follow Rules of Hooks
-  if (validatingAuth || ((role === "admin" || role === "super-admin" || role === "affiliate") && !authChecked)) {
+  if (
+    validatingAuth || 
+    ((role === "admin" || role === "super-admin" || role === "affiliate") && !authChecked) ||
+    (role === "student" && !paymentChecked)
+  ) {
     return null; // Render nothing - completely invisible
   }
 

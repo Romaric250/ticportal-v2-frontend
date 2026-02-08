@@ -44,9 +44,9 @@ function getStatusColor(status: string): string {
   switch (status) {
     case "PAID":
     case "ACTIVATED":
-      return "bg-emerald-100 text-emerald-700";
+      return "bg-slate-100 text-slate-700";
     case "PENDING":
-      return "bg-amber-100 text-amber-700";
+      return "bg-amber-50 text-amber-700";
     default:
       return "bg-slate-100 text-slate-600";
   }
@@ -55,11 +55,11 @@ function getStatusColor(status: string): string {
 function getStatusLabel(status: string): string {
   switch (status) {
     case "PAID":
-      return "PAYMENT CONFIRMED";
+      return "Confirmed";
     case "PENDING":
-      return "PROCESSING";
+      return "Processing";
     case "ACTIVATED":
-      return "ACTIVATED";
+      return "Activated";
     default:
       return status;
   }
@@ -178,6 +178,7 @@ export default function AffiliateDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<AffiliateDashboard | null>(null);
   const [referralLink, setReferralLink] = useState("");
+  const [commissionRate, setCommissionRate] = useState<number | null>(null);
 
   useEffect(() => {
     loadDashboard();
@@ -192,6 +193,7 @@ export default function AffiliateDashboardPage() {
       ]);
       setDashboard(dashboardData);
       setReferralLink(profile.referralLink);
+      setCommissionRate(profile.commissionRate || null);
     } catch (error: any) {
       console.error("Failed to load dashboard:", error);
       toast.error(error?.message || "Failed to load dashboard data");
@@ -233,7 +235,7 @@ export default function AffiliateDashboardPage() {
   };
 
   return (
-    <div className="min-w-0 space-y-5 sm:space-y-6">
+    <div className="min-w-0 space-y-4">
       <WithdrawFundsModal
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
@@ -243,85 +245,102 @@ export default function AffiliateDashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-            Affiliate Performance
+            Affiliate Dashboard
           </h1>
           <p className="mt-1.5 text-sm text-slate-500">
-            Track your student acquisitions and real-time earnings. All amounts in XAF.
+            Track your referrals and earnings. All amounts in XAF.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setWithdrawOpen(true)}
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-slate-900/20 transition-all hover:opacity-95 hover:shadow-xl hover:shadow-slate-900/25 w-full sm:w-auto"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 w-full sm:w-auto"
           style={{ backgroundColor: THEME }}
         >
-          <Wallet size={18} />
-          <span className="whitespace-nowrap">Withdraw Funds</span>
+          <Wallet size={16} />
+          <span className="whitespace-nowrap">Withdraw</span>
         </button>
       </div>
 
-      {/* Metric cards */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-          <div className="flex items-start justify-between">
+      {/* Commission Rate Card */}
+      {commissionRate !== null && (
+        <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-sm">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              <p className="text-xs font-medium text-slate-600">Commission Rate</p>
+              <p className="mt-1 text-base font-bold text-slate-900">
+                {(commissionRate * 100).toFixed(1)}%
+              </p>
+            </div>
+            <div className="rounded-lg bg-slate-900 px-2.5 py-1">
+              <span className="text-xs font-semibold text-white">{dashboard?.profile?.tier || "STANDARD"}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Metric cards */}
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow">
+          <div className="flex items-start justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-600">
                 Pending Commission
               </p>
-              <p className="mt-2 text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+              <p className="mt-1.5 text-xl font-bold text-slate-900">
                 {formatXAF(metrics.pendingCommission)}
               </p>
-              <p className="mt-1 text-xs font-medium text-slate-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Awaiting approval
               </p>
             </div>
             <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105"
-              style={{ backgroundColor: `${THEME}15` }}
+              className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${THEME}10` }}
             >
-              <Clock size={20} style={{ color: THEME }} />
+              <Clock size={18} style={{ color: THEME }} />
             </div>
           </div>
         </div>
-        <div className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+        <div className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow">
           <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-600">
                 Earned Commission
               </p>
-              <p className="mt-2 text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+              <p className="mt-1.5 text-xl font-bold text-slate-900">
                 {formatXAF(metrics.earnedCommission)}
               </p>
-              <p className="mt-1 text-xs font-medium text-emerald-600">
-                {metrics.activeReferrals} active referrals
+              <p className="mt-1 text-xs text-slate-600">
+                {metrics.activeReferrals} active {metrics.activeReferrals === 1 ? "referral" : "referrals"}
               </p>
             </div>
             <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105"
-              style={{ backgroundColor: `${THEME}15` }}
+              className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${THEME}10` }}
             >
-              <CheckCircle size={20} style={{ color: THEME }} />
+              <CheckCircle size={18} style={{ color: THEME }} />
             </div>
           </div>
         </div>
         <div
-          className="rounded-2xl border p-5 text-white shadow-md transition-shadow hover:shadow-lg"
+          className="rounded-xl border p-4 text-white shadow-sm transition-shadow hover:shadow"
           style={{ backgroundColor: THEME, borderColor: "rgba(17,24,39,0.9)" }}
         >
           <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-white/80">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-white/80">
                 Total Paid Out
               </p>
-              <p className="mt-2 text-lg font-bold tracking-tight sm:text-xl">
+              <p className="mt-1.5 text-xl font-bold">
                 {formatXAF(metrics.totalPaidOut)}
               </p>
               <p className="mt-1 text-xs text-white/70">
                 Total commissions paid
               </p>
             </div>
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
-              <Wallet size={20} />
+            <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15">
+              <Wallet size={18} />
             </div>
           </div>
         </div>
@@ -329,17 +348,17 @@ export default function AffiliateDashboardPage() {
 
       {/* Referral Toolkit */}
       <section>
-        <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
+        <h2 className="text-base font-semibold text-slate-900">
           Referral Toolkit
         </h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-sm transition-shadow hover:shadow-md">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow">
+            <p className="text-xs font-medium text-slate-600">
               Your Unique Referral Link
             </p>
-            <div className="mt-3 space-y-3">
-              <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5">
-                <p className="break-all text-sm font-medium leading-relaxed" style={{ color: THEME }}>
+            <div className="mt-2.5 space-y-2.5">
+              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <p className="break-all text-xs font-medium leading-relaxed text-slate-900">
                   {referralLink || "Loading..."}
                 </p>
               </div>
@@ -347,38 +366,38 @@ export default function AffiliateDashboardPage() {
                 <button
                   type="button"
                   onClick={copyLink}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-all hover:opacity-90"
                   style={{ backgroundColor: THEME }}
                 >
-                  <Copy size={16} />
-                  <span className="whitespace-nowrap">{copied ? "Copied!" : "Copy Link"}</span>
+                  <Copy size={14} />
+                  <span className="whitespace-nowrap">{copied ? "Copied!" : "Copy"}</span>
                 </button>
                 <Link
                   href={`/${locale}/affiliate/referral-toolkit`}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
                 >
-                  <Link2 size={16} />
-                  <span className="whitespace-nowrap">Create new link</span>
+                  <Link2 size={14} />
+                  <span className="whitespace-nowrap">Manage</span>
                 </Link>
               </div>
             </div>
-            <p className="mt-3 text-xs text-amber-600/90">
+            <p className="mt-2 text-xs text-amber-600">
               Creating a new link invalidates your previous referral link.
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow">
+            <p className="text-xs font-medium text-slate-600">
               Download QR Code
             </p>
             <p className="mt-0.5 text-xs text-slate-500">For physical posters</p>
-            <div className="mt-4 flex h-24 w-24 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50/80">
-              <QrCode size={40} className="text-slate-400" />
+            <div className="mt-3 flex h-20 w-20 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
+              <QrCode size={32} className="text-slate-400" />
             </div>
             <button
               type="button"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
             >
-              <Download size={16} />
+              <Download size={14} />
               Download
             </button>
           </div>
@@ -387,12 +406,12 @@ export default function AffiliateDashboardPage() {
 
       {/* Referral Pipeline */}
       <section>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
-            Referral Pipeline
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-base font-semibold text-slate-900">
+            Recent Referrals
           </h2>
           <select
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-700 transition-colors focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200 sm:w-auto"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors focus:border-slate-300 focus:outline-none focus:ring-1 focus:ring-slate-200 sm:w-auto"
             defaultValue="all"
           >
             <option value="all">All Status</option>
@@ -400,22 +419,22 @@ export default function AffiliateDashboardPage() {
             <option value="processing">Processing</option>
           </select>
         </div>
-        <div className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-          <div className="overflow-x-auto -mx-1 sm:mx-0">
-            <table className="w-full min-w-[640px] text-left text-sm">
+        <div className="mt-3 min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px] text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/90">
-                  <th className="px-4 py-3.5 font-medium text-slate-600">Student Name</th>
-                  <th className="px-4 py-3.5 font-medium text-slate-600">Join Date</th>
-                  <th className="px-4 py-3.5 font-medium text-slate-600">Payment Status</th>
-                  <th className="px-4 py-3.5 font-medium text-slate-600">Activation Progress</th>
-                  <th className="px-4 py-3.5 font-medium text-slate-600">Commission</th>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-3 py-2.5 font-medium text-slate-600">Student</th>
+                  <th className="px-3 py-2.5 font-medium text-slate-600">Date</th>
+                  <th className="px-3 py-2.5 font-medium text-slate-600">Status</th>
+                  <th className="px-3 py-2.5 font-medium text-slate-600">Progress</th>
+                  <th className="px-3 py-2.5 font-medium text-slate-600 text-right">Commission</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {dashboard.recentReferrals.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                    <td colSpan={5} className="px-3 py-6 text-center text-xs text-slate-500">
                       No referrals yet. Start sharing your referral link!
                     </td>
                   </tr>
@@ -425,45 +444,45 @@ export default function AffiliateDashboardPage() {
                     const initials = getInitials(studentName);
                     const statusLabel = getStatusLabel(referral.status);
                     const statusColor = getStatusColor(referral.status);
-                    const progress = referral.status === "ACTIVATED" ? 100 : referral.status === "PAID" ? 75 : 25;
-                    const progressLabel = referral.status === "ACTIVATED" ? "Activated" : referral.status === "PAID" ? "Payment Confirmed" : "Pending";
+                    const progress = referral.status === "ACTIVATED" || referral.status === "PAID" ? 100 : 25;
+                    const progressLabel = referral.status === "ACTIVATED" ? "Activated" : referral.status === "PAID" ? "Confirmed" : "Pending";
 
                     return (
                       <tr
                         key={referral.id}
-                        className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/50"
+                        className="transition-colors hover:bg-slate-50/50"
                       >
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2.5">
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2">
                             <div
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
                               style={{ backgroundColor: THEME }}
                             >
                               {initials}
                             </div>
-                            <span className="font-medium text-slate-900">{studentName}</span>
+                            <span className="font-medium text-slate-900 truncate max-w-[120px]">{studentName}</span>
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3.5 text-slate-500">
+                        <td className="whitespace-nowrap px-3 py-2.5 text-slate-500">
                           {formatDate(referral.registeredAt)}
                         </td>
-                        <td className="px-4 py-3.5">
-                          <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium", statusColor)}>
+                        <td className="px-3 py-2.5">
+                          <span className={cn("inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-tight", statusColor)}>
                             {statusLabel}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="h-2 w-20 overflow-hidden rounded-full bg-slate-200">
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-200">
                               <div
                                 className="h-full rounded-full transition-[width]"
                                 style={{ width: `${progress}%`, backgroundColor: THEME }}
                               />
                             </div>
-                            <span className="text-xs text-slate-500">{progressLabel}</span>
+                            <span className="text-xs text-slate-500 whitespace-nowrap">{progressLabel}</span>
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3.5 font-semibold text-slate-900">
+                        <td className="whitespace-nowrap px-3 py-2.5 font-semibold text-slate-900 text-right">
                           {formatXAF(referral.commissionAmount)}
                         </td>
                       </tr>
@@ -476,11 +495,10 @@ export default function AffiliateDashboardPage() {
         </div>
         <Link
           href={`/${locale}/affiliate/pipeline`}
-          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-90"
-          style={{ color: THEME }}
+          className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-slate-600 transition-colors hover:text-slate-900"
         >
-          View Full Pipeline
-          <ChevronRight size={18} />
+          View all referrals
+          <ChevronRight size={14} />
         </Link>
       </section>
     </div>
