@@ -140,31 +140,31 @@ export default function StudentTeamDeliverablesPage() {
   const getStatusIcon = (reviewStatus: string) => {
     switch (reviewStatus) {
       case "APPROVED":
-        return <CheckCircle size={16} className="text-emerald-500" />;
+        return <CheckCircle size={14} className="text-emerald-500" />;
       case "REJECTED":
-        return <XCircle size={16} className="text-red-500" />;
+        return <XCircle size={14} className="text-red-500" />;
       case "PENDING":
-        return <Clock size={16} className="text-amber-500" />;
+        return <Clock size={14} className="text-amber-500" />;
       default:
-        return <AlertCircle size={16} className="text-slate-400" />;
+        return <AlertCircle size={14} className="text-slate-400" />;
     }
   };
 
   const getDisplayStatus = (deliverable: TeamDeliverable) => {
     if (deliverable.submissionStatus === "NOT_SUBMITTED") {
-      return { text: "Not Submitted", color: "text-slate-500", icon: <AlertCircle size={16} className="text-slate-400" /> };
+      return { text: "Not Submitted", color: "text-red-600", icon: <AlertCircle size={14} className="text-red-500" /> };
     }
     // If submitted, show review status
     const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
     switch (reviewStatus) {
       case "APPROVED":
-        return { text: "Approved", color: "text-emerald-600", icon: <CheckCircle size={16} className="text-emerald-500" /> };
+        return { text: "Approved", color: "text-emerald-600", icon: <CheckCircle size={14} className="text-emerald-500" /> };
       case "REJECTED":
-        return { text: "Rejected", color: "text-red-600", icon: <XCircle size={16} className="text-red-500" /> };
+        return { text: "Rejected", color: "text-red-600", icon: <XCircle size={14} className="text-red-500" /> };
       case "PENDING":
-        return { text: "Pending Review", color: "text-amber-600", icon: <Clock size={16} className="text-amber-500" /> };
+        return { text: "Pending Review", color: "text-amber-600", icon: <Clock size={14} className="text-amber-500" /> };
       default:
-        return { text: "Pending", color: "text-slate-500", icon: <Clock size={16} className="text-slate-400" /> };
+        return { text: "Pending", color: "text-slate-500", icon: <Clock size={14} className="text-slate-400" /> };
     }
   };
 
@@ -229,46 +229,48 @@ export default function StudentTeamDeliverablesPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-5 p-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Team Deliverables</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-xl font-bold text-slate-900">Team Deliverables</h1>
+        <p className="mt-1 text-xs text-slate-600">
           View required deliverables and submit your team's work.
         </p>
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
-          <p className="mt-4 text-sm text-slate-500">Loading deliverables...</p>
+        <div className="text-center py-10">
+          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
+          <p className="mt-3 text-xs text-slate-500">Loading deliverables...</p>
         </div>
       ) : deliverables.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
-          <FileText size={48} className="mx-auto text-slate-300" />
-          <p className="mt-4 text-sm text-slate-500">No deliverables assigned yet</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mx-auto">
+            <FileText size={24} className="text-slate-400" />
+          </div>
+          <p className="text-xs text-slate-500">No deliverables assigned yet</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-700">
                     Deliverable
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-700">
                     Content Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-700">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-700">
                     Due Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-700">
                     Submission
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-700">
                     Actions
                   </th>
                 </tr>
@@ -286,44 +288,44 @@ export default function StudentTeamDeliverablesPage() {
 
                   return (
                     <tr key={deliverable.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-start gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-slate-900">{deliverable.template.title}</h3>
+                              <h3 className="text-sm font-semibold text-slate-900">{deliverable.template.title}</h3>
                               {deliverable.template.required && (
-                                <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700 border border-red-200">
                                   Required
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-slate-600 line-clamp-2">{deliverable.template.description}</p>
+                            <p className="text-xs text-slate-600 line-clamp-2">{deliverable.template.description}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-white">
                           <FileText size={12} />
                           {deliverable.template.contentType}
                         </span>
                       </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
                         {displayStatus.icon}
-                        <span className={`text-sm font-medium ${displayStatus.color}`}>
+                        <span className={`text-xs font-semibold ${displayStatus.color}`}>
                           {displayStatus.text}
                         </span>
                       </div>
                     </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
+                      <td className="px-5 py-3.5">
+                        <div className="space-y-0.5">
                           {deliverable.template.dueDate && (
-                            <p className="text-sm text-slate-900">
+                            <p className="text-xs text-slate-900">
                               {new Date(deliverable.template.dueDate).toLocaleDateString()}
                             </p>
                           )}
                           {deadlineStatus && (
-                            <p className={`text-xs font-medium ${
+                            <p className={`text-[10px] font-medium ${
                               deadlineStatus.passed ? "text-red-600" : "text-emerald-600"
                             }`}>
                               {deadlineStatus.passed ? "Passed" : deadlineStatus.timeRemaining}
@@ -331,34 +333,34 @@ export default function StudentTeamDeliverablesPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1 max-w-md">
+                      <td className="px-5 py-3.5">
+                        <div className="space-y-0.5 max-w-md">
                           {isSubmitted && deliverable.submittedAt && (
-                            <p className="text-xs text-slate-500">
+                            <p className="text-[10px] text-slate-500">
                               {new Date(deliverable.submittedAt).toLocaleString()}
                             </p>
                           )}
                           {renderContentPreview(deliverable)}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           {isSubmitted && (
                             <button
                               onClick={() => handleOpenView(deliverable)}
-                              className="cursor-pointer rounded p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
+                              className="cursor-pointer rounded-lg bg-slate-900 p-1.5 text-white hover:bg-slate-800 transition-colors"
                               title="View Details"
                             >
-                              <Eye size={16} />
+                              <Eye size={18} />
                             </button>
                           )}
                           
                           {canResubmit && (
                             <button
                               onClick={() => handleOpenSubmit(deliverable)}
-                              className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] transition-colors flex items-center gap-1.5"
+                              className="cursor-pointer rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors flex items-center gap-1.5"
                             >
-                              <Upload size={14} />
+                              <Upload size={12} />
                               Resubmit
                             </button>
                           )}
@@ -366,9 +368,9 @@ export default function StudentTeamDeliverablesPage() {
                           {!isSubmitted && canSubmit && !canResubmit && (
                             <button
                               onClick={() => handleOpenSubmit(deliverable)}
-                              className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] transition-colors flex items-center gap-1.5"
+                              className="cursor-pointer rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors flex items-center gap-1.5"
                             >
-                              <Upload size={14} />
+                              <Upload size={12} />
                               Submit
                             </button>
                           )}
@@ -376,25 +378,25 @@ export default function StudentTeamDeliverablesPage() {
                           {canUpdate && (
                             <button
                               onClick={() => handleOpenUpdate(deliverable)}
-                              className="cursor-pointer rounded p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
+                              className="cursor-pointer rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
                               title="Update"
                             >
-                              <Edit2 size={16} />
+                              <Edit2 size={14} />
                             </button>
                           )}
 
                           {canDelete && (
                             <button
                               onClick={() => handleOpenDelete(deliverable)}
-                              className="cursor-pointer rounded-lg border border-red-300 bg-white px-2 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                              className="cursor-pointer rounded-lg border border-red-300 bg-white px-2 py-1.5 text-[10px] font-semibold text-red-600 hover:bg-red-50 transition-colors"
                               title="Delete Submission"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={12} />
                             </button>
                           )}
 
                           {!canSubmit && !isSubmitted && (
-                            <span className="text-xs font-medium text-red-600">Deadline Passed</span>
+                            <span className="text-xs font-semibold text-red-600">Deadline Passed</span>
                           )}
                         </div>
                       </td>

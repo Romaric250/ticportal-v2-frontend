@@ -106,15 +106,18 @@ export function PendingRequests({ team, onUpdate }: Props) {
 
   return (
     <>
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <UserPlus size={18} className="text-[#111827]" />
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-              PENDING REQUESTS
-            </h2>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
+              <UserPlus className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Pending Requests</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Join requests awaiting approval</p>
+            </div>
             {requests.length > 0 && (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+              <span className="ml-auto rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-bold text-white">
                 {requests.length}
               </span>
             )}
@@ -123,11 +126,14 @@ export function PendingRequests({ team, onUpdate }: Props) {
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={24} className="animate-spin text-slate-400" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900"></div>
           </div>
         ) : requests.length === 0 ? (
-          <div className="py-4 text-center text-sm text-slate-500">
-            No pending requests
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+              <UserPlus className="h-6 w-6 text-slate-400" />
+            </div>
+            <p className="text-xs text-slate-500">No pending requests</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -139,23 +145,23 @@ export function PendingRequests({ team, onUpdate }: Props) {
               return (
                 <div
                   key={request.id}
-                  className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3"
+                  className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 hover:bg-slate-50 transition-colors"
                 >
                   {request.user?.profilePhoto ? (
                     <img
                       src={request.user.profilePhoto}
                       alt={userName}
-                      className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+                      className="h-10 w-10 flex-shrink-0 rounded-full object-cover border border-slate-200"
                     />
                   ) : (
-                    <div className="h-10 w-10 flex-shrink-0 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-sm font-semibold">
+                    <div className="h-10 w-10 flex-shrink-0 rounded-full bg-slate-900 flex items-center justify-center text-white text-sm font-bold border border-slate-200">
                       {userName.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-900 truncate">{userName}</p>
                     {request.user?.email && (
-                      <p className="text-xs text-slate-500 truncate">{request.user.email}</p>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{request.user.email}</p>
                     )}
                     {request.message && (
                       <p className="mt-1 text-xs text-slate-600 line-clamp-2">
@@ -174,7 +180,7 @@ export function PendingRequests({ team, onUpdate }: Props) {
                         })
                       }
                       disabled={processingRequest === request.id}
-                      className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="cursor-pointer rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-all"
                     >
                       {processingRequest === request.id ? (
                         <Loader2 size={14} className="animate-spin" />
@@ -195,7 +201,7 @@ export function PendingRequests({ team, onUpdate }: Props) {
                         })
                       }
                       disabled={processingRequest === request.id}
-                      className="cursor-pointer rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="cursor-pointer rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-all"
                     >
                       {processingRequest === request.id ? (
                         <Loader2 size={14} className="animate-spin" />

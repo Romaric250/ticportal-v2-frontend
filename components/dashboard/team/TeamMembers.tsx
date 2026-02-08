@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Plus, Crown, X } from "lucide-react";
+import { Users, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { teamService, type Team, type TeamMember } from "../../../src/lib/services/teamService";
 import { useAuthStore } from "../../../src/state/auth-store";
@@ -101,45 +101,57 @@ export function TeamMembers({ team, onAddMember, onMemberUpdate }: Props) {
 
   if (!team.members || team.members.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users size={18} className="text-[#111827]" />
-            <h2 className="text-sm font-semibold text-slate-900">Members</h2>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
+              <Users className="h-4 w-4 text-white" />
+            </div>
+            <h2 className="text-sm font-bold text-slate-900">Team Members</h2>
           </div>
           {isTeamLead && (
             <button
               onClick={onAddMember}
-              className="cursor-pointer rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              className="cursor-pointer rounded-lg border border-slate-300 bg-white p-1.5 text-slate-700 hover:border-slate-900 hover:bg-slate-900 hover:text-white transition-all"
             >
-              <Plus size={18} />
+              <Plus size={16} />
             </button>
           )}
         </div>
-        <p className="py-4 text-center text-sm text-slate-500">No members yet</p>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+            <Users className="h-6 w-6 text-slate-400" />
+          </div>
+          <p className="text-xs text-slate-500">No members yet</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users size={18} className="text-[#111827]" />
-          <h2 className="text-sm font-semibold text-slate-900">Members</h2>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-            {team.members.length}
-          </span>
+      <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all">
+        <div className="relative mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
+              <Users className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Team Members</h2>
+              <p className="text-xs text-slate-500 mt-0.5">{team.members.length} {team.members.length === 1 ? "member" : "members"}</p>
+            </div>
+            <span className="ml-2 rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-bold text-white">
+              {team.members.length}
+            </span>
+          </div>
+          {isTeamLead && (
+            <button
+              onClick={onAddMember}
+              className="group/add cursor-pointer rounded-lg border border-slate-300 bg-white p-1.5 text-slate-700 hover:border-slate-900 hover:bg-slate-900 hover:text-white transition-all"
+            >
+              <Plus size={16} className="transition-transform group-hover/add:rotate-90" />
+            </button>
+          )}
         </div>
-        {isTeamLead && (
-          <button
-            onClick={onAddMember}
-            className="cursor-pointer rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-          >
-            <Plus size={18} />
-          </button>
-        )}
-      </div>
 
       <div className="space-y-3">
         {team.members.map((member) => (
@@ -210,22 +222,28 @@ function MemberCard({ member, isTeamLead, isCurrentUser, onRemove, onUpdateRole,
   const canRemove = isTeamLead && !isCurrentUser; // Team leads can remove others, members can remove themselves
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
+    <div className="group/item flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 hover:bg-slate-50 transition-colors">
       {member.user?.profilePhoto ? (
         <img
           src={member.user.profilePhoto}
           alt={memberName}
-          className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+          className="h-10 w-10 flex-shrink-0 rounded-full object-cover border border-slate-200"
         />
       ) : (
-        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-sm font-semibold">
+        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-slate-900 flex items-center justify-center text-white text-sm font-bold border border-slate-200">
           {memberName.charAt(0).toUpperCase()}
         </div>
       )}
-      <div className="flex-1">
-        <p className="text-sm font-semibold text-slate-900">{memberName}</p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-bold text-slate-900 truncate">{memberName}</p>
+          {isLead && (
+            <span className="rounded-lg bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">
+              Lead
+            </span>
+          )}
+        </div>
         <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-          {isLead && <Crown size={14} className="text-amber-500" />}
           <span>{isLead ? "Team Lead" : "Member"}</span>
         </div>
       </div>
@@ -234,7 +252,7 @@ function MemberCard({ member, isTeamLead, isCurrentUser, onRemove, onUpdateRole,
           {isTeamLead && !isCurrentUser && (
             <button
               onClick={() => onUpdateRole(member.id, memberName, member.role)}
-              className="cursor-pointer rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1f2937] transition"
+              className="cursor-pointer rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-all"
               title={isLead ? "Remove lead role" : "Make team lead"}
             >
               {isLead ? "Demote" : "Promote"}
@@ -243,7 +261,7 @@ function MemberCard({ member, isTeamLead, isCurrentUser, onRemove, onUpdateRole,
           <button
             onClick={() => onRemove(member.id, memberName, false)}
             disabled={removing}
-            className="cursor-pointer rounded-full p-1 text-red-500 hover:bg-red-50 disabled:opacity-50"
+            className="cursor-pointer rounded-lg p-1.5 text-red-500 hover:bg-red-50 disabled:opacity-50 transition-all"
             title="Remove member"
           >
             <X size={16} />
@@ -254,7 +272,7 @@ function MemberCard({ member, isTeamLead, isCurrentUser, onRemove, onUpdateRole,
         <button
           onClick={() => onRemove(member.id, memberName, true)}
           disabled={removing}
-          className="cursor-pointer text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
+          className="cursor-pointer rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-500 hover:bg-red-50 disabled:opacity-50 transition-all"
         >
           Leave
         </button>

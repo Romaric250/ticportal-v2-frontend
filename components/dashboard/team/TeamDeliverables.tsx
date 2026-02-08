@@ -91,22 +91,22 @@ export function TeamDeliverables({ team }: Props) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#111827]">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
                 <Check size={18} className="text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Team Deliverables</h2>
+                <h2 className="text-sm font-bold text-slate-900">Team Deliverables</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Loading...</p>
               </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#111827] border-t-transparent"></div>
+        <div className="flex items-center justify-center py-10">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900"></div>
         </div>
       </div>
     );
@@ -114,30 +114,31 @@ export function TeamDeliverables({ team }: Props) {
 
   if (deliverables.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#111827]">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
                 <Check size={18} className="text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Team Deliverables</h2>
+                <h2 className="text-sm font-bold text-slate-900">Team Deliverables</h2>
                 <p className="text-xs text-slate-500 mt-0.5">No deliverables assigned</p>
               </div>
             </div>
             <LocalizedLink
               href="/student/team/deliverables"
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
             >
               View All <ArrowRight size={14} />
             </LocalizedLink>
           </div>
         </div>
-        <div className="px-6 py-12 text-center">
-          <FileText size={40} className="mx-auto text-slate-300 mb-3" />
-          <p className="text-sm font-medium text-slate-600 mb-1">No deliverables assigned yet</p>
-          <p className="text-xs text-slate-500">Check back later for new assignments</p>
+        <div className="px-5 py-10 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mx-auto">
+            <FileText size={24} className="text-slate-400" />
+          </div>
+          <p className="text-xs text-slate-500">No deliverables assigned yet</p>
         </div>
       </div>
     );
@@ -147,15 +148,15 @@ export function TeamDeliverables({ team }: Props) {
   const displayDeliverables = deliverables.slice(0, 5);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#111827]">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
               <Check size={18} className="text-white" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Team Deliverables</h2>
+              <h2 className="text-sm font-bold text-slate-900">Team Deliverables</h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 {deliverables.length} {deliverables.length === 1 ? "deliverable" : "deliverables"} assigned
               </p>
@@ -163,7 +164,7 @@ export function TeamDeliverables({ team }: Props) {
           </div>
           <LocalizedLink
             href="/student/team/deliverables"
-            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
           >
             View All <ArrowRight size={14} />
           </LocalizedLink>
@@ -174,16 +175,16 @@ export function TeamDeliverables({ team }: Props) {
         <table className="w-full">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-700">
+              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-700">
                 Deliverable
               </th>
-              <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-700">
+              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-700">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-700">
+              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-700">
                 Progress
               </th>
-              <th className="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-700">
+              <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-700">
                 Due Date
               </th>
             </tr>
@@ -228,18 +229,21 @@ function DeliverableRow({
   const statusConfig = {
     done: {
       label: "Completed",
-      className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      className: "bg-emerald-50 text-emerald-700 border-emerald-200",
       iconColor: "text-emerald-600",
+      progressColor: "bg-emerald-500",
     },
     "in-progress": {
       label: "In Progress",
-      className: "bg-amber-100 text-amber-700 border-amber-200",
+      className: "bg-amber-50 text-amber-700 border-amber-200",
       iconColor: "text-amber-600",
+      progressColor: "bg-amber-500",
     },
     "to-do": {
       label: "Pending",
       className: "bg-slate-100 text-slate-600 border-slate-200",
       iconColor: "text-slate-400",
+      progressColor: "bg-slate-300",
     },
   };
 
@@ -248,19 +252,21 @@ function DeliverableRow({
 
   return (
     <tr className="hover:bg-slate-50 transition-colors">
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 ${config.iconColor}`}>
-            {icon}
+      <td className="px-5 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 ${config.iconColor}`}>
+            <div className="text-white">
+              {icon}
+            </div>
           </div>
           <div>
             <span className="font-semibold text-slate-900 text-sm">{milestone}</span>
           </div>
         </div>
       </td>
-      <td className="px-6 py-4">
+      <td className="px-5 py-3.5">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${config.className}`}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${config.className}`}
         >
           <div className={`h-1.5 w-1.5 rounded-full ${
             status === "done" ? "bg-emerald-600" :
@@ -270,24 +276,18 @@ function DeliverableRow({
           {config.label}
         </span>
       </td>
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-2 max-w-32 overflow-hidden rounded-full bg-slate-200">
+      <td className="px-5 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex-1 h-1.5 max-w-32 overflow-hidden rounded-full bg-slate-200">
             <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                status === "done"
-                  ? "bg-emerald-500"
-                  : status === "in-progress"
-                  ? "bg-amber-500"
-                  : "bg-slate-300"
-              }`}
+              className={`h-full rounded-full transition-all duration-300 ${config.progressColor}`}
               style={{ width: `${progress}%` }}
             />
           </div>
           <span className="text-xs font-semibold text-slate-700 min-w-[3rem]">{progress}%</span>
         </div>
       </td>
-      <td className="px-6 py-4 text-right">
+      <td className="px-5 py-3.5 text-right">
         <span className={`text-xs font-medium ${
           isOverdue ? "text-red-600" : "text-slate-600"
         }`}>
