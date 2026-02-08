@@ -21,9 +21,26 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [currentSummit, setCurrentSummit] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Image carousel state
+  const carouselImages = [
+    "https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFp7ZAqdZvRlS1GrWLQhwZMzocm87npUf63sV5v",
+    "https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFpoNpwDSkPzGkaL36tyc5b2rDVApeCUB9sIw7n",
+    "https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFp6iO8wdS3MiEgWbCQeLxsT0ZAUJylzqIVHOm6"
+    // Add more image URLs here if you have them
+  ];
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const summits = ["TIC21", "TIC22", "TIC23", "TIC24", "TIC25", "TIC26"];
+  // Auto-rotate image carousel
+  useEffect(() => {
+    if (carouselImages.length <= 1) return; // Don't rotate if only one image
+    
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [carouselImages.length]);
 
   // Initialize auth store
   useEffect(() => {
@@ -48,17 +65,9 @@ export default function LoginPage() {
     }
   }, [accessToken, user, initialized, router, locale]);
 
-  // Auto-cycle through summits
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSummit((prev) => (prev + 1) % summits.length);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [summits.length]);
-
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null); // Clear any previous errors
     setSubmitting(true);
     setLoading(true);
 
@@ -144,7 +153,16 @@ export default function LoginPage() {
           router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
         }
       } else {
-        toast.error(errorMessage);
+        // Set form-level error for invalid credentials
+        const displayMessage = errorMessage.toLowerCase().includes("invalid") || 
+                               errorMessage.toLowerCase().includes("incorrect") ||
+                               errorMessage.toLowerCase().includes("wrong") ||
+                               errorMessage.toLowerCase().includes("credentials") ||
+                               errorMessage.toLowerCase().includes("unauthorized")
+          ? "Invalid email or password. Please check your credentials and try again."
+          : errorMessage;
+        setError(displayMessage);
+        toast.error(displayMessage);
       }
     } finally {
       setSubmitting(false);
@@ -202,6 +220,13 @@ export default function LoginPage() {
                 </p>
 
                 <form onSubmit={onSubmit} className="space-y-4">
+                  {/* Error Message */}
+                  {error && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                      <p className="text-xs font-medium text-red-800">{error}</p>
+                    </div>
+                  )}
+
                   {/* Email Field */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-slate-700">
@@ -216,8 +241,13 @@ export default function LoginPage() {
                         type="text"
                         required
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (error) setError(null); // Clear error when user starts typing
+                        }}
+                        className={`w-full rounded-lg border bg-white pl-9 pr-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#111827]/20 ${
+                          error ? "border-red-300 focus:border-red-500" : "border-slate-300 focus:border-[#111827]"
+                        }`}
                         placeholder="student@school.edu"
                       />
                     </div>
@@ -243,8 +273,13 @@ export default function LoginPage() {
                         type={showPassword ? "text" : "password"}
                         required
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-11 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (error) setError(null); // Clear error when user starts typing
+                        }}
+                        className={`w-full rounded-lg border bg-white pl-9 pr-11 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#111827]/20 ${
+                          error ? "border-red-300 focus:border-red-500" : "border-slate-300 focus:border-[#111827]"
+                        }`}
                         placeholder="Enter your password"
                       />
                       <button
@@ -294,42 +329,42 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Right Section - Promotional */}
+            {/* Right Section - Image Carousel */}
             <div className="relative hidden lg:block bg-[#111827] min-h-[400px] overflow-hidden">
-              {/* Background Image */}
-              <div className="absolute inset-0">
-                <img
-                  src="https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFp7ZAqdZvRlS1GrWLQhwZMzocm87npUf63sV5v"
-                  alt="TIC Summit"
-                  className="w-full h-full object-cover opacity-90 transition-opacity duration-500"
-                />
-                <div className="absolute inset-0 bg-[#111827]/60 transition-opacity duration-500" />
-              </div>
-              
-              <div className="relative z-10 flex h-full flex-col items-center justify-center p-6">
-                {/* Summit Year Display */}
-                <div className="mb-8">
-                  <div className="text-4xl xl:text-5xl font-light tracking-wider text-white/95">
-                    {summits[currentSummit]}
-                  </div>
+              {/* Carousel Images */}
+              {carouselImages.map((imageUrl, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                    index === currentImageIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                  }`}
+                >
+                  <img
+                    src={imageUrl}
+                    alt={`TIC Summit ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-[#111827]/50" />
                 </div>
-
-                {/* Minimal Pagination Dots */}
-                <div className="flex gap-1.5">
-                  {summits.map((_, index) => (
+              ))}
+              
+              {/* Pagination Dots - Only show if multiple images */}
+              {carouselImages.length > 1 && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+                  {carouselImages.map((_, index) => (
                     <button
                       key={index}
-                      onClick={() => setCurrentSummit(index)}
+                      onClick={() => setCurrentImageIndex(index)}
                       className={`transition-all duration-300 rounded-full ${
-                        index === currentSummit
-                          ? "h-1 w-6 bg-white"
-                          : "h-1 w-1 bg-white/30 hover:bg-white/50"
+                        index === currentImageIndex
+                          ? "h-1.5 w-8 bg-white"
+                          : "h-1.5 w-1.5 bg-white/40 hover:bg-white/60"
                       }`}
-                      aria-label={`Go to ${summits[index]}`}
+                      aria-label={`Go to image ${index + 1}`}
                     />
                   ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

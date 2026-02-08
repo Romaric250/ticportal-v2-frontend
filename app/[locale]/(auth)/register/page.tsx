@@ -23,6 +23,15 @@ export default function RegisterPage() {
   // Password strength
   const [passwordStrength, setPasswordStrength] = useState<"weak" | "fair" | "good" | "strong">("weak");
 
+  // Image carousel state
+  const carouselImages = [
+    "https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFp7ZAqdZvRlS1GrWLQhwZMzocm87npUf63sV5v",
+    "https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFpoNpwDSkPzGkaL36tyc5b2rDVApeCUB9sIw7n",
+    "https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFp6iO8wdS3MiEgWbCQeLxsT0ZAUJylzqIVHOm6"
+    // Add more image URLs here if you have them
+  ];
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   useEffect(() => {
     if (password.length === 0) {
       setPasswordStrength("weak");
@@ -40,6 +49,16 @@ export default function RegisterPage() {
     else if (score === 3) setPasswordStrength("good");
     else setPasswordStrength("strong");
   }, [password]);
+
+  // Auto-rotate image carousel
+  useEffect(() => {
+    if (carouselImages.length <= 1) return; // Don't rotate if only one image
+    
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [carouselImages.length]);
 
   const getStrengthColor = () => {
     switch (passwordStrength) {
@@ -105,19 +124,18 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white px-6 py-3 flex-shrink-0">
+      <header className="border-b border-slate-200 bg-white px-4 sm:px-6 py-3 flex-shrink-0">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/ticsummit-logo.png" 
               alt="TIC Summit" 
-              className="h-8 w-auto"
+              className="h-7 sm:h-8 w-auto max-w-[160px] sm:max-w-[200px]"
               style={{ 
-                maxWidth: '200px', 
-                height: '32px', 
+                height: '28px',
                 width: 'auto',
                 objectFit: 'contain',
                 display: 'block',
@@ -134,7 +152,7 @@ export default function RegisterPage() {
           </div>
           <Link
             href="#"
-            className="text-xs font-medium text-slate-600 hover:text-[#111827] transition-colors"
+            className="text-xs font-medium text-slate-600 hover:text-[#111827] transition-colors whitespace-nowrap"
           >
             Help Center
           </Link>
@@ -142,84 +160,84 @@ export default function RegisterPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-3 overflow-hidden">
-        <div className="w-full max-w-6xl h-full">
-          <div className="grid lg:grid-cols-[0.85fr_1.15fr] h-full rounded-xl bg-white shadow-lg overflow-hidden">
+      <div className="flex-1 flex items-start sm:items-center justify-center px-3 sm:px-4 py-4 sm:py-6 overflow-y-auto">
+        <div className="w-full max-w-5xl">
+          <div className="grid lg:grid-cols-2 rounded-xl bg-white shadow-lg overflow-hidden min-h-[calc(100vh-140px)] lg:min-h-0 lg:h-auto">
             {/* Left Section - Register Form */}
-            <div className="flex flex-col justify-center p-4 sm:p-5 lg:p-6 overflow-y-auto">
-              <div className="mx-auto w-full max-w-sm">
+            <div className="flex flex-col justify-center p-4 sm:p-5 lg:p-6 xl:p-8 min-h-0">
+              <div className="mx-auto w-full max-w-md">
                 {/* Title */}
-                <div className="mb-4">
-                  <h3 className="mb-1 text-lg sm:text-xl lg:text-2xl font-bold text-[#111827]">
+                <div className="mb-4 sm:mb-5">
+                  <h3 className="mb-1.5 text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 break-words">
                     Create Account
                   </h3>
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs sm:text-sm text-slate-600">
                     Join TIC Summit Portal and start your journey.
                   </p>
                 </div>
 
                 {/* Form Card */}
-                <form onSubmit={onSubmit} className="space-y-3.5">
+                <form onSubmit={onSubmit} className="space-y-4">
               {/* Full Name */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700">Full Name</label>
                 <div className="relative">
                   <User
-                    size={16}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     type="text"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20 transition-colors"
                     placeholder="e.g. Jane Doe"
                   />
                 </div>
               </div>
 
               {/* Email */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700">Email Address</label>
                 <div className="relative">
                   <Mail
-                    size={16}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20 transition-colors"
                     placeholder="e.g. jane@school.edu"
                   />
                 </div>
               </div>
 
               {/* Password */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700">Password</label>
                 <div className="relative">
                   <Lock
-                    size={16}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-10 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-11 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20 transition-colors"
                     placeholder="Min. 8 characters"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
                 {/* Password Strength Indicator */}
@@ -258,27 +276,27 @@ export default function RegisterPage() {
               </div>
 
               {/* Confirm Password */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700">Confirm Password</label>
                 <div className="relative">
                   <Lock
-                    size={16}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-10 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-11 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20 transition-colors"
                     placeholder="Re-enter password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -287,7 +305,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg bg-[#111827] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60 mt-2"
+                className="w-full rounded-lg bg-[#111827] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? "Creating account..." : "Create Account"}
               </button>
@@ -371,33 +389,60 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Right Section - Image */}
-            <div className="relative hidden lg:block bg-[#111827] h-full overflow-hidden">
-              <div className="absolute inset-0">
-                <img
-                  src="https://g9kbtbs1bu.ufs.sh/f/woziFUfAWTFp7ZAqdZvRlS1GrWLQhwZMzocm87npUf63sV5v"
-                  alt="TIC Summit"
-                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-br from-[#111827]/40 to-[#111827]/70 transition-opacity duration-500" />
-              </div>
+            {/* Right Section - Image Carousel */}
+            <div className="relative hidden lg:block bg-[#111827] min-h-[400px] overflow-hidden">
+              {/* Carousel Images */}
+              {carouselImages.map((imageUrl, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                    index === currentImageIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                  }`}
+                >
+                  <img
+                    src={imageUrl}
+                    alt={`TIC Summit ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-[#111827]/50" />
+                </div>
+              ))}
+              
+              {/* Pagination Dots - Only show if multiple images */}
+              {carouselImages.length > 1 && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+                  {carouselImages.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`transition-all duration-300 rounded-full ${
+                        index === currentImageIndex
+                          ? "h-1.5 w-8 bg-white"
+                          : "h-1.5 w-1.5 bg-white/40 hover:bg-white/60"
+                      }`}
+                      aria-label={`Go to image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white px-6 py-2 flex-shrink-0">
-        <div className="mx-auto max-w-7xl text-center text-xs text-slate-500">
-          © 2026 TIC Summit. All rights reserved.{" "}
-          <Link href="#" className="hover:text-[#111827] hover:underline">
-            Privacy Policy
-          </Link>{" "}
-          
-          {" "}
-          <Link href="https://ticsummit.org"  target="_blank" className="text-[#111827] underline">
-            ticsummit.org
-          </Link>
+      <footer className="border-t border-slate-200 bg-white px-4 sm:px-6 py-3 flex-shrink-0">
+        <div className="mx-auto max-w-7xl text-center text-xs text-slate-500 px-2">
+          <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
+            <span>© 2026 TIC Summit. All rights reserved.</span>
+            <Link href="#" className="hover:text-[#111827] hover:underline whitespace-nowrap">
+              Privacy Policy
+            </Link>
+            <span>•</span>
+            <Link href="https://ticsummit.org" target="_blank" className="text-[#111827] underline whitespace-nowrap">
+              ticsummit.org
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
