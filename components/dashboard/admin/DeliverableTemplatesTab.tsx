@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, FileText, Loader2 } from "lucide-react";
 import { type DeliverableTemplate } from "@/src/lib/services/adminService";
 
 interface DeliverableTemplatesTabProps {
@@ -17,74 +16,118 @@ export function DeliverableTemplatesTab({
   onEdit,
   onDelete,
 }: DeliverableTemplatesTabProps) {
-  if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
-        <p className="mt-4 text-sm text-slate-500">Loading templates...</p>
-      </div>
-    );
-  }
-
-  if (templates.length === 0) {
-    return (
-      <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
-        <p className="text-slate-500">No deliverable templates yet. Create one to get started.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {templates.map((template) => (
-        <div
-          key={template.id}
-          className="rounded-lg border border-slate-200 bg-white p-5 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="font-semibold text-slate-900">{template.title}</h3>
-                {template.required && (
-                  <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
-                    Required
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-slate-600 mb-3 line-clamp-2">{template.description}</p>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
-                <span className="rounded bg-slate-100 px-2 py-1 font-medium">
-                  {template.customType || template.type}
-                </span>
-                <span className="rounded bg-blue-100 px-2 py-1 text-blue-700 font-medium">
-                  {template.contentType}
-                </span>
-                {template.dueDate && (
-                  <span className="text-slate-400">
-                    Due: {new Date(template.dueDate).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 ml-2">
-              <button
-                onClick={() => onEdit(template)}
-                className="cursor-pointer rounded p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
-                title="Edit Template"
-              >
-                <Edit2 size={16} />
-              </button>
-              <button
-                onClick={() => onDelete(template)}
-                className="cursor-pointer rounded p-1.5 text-red-600 hover:bg-red-50 transition-colors"
-                title="Delete Template"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="border-b border-slate-200 bg-slate-50">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                Template
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                Type
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                Content Type
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                Due Date
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-16 text-center">
+                  <Loader2 size={28} className="mx-auto animate-spin text-slate-400" />
+                  <p className="mt-2 text-sm text-slate-500">Loading templates...</p>
+                </td>
+              </tr>
+            ) : templates.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-16 text-center">
+                  <FileText size={32} className="mx-auto text-slate-300" />
+                  <p className="mt-3 text-sm font-medium text-slate-500">No deliverable templates yet</p>
+                  <p className="mt-1 text-xs text-slate-400">Create one to get started</p>
+                </td>
+              </tr>
+            ) : (
+              templates.map((template) => (
+                <tr key={template.id} className="transition-colors hover:bg-slate-50/50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900">
+                        <FileText size={18} className="text-white" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900">{template.title}</div>
+                        {template.description && (
+                          <div className="mt-0.5 text-xs text-slate-500 line-clamp-1">
+                            {template.description}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white">
+                      {template.customType || template.type}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-slate-700">{template.contentType}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {template.dueDate ? (
+                      <span className="inline-flex items-center rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white">
+                        {new Date(template.dueDate).toLocaleDateString()}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-slate-400">No due date</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {template.required ? (
+                      <span className="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
+                        Required
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                        Optional
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => onEdit(template)}
+                        className="rounded-lg bg-slate-900 p-2 text-white transition-colors hover:bg-slate-800"
+                        title="Edit Template"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => onDelete(template)}
+                        className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                        title="Delete Template"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

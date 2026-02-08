@@ -29,66 +29,73 @@ export function ModuleCard({ module, index, onEdit, onDelete }: ModuleCardProps)
   };
 
   return (
-    <div
+    <tr
       ref={setNodeRef}
       style={style}
-      className={`group rounded-lg border border-slate-200 bg-white p-3 sm:p-4 lg:p-5 transition-all hover:border-slate-300 hover:shadow-sm ${
-        isDragging ? "shadow-lg" : ""
+      className={`transition-colors hover:bg-slate-50/50 ${
+        isDragging ? "bg-slate-100" : ""
       }`}
     >
-      <div className="flex items-start justify-between gap-2 sm:gap-3 lg:gap-4">
-        <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing mt-0.5 sm:mt-1 p-1 text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
+            className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-slate-600 transition-colors"
             title="Drag to reorder"
           >
-            <GripVertical size={16} className="sm:w-5 sm:h-5" />
+            <GripVertical size={16} />
           </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-              <div className="flex h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 items-center justify-center rounded-lg bg-[#111827] text-[10px] sm:text-xs font-bold text-white flex-shrink-0">
-                {index + 1}
-              </div>
-              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 break-words">{module.title}</h3>
-            </div>
-            
-            {module.quiz && module.quiz.length > 0 && (
-              <div className="mt-1 sm:mt-2 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-emerald-700">
-                  <HelpCircle size={10} className="sm:w-3 sm:h-3" />
-                  {module.quiz.length} {module.quiz.length === 1 ? "question" : "questions"}
-                </span>
-              </div>
-            )}
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">
+            {index + 1}
           </div>
         </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+      </td>
+      <td className="px-6 py-4">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">{module.title}</h3>
+          {module.content && (
+            <p className="mt-0.5 text-xs text-slate-500 line-clamp-1">
+              {module.content.replace(/<[^>]*>/g, '').substring(0, 60)}...
+            </p>
+          )}
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        {module.quiz && module.quiz.length > 0 ? (
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            <HelpCircle size={12} className="text-emerald-600" />
+            {module.quiz.length} {module.quiz.length === 1 ? "question" : "questions"}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">No quiz</span>
+        )}
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
             }}
-            className="cursor-pointer rounded-lg border border-slate-300 bg-white p-1.5 sm:p-2 text-slate-600 transition-colors hover:bg-slate-50 hover:border-slate-400"
+            className="rounded-lg bg-slate-900 p-2 text-white transition-colors hover:bg-slate-800"
             title="Edit Module"
           >
-            <Edit2 size={14} className="sm:w-4 sm:h-4" />
+            <Edit2 size={14} />
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
             }}
-            className="cursor-pointer rounded-lg border border-red-300 bg-white p-1.5 sm:p-2 text-red-600 transition-colors hover:bg-red-50 hover:border-red-400"
+            className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
             title="Delete Module"
           >
-            <Trash2 size={14} className="sm:w-4 sm:h-4" />
+            <Trash2 size={14} />
           </button>
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
 

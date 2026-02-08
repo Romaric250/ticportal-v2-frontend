@@ -27,6 +27,7 @@ export default function AdminTeamDeliverablesPage() {
     status?: string;
     hackathon?: string;
     search?: string;
+    templateId?: string;
   }>({
     search: "",
   });
@@ -70,6 +71,7 @@ export default function AdminTeamDeliverablesPage() {
           ...filters,
           submissionStatus: filters.submissionStatus as "NOT_SUBMITTED" | "SUBMITTED" | undefined,
           reviewStatus: filters.reviewStatus as "PENDING" | "APPROVED" | "REJECTED" | undefined,
+          templateId: filters.templateId,
         });
         setDeliverables(data);
       }
@@ -171,10 +173,6 @@ export default function AdminTeamDeliverablesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this submission? This action cannot be undone.")) {
-      return;
-    }
-
     try {
       await adminService.deleteDeliverable(id);
       toast.success("Submission deleted successfully");
@@ -250,10 +248,10 @@ export default function AdminTeamDeliverablesPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Team Deliverables</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-500">
             Create deliverable requirements and manage team submissions.
           </p>
         </div>
@@ -261,7 +259,7 @@ export default function AdminTeamDeliverablesPage() {
           {activeTab === "templates" && (
             <button
               onClick={() => setShowCreateTemplateModal(true)}
-              className="flex items-center gap-2 rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937]"
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
             >
               <Plus size={16} />
               Create Deliverable
@@ -270,7 +268,7 @@ export default function AdminTeamDeliverablesPage() {
           {activeTab === "submissions" && (
             <button
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
             >
               <Upload size={16} />
               Upload for Team
@@ -284,9 +282,9 @@ export default function AdminTeamDeliverablesPage() {
         <div className="flex gap-4">
           <button
             onClick={() => setActiveTab("templates")}
-            className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
+            className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === "templates"
-                ? "border-[#111827] text-[#111827]"
+                ? "border-slate-900 text-slate-900"
                 : "border-transparent text-slate-600 hover:text-slate-900"
             }`}
           >
@@ -294,9 +292,9 @@ export default function AdminTeamDeliverablesPage() {
           </button>
           <button
             onClick={() => setActiveTab("submissions")}
-            className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
+            className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === "submissions"
-                ? "border-[#111827] text-[#111827]"
+                ? "border-slate-900 text-slate-900"
                 : "border-transparent text-slate-600 hover:text-slate-900"
             }`}
           >
@@ -320,6 +318,7 @@ export default function AdminTeamDeliverablesPage() {
         <DeliverableSubmissionsTab
           deliverables={deliverables}
           loading={loading}
+          templates={templates}
           filters={filters}
           onFilterChange={setFilters}
           onView={(deliverable) => {
@@ -466,7 +465,7 @@ export default function AdminTeamDeliverablesPage() {
                 <button
                   onClick={handleCreateTemplate}
                   disabled={loading || !templateForm.title}
-                  className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="cursor-pointer rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Creating..." : "Create"}
                 </button>
@@ -612,7 +611,7 @@ export default function AdminTeamDeliverablesPage() {
                 <button
                   onClick={handleUpdateTemplate}
                   disabled={loading || !templateForm.title}
-                  className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="cursor-pointer rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Updating..." : "Update Template"}
                 </button>
@@ -751,8 +750,8 @@ export default function AdminTeamDeliverablesPage() {
                                   className="h-8 w-8 rounded-full object-cover"
                                 />
                               ) : (
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
-                                  <Users size={14} className="text-slate-500" />
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900">
+                                  <Users size={14} className="text-white" />
                                 </div>
                               )}
                               <div className="flex-1">
@@ -902,7 +901,7 @@ export default function AdminTeamDeliverablesPage() {
                     (uploadForm.contentType === "FILE" && !uploadForm.file) ||
                     ((uploadForm.contentType === "TEXT" || uploadForm.contentType === "URL") && !uploadForm.content)
                   }
-                  className="cursor-pointer rounded-lg bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="cursor-pointer rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Uploading..." : "Upload"}
                 </button>

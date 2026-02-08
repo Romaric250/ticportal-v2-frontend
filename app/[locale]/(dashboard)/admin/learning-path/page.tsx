@@ -290,145 +290,168 @@ export default function AdminLearningPathPage() {
   const moduleToDelete = deleteModuleId ? modules.find(m => m.id === deleteModuleId) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-3 sm:p-4 lg:p-6">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-4 sm:mb-6 lg:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">Learning Path Management</h1>
-            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-600">
-              Create and manage learning paths, modules, and quizzes for students and mentors
-            </p>
-          </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex w-full sm:w-auto cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#111827] px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#1f2937] hover:shadow-md"
-          >
-            <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
-            <span className="hidden sm:inline">Create Learning Path</span>
-            <span className="sm:hidden">Create Path</span>
-          </button>
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Learning Path Management</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Create and manage learning paths, modules, and quizzes for students and mentors
+          </p>
         </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+        >
+          <Plus size={16} />
+          Create Learning Path
+        </button>
+      </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
-          {/* Learning Paths Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="rounded-lg sm:rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-200 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4">
-                <div className="flex items-center gap-2">
-                  <BookOpen size={18} className="sm:w-5 sm:h-5 text-slate-600" />
-                  <h2 className="text-base sm:text-lg font-semibold text-slate-900">Learning Paths</h2>
-                  <span className="ml-auto rounded-full bg-slate-200 px-2 sm:px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-                    {learningPaths.length}
-                  </span>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Learning Paths Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 bg-slate-900 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
+                  <BookOpen size={20} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-base font-semibold text-white">Learning Paths</h2>
+                  <p className="mt-0.5 text-xs text-white/70">{learningPaths.length} total paths</p>
                 </div>
               </div>
-              <div className="divide-y divide-slate-100">
-                {loading && learningPaths.length === 0 ? (
-                  <div className="flex items-center justify-center p-8">
-                    <div className="h-6 w-6 animate-spin rounded-full border-4 border-[#111827] border-t-transparent"></div>
-                  </div>
-                ) : learningPaths.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <BookOpen size={48} className="mx-auto text-slate-300" />
-                    <p className="mt-4 text-sm font-medium text-slate-500">No learning paths yet</p>
-                    <p className="mt-1 text-xs text-slate-400">Create your first learning path to get started</p>
-                  </div>
-                ) : (
-                  learningPaths.map((path) => (
-                    <LearningPathCard
-                      key={path.id}
-                      path={path}
-                      isSelected={selectedPath?.id === path.id}
-                      onSelect={() => handleSelectPath(path)}
-                      onDelete={() => handleDeletePathClick(path.id)}
-                      onEdit={() => handleEditPathClick(path)}
-                    />
-                  ))
-                )}
-              </div>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {loading && learningPaths.length === 0 ? (
+                <div className="flex items-center justify-center p-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent"></div>
+                </div>
+              ) : learningPaths.length === 0 ? (
+                <div className="p-12 text-center">
+                  <BookOpen size={48} className="mx-auto text-slate-300" />
+                  <p className="mt-4 text-sm font-medium text-slate-500">No learning paths yet</p>
+                  <p className="mt-1 text-xs text-slate-400">Create your first learning path to get started</p>
+                </div>
+              ) : (
+                learningPaths.map((path) => (
+                  <LearningPathCard
+                    key={path.id}
+                    path={path}
+                    isSelected={selectedPath?.id === path.id}
+                    onSelect={() => handleSelectPath(path)}
+                    onDelete={() => handleDeletePathClick(path.id)}
+                    onEdit={() => handleEditPathClick(path)}
+                  />
+                ))
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Selected Path Details */}
-          <div className="lg:col-span-2">
-            {selectedPath ? (
-              <div className="rounded-lg sm:rounded-xl border border-slate-200 bg-white shadow-sm">
-                {/* Path Header */}
-                <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-4 sm:px-6 py-4 sm:py-5">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 break-words">{selectedPath.title}</h2>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {selectedPath.isCore && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 sm:px-3 py-1 text-xs font-semibold text-blue-700">
-                              <CheckCircle2 size={12} />
-                              Core
-                            </span>
-                          )}
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 sm:px-3 py-1 text-xs font-semibold text-slate-700">
-                            <Users size={12} />
-                            {selectedPath.audience}
+        {/* Selected Path Details */}
+        <div className="lg:col-span-2">
+          {selectedPath ? (
+            <div className="space-y-6">
+              {/* Path Header */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 bg-slate-900 px-6 py-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h2 className="text-xl font-bold text-white">{selectedPath.title}</h2>
+                        {selectedPath.isCore && (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-white/20 px-2.5 py-1 text-xs font-medium text-white">
+                            <CheckCircle2 size={12} />
+                            Core
                           </span>
-                        </div>
+                        )}
+                        <span className="inline-flex items-center gap-1 rounded-md bg-white/20 px-2.5 py-1 text-xs font-medium text-white">
+                          <Users size={12} />
+                          {selectedPath.audience}
+                        </span>
                       </div>
-                      <p className="mt-2 text-xs sm:text-sm text-slate-600 break-words">{selectedPath.description}</p>
+                      <p className="text-sm text-white/80">{selectedPath.description}</p>
                     </div>
                     <button
                       onClick={() => handleOpenModuleEditor()}
-                      className="flex w-full sm:w-auto cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#111827] px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#1f2937] hover:shadow-md"
+                      className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-100"
                     >
-                      <Plus size={14} className="sm:w-4 sm:h-4" />
-                      <span>Add Module</span>
+                      <Plus size={16} />
+                      Add Module
                     </button>
                   </div>
                 </div>
+              </div>
 
-                {/* Modules List */}
-                <div className="p-4 sm:p-6">
-                  {modules.length > 0 ? (
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
+              {/* Modules Table */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+                  <h3 className="text-base font-semibold text-slate-900">Modules</h3>
+                  <p className="mt-0.5 text-xs text-slate-500">{modules.length} {modules.length === 1 ? 'module' : 'modules'} in this path</p>
+                </div>
+                {modules.length > 0 ? (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={modules.map((m) => m.id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <SortableContext
-                        items={modules.map((m) => m.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className="space-y-3 sm:space-y-4">
-                          {modules.map((module, index) => (
-                            <ModuleCard
-                              key={module.id}
-                              module={module}
-                              index={index}
-                              onEdit={() => handleOpenModuleEditor(module)}
-                              onDelete={() => handleDeleteModuleClick(module.id)}
-                            />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 sm:py-16">
-                      <FileText size={48} className="sm:w-16 sm:h-16 text-slate-300" />
-                      <p className="mt-4 text-sm font-medium text-slate-500">No modules yet</p>
-                      <p className="mt-1 text-xs text-slate-400 text-center px-4">Click "Add Module" to create your first module</p>
-                    </div>
-                  )}
-                </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="border-b border-slate-200 bg-slate-50">
+                            <tr>
+                              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 w-12">
+                                #
+                              </th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                                Module
+                              </th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                                Quiz
+                              </th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 w-24">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
+                            {modules.map((module, index) => (
+                              <ModuleCard
+                                key={module.id}
+                                module={module}
+                                index={index}
+                                onEdit={() => handleOpenModuleEditor(module)}
+                                onDelete={() => handleDeleteModuleClick(module.id)}
+                              />
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <FileText size={48} className="text-slate-300" />
+                    <p className="mt-4 text-sm font-medium text-slate-500">No modules yet</p>
+                    <p className="mt-1 text-xs text-slate-400">Click "Add Module" to create your first module</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex h-full min-h-[300px] sm:min-h-[400px] items-center justify-center rounded-lg sm:rounded-xl border border-slate-200 bg-white">
-                <div className="text-center px-4">
-                  <GraduationCap size={48} className="sm:w-16 sm:h-16 mx-auto text-slate-300" />
-                  <p className="mt-4 text-base sm:text-lg font-semibold text-slate-500">Select a learning path</p>
-                  <p className="mt-1 text-xs sm:text-sm text-slate-400">Choose a learning path from the sidebar to view and manage its modules</p>
-                </div>
+            </div>
+          ) : (
+            <div className="flex h-full min-h-[400px] items-center justify-center rounded-xl border border-slate-200 bg-white">
+              <div className="text-center px-4">
+                <GraduationCap size={48} className="mx-auto text-slate-300" />
+                <p className="mt-4 text-base font-semibold text-slate-500">Select a learning path</p>
+                <p className="mt-1 text-sm text-slate-400">Choose a learning path from the sidebar to view and manage its modules</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

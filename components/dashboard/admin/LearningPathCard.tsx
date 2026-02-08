@@ -16,24 +16,32 @@ export function LearningPathCard({ path, isSelected, onSelect, onDelete, onEdit 
     <div
       className={`cursor-pointer transition-all ${
         isSelected
-          ? "bg-slate-50 border-l-4 border-l-[#111827]"
+          ? "bg-slate-900 border-l-4 border-l-white"
           : "hover:bg-slate-50"
       }`}
       onClick={onSelect}
     >
-      <div className="p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-2">
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-slate-900 truncate">{path.title}</h3>
+            <div className="flex items-center gap-2 mb-1.5">
+              <h3 className={`font-semibold truncate ${isSelected ? "text-white" : "text-slate-900"}`}>
+                {path.title}
+              </h3>
               {path.isCore && (
-                <span className="flex-shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">
+                <span className={`flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ${
+                  isSelected 
+                    ? "bg-white/20 text-white" 
+                    : "bg-blue-100 text-blue-700"
+                }`}>
                   Core
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 line-clamp-2 mb-2">{path.description}</p>
-            <div className="flex items-center gap-3 text-xs text-slate-500">
+            <p className={`text-xs line-clamp-2 mb-2 ${isSelected ? "text-white/80" : "text-slate-500"}`}>
+              {path.description}
+            </p>
+            <div className={`flex items-center gap-3 text-xs ${isSelected ? "text-white/70" : "text-slate-500"}`}>
               <span className="flex items-center gap-1">
                 <FileText size={12} />
                 {path.modules?.length || 0} modules
@@ -50,7 +58,11 @@ export function LearningPathCard({ path, isSelected, onSelect, onDelete, onEdit 
                 e.stopPropagation();
                 onEdit();
               }}
-              className="cursor-pointer rounded p-1 text-slate-600 transition-colors hover:bg-slate-100"
+              className={`rounded-lg p-1.5 transition-colors ${
+                isSelected
+                  ? "bg-white/10 text-white hover:bg-white/20"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
               title="Edit Learning Path"
             >
               <Edit2 size={14} />
@@ -60,7 +72,11 @@ export function LearningPathCard({ path, isSelected, onSelect, onDelete, onEdit 
                 e.stopPropagation();
                 onDelete();
               }}
-              className="cursor-pointer rounded p-1 text-red-500 transition-colors hover:bg-red-50"
+              className={`rounded-lg p-1.5 transition-colors ${
+                isSelected
+                  ? "bg-white/10 text-white hover:bg-white/20"
+                  : "text-red-600 hover:bg-red-50"
+              }`}
               title="Delete Learning Path"
             >
               <Trash2 size={14} />
