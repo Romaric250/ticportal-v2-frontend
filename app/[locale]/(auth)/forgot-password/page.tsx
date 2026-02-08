@@ -6,7 +6,7 @@ import { useLocale } from "next-intl";
 import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Mail, ArrowLeft, ArrowRight, HelpCircle } from "lucide-react";
+import { Mail, ArrowLeft, ArrowRight } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -34,35 +34,45 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white px-6 py-4">
+      <header className="border-b border-slate-200 bg-white px-6 py-3">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111827] text-white font-bold">
-              T
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/ticsummit-logo.png" 
+              alt="TIC Summit" 
+              className="h-8 w-auto"
+              style={{ 
+                maxWidth: '200px', 
+                height: '32px', 
+                width: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+                filter: 'invert(1)',
+              }}
+            />
           </div>
           <Link
             href="#"
-            className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[#111827] transition-colors"
+            className="text-xs font-medium text-slate-600 hover:text-[#111827] transition-colors"
           >
-            <HelpCircle size={18} />
-            Need Help?
+            Help Center
           </Link>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      <div className="mx-auto flex min-h-[calc(100vh-100px)] max-w-6xl items-center justify-center px-4 py-4">
         <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 sm:p-10 shadow-lg">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             {/* Icon */}
-            <div className="mb-6 flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#111827]">
+            <div className="mb-4 flex justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#111827]">
                 <svg
-                  width="32"
-                  height="32"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -80,21 +90,21 @@ export default function ForgotPasswordPage() {
             </div>
 
             {/* Heading */}
-            <h1 className="mb-3 text-center text-2xl font-bold text-slate-900">Reset password</h1>
-            <p className="mb-8 text-center text-sm text-slate-600">
+            <h1 className="mb-1.5 text-center text-xl font-bold text-slate-900">Reset password</h1>
+            <p className="mb-5 text-center text-xs text-slate-600">
               Enter the email associated with your account and we&apos;ll send you a link to reset
               your password.
             </p>
 
             {/* Form */}
-            <form onSubmit={onSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
+            <form onSubmit={onSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-700">
                   Email address or Username
                 </label>
                 <div className="relative">
                   <Mail
-                    size={20}
+                    size={18}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
@@ -102,7 +112,7 @@ export default function ForgotPasswordPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20"
                     placeholder="student@example.com"
                   />
                 </div>
@@ -111,36 +121,41 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#111827] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#111827] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? "Sending..." : "Send Reset Link"}
-                <ArrowRight size={18} />
+                <ArrowRight size={16} />
               </button>
             </form>
 
             {/* Back to Login */}
-            <div className="mt-6 text-center">
+            <div className="mt-4 text-center">
               <Link
                 href={`/${locale}/login`}
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[#111827] transition-colors"
+                className="inline-flex items-center gap-2 text-xs font-medium text-slate-600 hover:text-[#111827] transition-colors"
               >
-                <ArrowLeft size={16} />
+                <ArrowLeft size={14} />
                 Back to login
               </Link>
             </div>
           </div>
-
-          {/* Support Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-slate-500">
-              Having trouble?{" "}
-              <Link href="#" className="font-semibold text-slate-700 hover:text-[#111827] hover:underline">
-                Contact Support
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white px-6 py-3">
+        <div className="mx-auto max-w-7xl text-center text-xs text-slate-500">
+          © 2026 TIC Summit. All rights reserved.{" "}
+          <Link href="#" className="hover:text-[#111827] hover:underline">
+            Privacy Policy
+          </Link>{" "}
+          
+          {" "}
+          <Link href="https://ticsummit.org"  target="_blank" className="text-[#111827] underline">
+            ticsummit.org
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
