@@ -148,7 +148,7 @@ export default function CommandCenterPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/80">
                   <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                    Transaction / Student
+                    Student
                   </th>
                   <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
                     Payment
@@ -189,19 +189,19 @@ export default function CommandCenterPage() {
                         )}
                       >
                         <td className="px-2 py-2 sm:px-3 sm:py-2.5">
-                          <span className="font-medium text-slate-900">{row.transactionId}</span>
-                          <span className="text-slate-500">
-                            {" "}
-                            ({studentName})
-                          </span>
+                          <span className="font-medium text-slate-900">{studentName}</span>
                         </td>
                         <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-900 sm:px-3 sm:py-2.5">
                           {formatXAF(row.payment.amount)}
                         </td>
-                        <td className="hidden whitespace-nowrap px-2 py-2 text-slate-600 sm:table-cell sm:px-3 sm:py-2.5">
-                          {row.affiliateCommission != null
-                            ? `AFF: ${formatXAF(row.affiliateCommission)}, REG: ${row.regionalCommission ? formatXAF(row.regionalCommission) : "—"}, NAT: ${row.nationalCommission ? formatXAF(row.nationalCommission) : "—"}`
-                            : "—"}
+                        <td className="hidden px-2 py-2 sm:table-cell sm:px-3 sm:py-2.5">
+                          {row.affiliateCommission != null && row.affiliateCommission > 0 ? (
+                            <span className="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-xs font-medium text-white">
+                              AFF: {formatXAF(row.affiliateCommission)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
                         </td>
                         <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-900 sm:px-3 sm:py-2.5">
                           {formatXAF(row.ticNet)}
@@ -209,10 +209,10 @@ export default function CommandCenterPage() {
                         <td className="px-2 py-2 sm:px-3 sm:py-2.5">
                           <span
                             className={cn(
-                              "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:text-xs",
+                              "inline-flex rounded-full px-2.5 py-1 text-xs font-medium text-white",
                               row.status === "error"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-emerald-100 text-emerald-700"
+                                ? "bg-red-600"
+                                : "bg-slate-900"
                             )}
                           >
                             {row.status === "error" ? "Error" : "Done"}

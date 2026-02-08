@@ -708,6 +708,26 @@ export const affiliateService = {
   },
 
   /**
+   * Terminate affiliate (Admin only)
+   * PATCH /api/affiliate/admin/affiliates/:affiliateId/terminate
+   */
+  async terminateAffiliate(affiliateId: string, reason?: string): Promise<AffiliateProfile> {
+    const { data } = await apiClient.patch<AffiliateProfile>(
+      `/affiliate/admin/affiliates/${affiliateId}/terminate`,
+      { reason }
+    );
+    return mapSubRoleToRole(data);
+  },
+
+  /**
+   * Delete affiliate (Admin only)
+   * DELETE /api/affiliate/admin/affiliates/:affiliateId
+   */
+  async deleteAffiliate(affiliateId: string): Promise<void> {
+    await apiClient.delete(`/affiliate/admin/affiliates/${affiliateId}`);
+  },
+
+  /**
    * Get financial overview (Admin only)
    * GET /api/affiliate/admin/financial-overview
    */

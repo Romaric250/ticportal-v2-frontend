@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Ban, CheckCircle, Loader2, Plus, X, User, Edit2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Search, Ban, CheckCircle, Loader2, Plus, X, User, Edit2, Trash2, AlertTriangle, MoreVertical } from "lucide-react";
 import { cn } from "../../../../../../src/utils/cn";
 import { affiliateService, type AffiliateProfile, type AffiliateSubRole, type Country, type Region } from "@/src/lib/services/affiliateService";
 import { userService } from "@/src/lib/services/userService";
@@ -27,6 +28,11 @@ export default function AffiliateMarketersPage() {
   const [search, setSearch] = useState("");
   const [filterBanned, setFilterBanned] = useState<"all" | "active" | "banned">("all");
   const [actingId, setActingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [affiliateToDelete, setAffiliateToDelete] = useState<AffiliateMarketer | null>(null);
+  const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -278,6 +284,44 @@ export default function AffiliateMarketersPage() {
     }
   };
 
+  const handleDeleteClick = (affiliate: AffiliateMarketer) => {
+    setAffiliateToDelete(affiliate);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!affiliateToDelete) return;
+    
+    setDeletingId(affiliateToDelete.id);
+    try {
+      await affiliateService.deleteAffiliate(affiliateToDelete.id);
+      toast.success("Affiliate deleted successfully");
+      setShowDeleteModal(false);
+      setAffiliateToDelete(null);
+      await loadAffiliates();
+    } catch (error: any) {
+      console.error("Failed to delete affiliate:", error);
+      toast.error(error?.message || "Failed to delete affiliate");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleTerminate = async (affiliate: AffiliateMarketer) => {
+    if (actingId === affiliate.id) return;
+    setActingId(affiliate.id);
+    try {
+      await affiliateService.terminateAffiliate(affiliate.id);
+      toast.success("Affiliate terminated successfully");
+      await loadAffiliates();
+    } catch (error: any) {
+      console.error("Failed to terminate affiliate:", error);
+      toast.error(error?.message || "Failed to terminate affiliate");
+    } finally {
+      setActingId(null);
+    }
+  };
+
   const handleEdit = (affiliate: AffiliateMarketer) => {
     setEditingAffiliate(affiliate);
     setEditRegionId(affiliate.regionId || "");
@@ -407,35 +451,42 @@ export default function AffiliateMarketersPage() {
         </div>
       </div>
 
-      <div className="min-w-0 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm sm:rounded-xl">
-        <table className="w-full min-w-[520px] text-left text-xs sm:min-w-[640px] sm:text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80">
-              <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                Code / Name
-              </th>
-              <th className="hidden px-2 py-2 font-medium text-slate-600 sm:table-cell sm:px-3 sm:py-2.5">
-                Region
-              </th>
-              <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                Signups
-              </th>
-              <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                Earned (XAF)
-              </th>
-              <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                Status
-              </th>
-              <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
+      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px] text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px]">
+                  Name
+                </th>
+                <th className="hidden px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] sm:table-cell">
+                  Region
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-center">
+                  Signups
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-right">
+                  Earned (XAF)
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px]">
+                  Status
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-center w-20">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+            {loading && filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
-                  {loading ? "Loading..." : "No affiliate marketers match your filters."}
+                <td colSpan={6} className="px-4 py-12 text-center">
+                  <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center text-xs text-slate-500">
+                  No affiliate marketers match your filters.
                 </td>
               </tr>
             ) : (
@@ -449,83 +500,62 @@ export default function AffiliateMarketersPage() {
                   <tr
                     key={affiliate.id}
                     className={cn(
-                      "border-b border-slate-100",
-                      isBanned && "bg-slate-50"
+                      "transition-colors hover:bg-slate-50/50",
+                      isBanned && "bg-red-50/30"
                     )}
                   >
-                    <td className="px-2 py-2 sm:px-3 sm:py-2.5">
+                    <td className="px-4 py-3">
                       <div>
-                        <span className="font-medium text-slate-900">
-                          {affiliate.referralCode}
-                        </span>
-                        <span className="block text-slate-500 sm:inline sm:ml-1">
+                        <div className="font-medium text-slate-900">
                           {name}
-                        </span>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">{email}</div>
                       </div>
-                      <div className="text-slate-500 sm:hidden">{email}</div>
                     </td>
-                    <td className="hidden px-2 py-2 text-slate-600 sm:table-cell sm:px-3 sm:py-2.5">
-                      {regionName}
+                    <td className="hidden px-4 py-3 text-slate-600 sm:table-cell">
+                      <div className="font-medium">{regionName}</div>
                     </td>
-                    <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-900 sm:px-3 sm:py-2.5">
-                      {affiliate.totalReferrals}
+                    <td className="px-4 py-3 text-center">
+                      <div className="font-semibold text-slate-900">{affiliate.totalReferrals}</div>
                     </td>
-                    <td className="whitespace-nowrap px-2 py-2 font-medium text-slate-900 sm:px-3 sm:py-2.5">
-                      {formatXAF(affiliate.totalEarned)}
+                    <td className="px-4 py-3 text-right">
+                      <div className="font-semibold text-slate-900">{formatXAF(affiliate.totalEarned)}</div>
                     </td>
-                    <td className="px-2 py-2 sm:px-3 sm:py-2.5">
+                    <td className="px-4 py-3">
                       <span
                         className={cn(
-                          "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:text-xs",
+                          "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
                           isBanned
                             ? "bg-red-100 text-red-700"
                             : affiliate.status === "ACTIVE"
-                            ? "bg-emerald-100 text-emerald-700"
+                            ? "bg-slate-100 text-slate-700"
                             : "bg-amber-100 text-amber-700"
                         )}
                       >
                         {affiliate.status}
                       </span>
                     </td>
-                    <td className="px-2 py-2 sm:px-3 sm:py-2.5">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 py-3 w-20">
+                      <div className="relative flex justify-center">
                         <button
                           type="button"
-                          onClick={() => handleEdit(affiliate)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openActionsMenu === affiliate.id) {
+                              setOpenActionsMenu(null);
+                              setMenuPosition(null);
+                            } else {
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              setMenuPosition({
+                                top: rect.bottom + 4,
+                                left: rect.right - 192, // 192px = w-48 (width of dropdown)
+                              });
+                              setOpenActionsMenu(affiliate.id);
+                            }
+                          }}
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition-colors hover:bg-slate-50"
                         >
-                          <Edit2 size={14} />
-                          <span className="hidden sm:inline">Edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          disabled={actingId === affiliate.id || affiliate.status === "TERMINATED"}
-                          onClick={() => handleToggleBan(affiliate)}
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                            actingId === affiliate.id
-                              ? "border-slate-300 bg-slate-100 text-slate-500 cursor-wait"
-                              : isBanned
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                              : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                          )}
-                        >
-                          {actingId === affiliate.id ? (
-                            <>
-                              <Loader2 size={14} className="animate-spin" />
-                              <span className="hidden sm:inline">Processing...</span>
-                            </>
-                          ) : isBanned ? (
-                            <>
-                              <CheckCircle size={14} />
-                              <span className="hidden sm:inline">Unsuspend</span>
-                            </>
-                          ) : (
-                            <>
-                              <Ban size={14} />
-                              <span className="hidden sm:inline">Suspend</span>
-                            </>
-                          )}
+                          <MoreVertical size={16} />
                         </button>
                       </div>
                     </td>
@@ -535,12 +565,15 @@ export default function AffiliateMarketersPage() {
             )}
           </tbody>
         </table>
+        </div>
         {filtered.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-2 py-2 sm:px-3 sm:py-2">
-            <p className="text-[10px] text-slate-500 sm:text-xs">
-              Showing {(page - 1) * 50 + 1}–{Math.min(page * 50, total)} of {total} affiliates
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-3">
+            <p className="text-xs text-slate-500">
+              Showing <span className="font-medium text-slate-700">{(page - 1) * 50 + 1}</span>–
+              <span className="font-medium text-slate-700">{Math.min(page * 50, total)}</span> of{" "}
+              <span className="font-medium text-slate-700">{total}</span> affiliates
             </p>
-            <div className="flex items-center gap-0.5 sm:gap-1">
+            <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -561,6 +594,141 @@ export default function AffiliateMarketersPage() {
           </div>
         )}
       </div>
+
+      {/* Actions Dropdown Menu - Rendered via Portal outside table */}
+      {typeof window !== "undefined" &&
+        openActionsMenu &&
+        menuPosition &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[100]"
+              onClick={() => {
+                setOpenActionsMenu(null);
+                setMenuPosition(null);
+              }}
+            />
+            <div
+              className="fixed z-[101] w-48 rounded-lg border border-slate-200 bg-white shadow-xl"
+              style={{
+                top: `${menuPosition.top}px`,
+                left: `${menuPosition.left}px`,
+              }}
+            >
+              <div className="py-1">
+                {affiliates
+                  .filter((a) => a.id === openActionsMenu)
+                  .map((affiliate) => {
+                    const isBanned = affiliate.status === "SUSPENDED" || affiliate.status === "TERMINATED";
+                    return (
+                      <div key={affiliate.id}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(affiliate);
+                            setOpenActionsMenu(null);
+                            setMenuPosition(null);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 flex items-center gap-2"
+                        >
+                          <Edit2 size={14} />
+                          Edit
+                        </button>
+                        {affiliate.status !== "TERMINATED" && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={actingId === affiliate.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleBan(affiliate);
+                                setOpenActionsMenu(null);
+                                setMenuPosition(null);
+                              }}
+                              className={cn(
+                                "w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                                actingId === affiliate.id
+                                  ? "text-slate-500 cursor-wait"
+                                  : isBanned
+                                  ? "text-emerald-700"
+                                  : "text-red-700"
+                              )}
+                            >
+                              {actingId === affiliate.id ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" />
+                                  Processing...
+                                </>
+                              ) : isBanned ? (
+                                <>
+                                  <CheckCircle size={14} />
+                                  Unsuspend
+                                </>
+                              ) : (
+                                <>
+                                  <Ban size={14} />
+                                  Suspend
+                                </>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actingId === affiliate.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTerminate(affiliate);
+                                setOpenActionsMenu(null);
+                                setMenuPosition(null);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-medium text-amber-700 transition-colors hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {actingId === affiliate.id ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" />
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle size={14} />
+                                  Terminate
+                                </>
+                              )}
+                            </button>
+                          </>
+                        )}
+                        <div className="my-1 border-t border-slate-200" />
+                        <button
+                          type="button"
+                          disabled={deletingId === affiliate.id || affiliate.status === "TERMINATED"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(affiliate);
+                            setOpenActionsMenu(null);
+                            setMenuPosition(null);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs font-medium text-red-700 transition-colors hover:bg-red-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {deletingId === affiliate.id ? (
+                            <>
+                              <Loader2 size={14} className="animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 size={14} />
+                              Delete
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
 
       {/* Add Affiliate Modal */}
       {showAddModal && (
@@ -1083,6 +1251,73 @@ export default function AffiliateMarketersPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && affiliateToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+            aria-hidden
+            onClick={() => setShowDeleteModal(false)}
+          />
+          <div
+            className="relative w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="text-red-600" size={20} />
+              </div>
+              <div className="flex-1">
+                <h2 id="delete-modal-title" className="text-lg font-semibold text-slate-900">
+                  Delete Affiliate
+                </h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Are you sure you want to delete{" "}
+                  <span className="font-medium text-slate-900">
+                    {affiliateToDelete.user
+                      ? `${affiliateToDelete.user.firstName} ${affiliateToDelete.user.lastName}`
+                      : affiliateToDelete.referralCode}
+                  </span>
+                  ? This action cannot be undone.
+                </p>
+                <p className="mt-2 text-xs text-amber-600">
+                  Note: This will only work if the affiliate has no active referrals or unpaid commissions.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setAffiliateToDelete(null);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deletingId === affiliateToDelete.id}
+                className="rounded-lg border border-red-200 bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deletingId === affiliateToDelete.id ? (
+                  <>
+                    <Loader2 size={14} className="mr-2 inline animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </button>
             </div>
           </div>
         </div>
