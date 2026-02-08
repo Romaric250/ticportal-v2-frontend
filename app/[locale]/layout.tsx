@@ -11,7 +11,11 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
 
 export const metadata: Metadata = {
   title: "TIC Summit Portal",
-  description: "TIC Summit Portal - Manage your learning, team, and hackathon journey",
+  description: "TIC Summit Portal - Manage your learning, team, and hackathon journey in one place",
+  keywords: ["TIC Summit", "Hackathon", "Education", "Cameroon", "Innovation"],
+  authors: [{ name: "TIC Summit" }],
+  creator: "TIC Summit",
+  publisher: "TIC Summit",
   icons: {
     icon: [
       { url: "/tic.ico", sizes: "any" },
@@ -21,24 +25,40 @@ export const metadata: Metadata = {
     shortcut: "/tic.ico",
   },
   openGraph: {
-    title: "TIC Summit Portal",
-    description: "TIC Summit Portal - Manage your learning, team, and hackathon journey",
     type: "website",
+    locale: "en_US",
     url: baseUrl,
+    siteName: "TIC Summit Portal",
+    title: "TIC Summit Portal",
+    description: "TIC Summit Portal - Manage your learning, team, and hackathon journey in one place",
     images: [
       {
         url: `${baseUrl}/ticsummit-logo.png`,
         width: 1200,
         height: 630,
-        alt: "TIC Summit",
+        alt: "TIC Summit Logo",
+        type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
     title: "TIC Summit Portal",
-    description: "TIC Summit Portal - Manage your learning, team, and hackathon journey",
+    description: "TIC Summit Portal - Manage your learning, team, and hackathon journey in one place",
     images: [`${baseUrl}/ticsummit-logo.png`],
+    creator: "@ticsummit",
+    site: "@ticsummit",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
