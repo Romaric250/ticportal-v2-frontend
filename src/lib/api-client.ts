@@ -16,6 +16,7 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Required for CORS with credentials
 });
 
 // Token storage helpers with encryption

@@ -73,8 +73,6 @@ export default function LoginPage() {
 
     try {
       const response = await authService.login({ email, password });
-
-      console.log("Login response:", response);
       
       // Check if email is verified
       if (response.user.isVerified === false) {
@@ -122,11 +120,9 @@ export default function LoginPage() {
       toast.success("Logged in successfully");
       router.push(`/${locale}${redirectTo}`);
     } catch (error: any) {
-      console.error(error);
-      
       // Check if error is due to unverified email
       const errorCode = error?.response?.data?.error?.code || error?.response?.data?.[0]?.code;
-      const errorMessage = error?.message || "Login failed. Please check your credentials.";
+      const errorMessage = error?.response?.data?.error?.message || error?.message || "Login failed. Please check your credentials.";
       
       // Common error codes for unverified email: UNVERIFIED_EMAIL, EMAIL_NOT_VERIFIED, etc.
       if (
@@ -153,16 +149,10 @@ export default function LoginPage() {
           router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
         }
       } else {
-        // Set form-level error for invalid credentials
-        const displayMessage = errorMessage.toLowerCase().includes("invalid") || 
-                               errorMessage.toLowerCase().includes("incorrect") ||
-                               errorMessage.toLowerCase().includes("wrong") ||
-                               errorMessage.toLowerCase().includes("credentials") ||
-                               errorMessage.toLowerCase().includes("unauthorized")
-          ? "Invalid email or password. Please check your credentials and try again."
-          : errorMessage;
-        setError(displayMessage);
-        toast.error(displayMessage);
+        // Set form-level error for invalid credentials - preserve email and password fields
+        setError("Invalid email or password");
+        toast.error("Invalid email or password");
+        // Don't clear email/password - let user see what they entered and try again
       }
     } finally {
       setSubmitting(false);
