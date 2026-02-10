@@ -52,6 +52,7 @@ export default function LoginPage() {
   // Check if user is already authenticated and redirect
   useEffect(() => {
     if (!initialized) return;
+    if (submitting) return; // Don't redirect while login is in progress
 
     // If user has tokens and user data, redirect to their dashboard
     if (accessToken && user) {
@@ -63,10 +64,9 @@ export default function LoginPage() {
           : "/student";
       router.replace(`/${locale}${redirectTo}`);
     }
-  }, [accessToken, user, initialized, router, locale]);
+  }, [accessToken, user, initialized, router, locale, submitting]);
 
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setError(null); // Clear any previous errors
     setSubmitting(true);
     setLoading(true);
@@ -180,11 +180,11 @@ export default function LoginPage() {
                 filter: 'invert(1)',
               }}
               onError={(e) => {
-                console.error("Logo image failed to load. Check if /ticsummit-logo.png exists in public folder.");
+                // console.error("Logo image failed to load. Check if /ticsummit-logo.png exists in public folder.");
                 (e.target as HTMLImageElement).style.border = '2px solid red';
               }}
               onLoad={() => {
-                console.log("Logo loaded successfully");
+                console.log("#");
               }}
             />
           </div>
@@ -209,7 +209,7 @@ export default function LoginPage() {
                   Welcome back to your academic workspace.
                 </p>
 
-                <form onSubmit={onSubmit} className="space-y-4">
+                <div className="space-y-4">
                   {/* Error Message */}
                   {error && (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-3">
@@ -234,6 +234,15 @@ export default function LoginPage() {
                         onChange={(e) => {
                           setEmail(e.target.value);
                           if (error) setError(null); // Clear error when user starts typing
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (!submitting) {
+                              handleLogin();
+                            }
+                          }
                         }}
                         className={`w-full rounded-lg border bg-white pl-9 pr-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#111827]/20 ${
                           error ? "border-red-300 focus:border-red-500" : "border-slate-300 focus:border-[#111827]"
@@ -267,6 +276,15 @@ export default function LoginPage() {
                           setPassword(e.target.value);
                           if (error) setError(null); // Clear error when user starts typing
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (!submitting) {
+                              handleLogin();
+                            }
+                          }
+                        }}
                         className={`w-full rounded-lg border bg-white pl-9 pr-11 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#111827]/20 ${
                           error ? "border-red-300 focus:border-red-500" : "border-slate-300 focus:border-[#111827]"
                         }`}
@@ -298,7 +316,12 @@ export default function LoginPage() {
 
                   {/* Login Button */}
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleLogin();
+                    }}
                     disabled={submitting}
                     className="w-full rounded-lg bg-[#111827] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -315,7 +338,7 @@ export default function LoginPage() {
                       Create an account
                     </Link>
                   </p>
-                </form>
+                </div>
               </div>
             </div>
 

@@ -16,11 +16,11 @@ export function getSocket(token?: string) {
     //   wsUrl = apiUrl.replace(/\/api$/, "").replace(/^http:/, "ws:").replace(/^https:/, "wss:");
     // }
 
-    console.log("apiUrl here", apiUrl);
-    console.log("wsUrl", wsUrl);
+    // console.log("apiUrl here", apiUrl);
+    // console.log("wsUrl", wsUrl);
     
     wsUrl = wsUrl ?? "http://localhost:5000";
-    console.log("Socket: Creating new socket connection", { wsUrl, hasToken: !!token });
+    // console.log("Socket: Creating new socket connection", { wsUrl, hasToken: !!token });
     socket = io(wsUrl, {
       withCredentials: true,
       autoConnect: false, // We'll connect manually after setting auth
@@ -30,19 +30,22 @@ export function getSocket(token?: string) {
     
     // Log connection events for debugging
     socket.on("connect", () => {
-      console.log("Socket: Connected successfully", { socketId: socket?.id });
+      console.log("connected");
+      //console.log("Socket: Connected successfully", { socketId: socket?.id });
     });
     
     socket.on("connect_error", (error) => {
-      console.error("Socket: Connection error", error);
+      // console.error("Socket: Connection error", error);
+      console.log("connection error");
     });
     
-    socket.on("disconnect", (reason) => {
-      console.log("Socket: Disconnected", { reason });
+    socket.on("disconnect", (reason) => { 
+      // console.log("Socket: Disconnected", { reason });
+      console.log("disconnected");
     });
   } else if (token && socket.auth && typeof socket.auth === "object" && !Array.isArray(socket.auth)) {
     // Update auth if token is provided and socket exists
-    console.log("Socket: Updating auth token");
+    // console.log("Socket: Updating auth token");
     socket.auth.token = token;
   }
   return socket;
@@ -54,14 +57,14 @@ export function connectSocket(token: string) {
   // Ensure auth is set before connecting
   if (token && s.auth && typeof s.auth === "object" && !Array.isArray(s.auth)) {
     s.auth.token = token;
-    console.log("Socket: Auth token set", { hasToken: !!(s.auth as { token?: string }).token });
+    // console.log("Socket: Auth token set", { hasToken: !!(s.auth as { token?: string }).token });
   }
   
   if (!s.connected) {
-    console.log("Socket: Attempting to connect with token...", { hasToken: !!token });
+    // console.log("Socket: Attempting to connect with token...", { hasToken: !!token });
     s.connect();
   } else {
-    console.log("Socket: Already connected", { socketId: s.id });
+     console.log("connected");
   }
   
   return s;
@@ -110,14 +113,14 @@ export function useSocketEvent<T = unknown>(
       try {
         handler(payload);
       } catch (error) {
-        console.error(`Socket: Error in handler for event "${event}":`, error);
+        // console.error(`Socket: Error in handler for event "${event}":`, error);
       }
     };
     
     // Only listen if socket is connected or will connect
     const setupListener = () => {
       if (s.connected) {
-        console.log(`Socket: Listening to event "${event}"`);
+        // console.log(`Socket: Listening to event "${event}"`);
         s.on(event, wrappedHandler);
       }
     };

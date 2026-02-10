@@ -93,6 +93,13 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Skip refresh for auth endpoints - they handle their own errors
+    // Login, register, reset-password, etc. should not trigger token refresh
+    const authEndpoints = ['/auth/login', '/auth/register', '/auth/reset-password', '/auth/send-otp', '/auth/verify-otp'];
+    if (originalRequest?.url && authEndpoints.some(endpoint => originalRequest.url?.includes(endpoint))) {
+      return Promise.reject(error);
+    }
+
     // Handle 403 (Forbidden) errors - these are permission issues, not auth issues
     // Don't clear tokens or redirect, just show the error
     if (error.response?.status === 403) {
@@ -224,8 +231,8 @@ apiClient.interceptors.response.use(
       tokenStorage.clearTokens();
       processQueue(error, null);
       isRefreshing = false;
-      // Redirect to login if we're in the browser
-      if (typeof window !== "undefined") {
+      // Don't redirect if we're already on a login/auth page - let the component handle it
+      if (typeof window !== "undefined" && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
         window.location.href = "/login";
       }
       return Promise.reject(error);
@@ -269,8 +276,8 @@ apiClient.interceptors.response.use(
       processQueue(refreshError as AxiosError, null);
       isRefreshing = false;
       
-      // Redirect to login if we're in the browser
-      if (typeof window !== "undefined") {
+      // Don't redirect if we're already on a login/auth page - let the component handle it
+      if (typeof window !== "undefined" && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
         window.location.href = "/login";
       }
       return Promise.reject(refreshError);

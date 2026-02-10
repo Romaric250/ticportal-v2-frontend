@@ -68,7 +68,7 @@ export default function PaymentPage() {
   const platformFee = selectedCountry?.platformFee || 300;
   const registrationBase = selectedCountry?.studentPrice || 5000;
   const totalAmount = platformFee + registrationBase;
-  const tpCredit = 100;
+  const tpCredit = 500;
   const originalFee = 25000;
   const discountAmount = originalFee - registrationBase;
   const discountPercentage = Math.round((discountAmount / originalFee) * 100);
@@ -135,12 +135,12 @@ export default function PaymentPage() {
     checkAuth();
   }, [initialized, accessToken, user, setUser]);
 
-  // Load payment data once auth is checked
+  // Load payment data once auth is checked (load even if not logged in)
   useEffect(() => {
-    if (!checkingAuth && initialized && (user || accessToken)) {
+    if (!checkingAuth && initialized) {
       loadData();
     }
-  }, [checkingAuth, initialized, user, accessToken]);
+  }, [checkingAuth, initialized]);
 
   // Search students when query changes
   useEffect(() => {
@@ -416,15 +416,24 @@ export default function PaymentPage() {
     } catch (error: any) {
       console.error("Failed to initiate payment:", error);
       
+      // Check for specific error messages
+      const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.error || error?.message || "";
+      const isActivePaymentError = errorMessage.toLowerCase().includes("already has an active payment") || 
+                                   errorMessage.toLowerCase().includes("active payment");
+      
       // Stay on payment form modal on error
       if (error?.response?.status === 401) {
         toast.error("Authentication failed. Please check your login and try again.");
+      } else if (isActivePaymentError) {
+        toast.error("This user already has an active payment in progress. Please wait for it to complete or switch to a different user.", {
+          duration: 5000,
+        });
       } else if (error?.response?.status === 400) {
-        toast.error(error?.response?.data?.error || error?.message || "Invalid payment request. Please check your details.");
+        toast.error(errorMessage || "Invalid payment request. Please check your details.");
       } else if (error?.response?.status >= 500) {
         toast.error("Server error. Please try again later.");
       } else {
-        toast.error(error?.message || "Failed to initiate payment. Please try again.");
+        toast.error(errorMessage || "Failed to initiate payment. Please try again.");
       }
       
       // Reset submitting state so user can try again
@@ -466,7 +475,7 @@ export default function PaymentPage() {
         />
       
       {/* Modal - Fixed height, no scrolling */}
-      <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5 max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5 max-h-[90vh] flex flex-col overflow-hidden lg:overflow-hidden">
         {/* Close Button */}
         <button
           type="button"
@@ -477,50 +486,73 @@ export default function PaymentPage() {
           <X size={20} />
         </button>
 
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-0 flex-1 overflow-hidden">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-0 flex-1 overflow-y-auto lg:overflow-hidden">
           {/* Payment Form Column (First on mobile, second on desktop) */}
-          <div className="p-5 sm:p-6 lg:p-8 lg:rounded-r-2xl rounded-t-2xl lg:rounded-bl-none overflow-y-auto lg:order-2">
+          <div className="p-5 sm:p-6 lg:p-8 lg:rounded-r-2xl rounded-t-2xl lg:rounded-bl-none lg:overflow-y-auto order-1 lg:order-2 flex-shrink-0">
             <h1 className="text-xl font-bold text-slate-900 mb-1">Activation & Fee Payment</h1>
             <p className="text-xs text-slate-600 mb-4">Complete your TiC Summit registration</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Current User Display / Student Selection */}
-              {user && accessToken && (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-medium text-slate-700">
-                      Paying For
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPayingForDifferent(!payingForDifferent);
-                        if (!payingForDifferent) {
-                          setSelectedStudent(null);
-                          setStudentSearchQuery("");
-                        }
-                      }}
-                      className={`text-xs flex items-center gap-1 transition-colors ${
-                        payingForDifferent
-                          ? "text-slate-600 hover:text-slate-900"
-                          : "bg-slate-900 text-white px-2 py-1 rounded underline hover:bg-slate-800"
-                      }`}
-                    >
-                      {payingForDifferent ? (
-                        <>
-                          <User size={14} />
-                          Pay for myself
-                        </>
-                      ) : (
-                        <>
-                          <Users size={14} />
-                          Pay for different student
-                        </>
-                      )}
-                    </button>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-slate-700">
+                    {user && accessToken ? "Paying For" : "Login to Pay"}
+                  </label>
+                    {user && accessToken ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPayingForDifferent(!payingForDifferent);
+                          if (!payingForDifferent) {
+                            setSelectedStudent(null);
+                            setStudentSearchQuery("");
+                          }
+                        }}
+                        className={`text-xs flex items-center gap-1 transition-colors ${
+                          payingForDifferent
+                            ? "text-slate-600 hover:text-slate-900"
+                            : "bg-slate-900 text-white px-2 py-1 rounded underline hover:bg-slate-800"
+                        }`}
+                      >
+                        {payingForDifferent ? (
+                          <>
+                            <User size={14} />
+                            Pay for myself
+                          </>
+                        ) : (
+                          <>
+                            <Users size={14} />
+                            Pay for different student
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/${locale}/login?redirect=/pay${referralCode ? `?ref=${referralCode}` : ""}`)}
+                        className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+                      >
+                        Login
+                      </button>
+                    )}
                   </div>
                   
-                  {payingForDifferent ? (
+                  {!user || !accessToken ? (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-slate-600 mb-3">
+                        Please log in to select who you're paying for
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/${locale}/login?redirect=/pay${referralCode ? `?ref=${referralCode}` : ""}`)}
+                        className="w-full rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
+                        style={{ backgroundColor: THEME }}
+                      >
+                        Log In to Continue
+                      </button>
+                    </div>
+                  ) : payingForDifferent ? (
                     <div className="relative" ref={studentSearchRef}>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -644,7 +676,6 @@ export default function PaymentPage() {
                     )
                   )}
                 </div>
-              )}
 
               {/* Country Selection */}
               <div>
@@ -659,7 +690,8 @@ export default function PaymentPage() {
                       setSelectedCountry(country || null);
                     }}
                     required
-                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                    disabled={!user || !accessToken}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="">Select a country</option>
                     {countries.map((country) => (
@@ -694,7 +726,8 @@ export default function PaymentPage() {
                     placeholder="237XXXXXXXXX"
                     required
                     maxLength={12}
-                    className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                    disabled={!user || !accessToken}
+                    className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </div>
                 {phoneNumber && phoneNumber.length !== 12 && (
@@ -720,12 +753,17 @@ export default function PaymentPage() {
                       <button
                         key={method.id}
                         type="button"
-                        onClick={() => setSelectedMethod(method.id)}
+                        onClick={() => {
+                          if (user && accessToken) {
+                            setSelectedMethod(method.id);
+                          }
+                        }}
+                        disabled={!user || !accessToken}
                         className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
                           selectedMethod === method.id
                             ? "border-slate-900 bg-slate-900"
                             : "border-slate-200 bg-white hover:border-slate-300"
-                        }`}
+                        } disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:border-slate-200`}
                       >
                         <div className={`h-10 w-10 shrink-0 rounded-lg flex items-center justify-center ${
                           selectedMethod === method.id ? "bg-slate-900" : "bg-slate-100"
@@ -759,64 +797,45 @@ export default function PaymentPage() {
               </div>
 
               {/* Transaction Summary */}
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <h3 className="text-sm font-semibold text-slate-900 mb-2">Transaction Summary</h3>
+              <div className="rounded-lg border border-slate-900 bg-slate-900 p-3">
+                <h3 className="text-sm font-semibold text-white mb-2">Transaction Summary</h3>
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Account Activation:</span>
-                    <span className="font-medium text-slate-900">Stage 1 Access</span>
+                    <span className="text-slate-300">Account Activation:</span>
+                    <span className="font-medium text-white">All 5 Stages Unlocked</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Initial TP Credit:</span>
-                    <span className="font-medium text-slate-900">+{tpCredit} TP</span>
+                    <span className="text-slate-300">Initial TP Credit:</span>
+                    <span className="font-medium text-white">+{tpCredit} TIC Points</span>
                   </div>
                   
                   {/* Pricing Breakdown */}
-                  <div className="pt-2 mt-2 border-t border-slate-200 space-y-2">
+                  <div className="pt-2 mt-2 border-t border-slate-700 space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Original Fee:</span>
-                      <span className="font-medium text-slate-500 line-through">{formatXAF(originalFee)}</span>
+                      <span className="text-slate-300">Original Fee:</span>
+                      <span className="font-medium text-red-400 line-through">{formatXAF(originalFee)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Discount ({discountPercentage}%):</span>
-                      <span className="font-medium text-slate-700">-{formatXAF(discountAmount)}</span>
+                      <span className="text-slate-300">Discount ({discountPercentage}%):</span>
+                      <span className="font-medium text-green-400">-{formatXAF(discountAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Registration Fee:</span>
-                      <span className="font-medium text-slate-900">{formatXAF(registrationBase)}</span>
+                      <span className="text-slate-300">Registration Fee:</span>
+                      <span className="font-medium text-white">{formatXAF(registrationBase)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Processing Fee:</span>
-                      <span className="font-medium text-slate-900">{formatXAF(platformFee)}</span>
+                      <span className="text-slate-300">Processing Fee:</span>
+                      <span className="font-medium text-white">{formatXAF(platformFee)}</span>
                     </div>
                   </div>
                   
-                  <div className="border-t border-slate-200 pt-2 mt-2 flex justify-between items-center">
-                    <span className="font-semibold text-slate-900">Total Amount:</span>
-                    <span className="font-bold text-lg text-slate-900">{formatXAF(totalAmount)}</span>
+                  <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between items-center">
+                    <span className="font-semibold text-white">Total Amount:</span>
+                    <span className="font-bold text-lg text-green-400">{formatXAF(totalAmount)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Authentication Notice */}
-              {(!user || !accessToken) && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-sm font-medium text-amber-900 mb-2">
-                    Authentication Required
-                  </p>
-                  <p className="text-xs text-amber-700 mb-3">
-                    Please log in to complete your payment.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/${locale}/login?redirect=/pay${referralCode ? `?ref=${referralCode}` : ""}`)}
-                    className="w-full rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
-                    style={{ backgroundColor: THEME }}
-                  >
-                    Log In to Continue
-                  </button>
-                </div>
-              )}
 
               {/* Submit Button */}
               <button
@@ -854,7 +873,7 @@ export default function PaymentPage() {
           </div>
 
           {/* Left Column - Benefits (Second on mobile, first on desktop) */}
-          <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-5 sm:p-6 lg:p-8 lg:rounded-l-2xl rounded-b-2xl lg:rounded-tr-none flex flex-col lg:order-1">
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-5 sm:p-6 lg:p-8 lg:rounded-l-2xl rounded-b-2xl lg:rounded-tr-none flex flex-col order-2 lg:order-1 lg:overflow-y-auto flex-shrink-0">
             <h2 className="text-lg font-bold text-slate-900 mb-5">Why Invest in TiC Summit?</h2>
             
             <div className="space-y-4 mb-4 flex-1">
@@ -904,9 +923,9 @@ export default function PaymentPage() {
 
             {/* Logic Section - Back on left side */}
             <div className="bg-slate-900 rounded-xl p-4 border border-slate-900 mt-auto">
-              <p className="text-xs font-semibold text-white mb-2">Logic:</p>
+              {/* <p className="text-xs font-semibold text-white mb-2">Logic:</p> */}
               <p className="text-xs text-slate-200 leading-relaxed">
-                This payment of {formatXAF(totalAmount)} activates your account, unlocks Stage 1: History of TiC Foundation, and initiates your lifelong TP accumulation.
+                This payment of {formatXAF(totalAmount)} activates your account, unlocks all 5 stages of the TiC Summit program, and grants you {tpCredit} TIC Points to start your lifelong TP accumulation.
               </p>
             </div>
           </div>

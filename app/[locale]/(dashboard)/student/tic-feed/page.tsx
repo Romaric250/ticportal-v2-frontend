@@ -229,21 +229,23 @@ export default function TICFeedPage() {
       const socket = socketRef.current;
       if (socket) {
         const handleConnect = () => {
-          console.log("Feed: Socket connected successfully", { socketId: socket.id });
+          // console.log("Feed: Socket connected successfully", { socketId: socket.id });
           const category = getCategoryForTab(activeTab);
           socket.emit("feed:join", {
             category: category || "all",
           });
-          console.log("Feed: Joined feed room", { category: category || "all" });
+          // console.log("Feed: Joined feed room", { category: category || "all" });
         };
 
         const handleDisconnect = (reason: string) => {
-          console.log("Feed: Socket disconnected", { reason });
+          // console.log("Feed: Socket disconnected", { reason });
+          console.log("disconnected");
           // Socket.IO will auto-reconnect
         };
 
         const handleError = (error: Error) => {
-          console.error("Feed: Socket connection error", error);
+          // console.error("Feed: Socket connection error", error);
+          console.log("connection error");
         };
 
         if (socket.connected) {
@@ -313,14 +315,14 @@ export default function TICFeedPage() {
       const seenPostIds = seenPostIdsRef.current; // Get current value from ref
       const excludeIdsString = seenPostIds.length > 0 ? seenPostIds.join(",") : undefined;
 
-      console.log("Feed: Loading posts", {
-        reset,
-        currentPage,
-        category: category || "all",
-        seenPostIdsCount: seenPostIds.length,
-        seenPostIds: seenPostIds.slice(0, 10), // Log first 10 for debugging
-        excludePostIds: excludeIdsString?.substring(0, 100), // Log first 100 chars
-      });
+      // console.log("Feed: Loading posts", {
+      //   reset,
+      //   currentPage,
+      //   category: category || "all",
+      //   seenPostIdsCount: seenPostIds.length,
+      //   seenPostIds: seenPostIds.slice(0, 10), // Log first 10 for debugging
+      //   excludePostIds: excludeIdsString?.substring(0, 100), // Log first 100 chars
+      // });
 
       const response = await feedService.getPosts({
         category: category || "all",
@@ -330,25 +332,25 @@ export default function TICFeedPage() {
         excludePostIds: excludeIdsString, // Exclude seen posts
       });
 
-      console.log("Feed: Received response", {
-        postsCount: response.posts?.length || 0,
-        returnedPostIds: response.returnedPostIds?.length || 0,
-        returnedPostIdsArray: response.returnedPostIds,
-        pagination: response.pagination,
-        postsIds: response.posts?.map((p) => p.id) || [],
-      });
+      // console.log("Feed: Received response", {
+      //   postsCount: response.posts?.length || 0,
+      //   returnedPostIds: response.returnedPostIds?.length || 0,
+      //   returnedPostIdsArray: response.returnedPostIds,
+      //   pagination: response.pagination,
+      //   postsIds: response.posts?.map((p) => p.id) || [],
+      // });
 
       // Add returned IDs to tracking
       if (response.returnedPostIds && response.returnedPostIds.length > 0) {
         const currentSeenIds = seenPostIdsRef.current;
         const newIds = response.returnedPostIds.filter((id) => !currentSeenIds.includes(id));
         
-        console.log("Feed: Adding returnedPostIds to seenPostIds", {
-          before: currentSeenIds.length,
-          returnedIds: response.returnedPostIds,
-          newIds,
-          afterCount: currentSeenIds.length + newIds.length,
-        });
+        // console.log("Feed: Adding returnedPostIds to seenPostIds", {
+        //   before: currentSeenIds.length,
+        //   returnedIds: response.returnedPostIds,
+        //   newIds,
+        //   afterCount: currentSeenIds.length + newIds.length,
+        // });
         
         if (newIds.length > 0) {
           seenPostIdsRef.current = [...currentSeenIds, ...newIds];
@@ -358,11 +360,11 @@ export default function TICFeedPage() {
           });
         }
       } else {
-        console.warn("Feed: No returnedPostIds in response", {
-          responseKeys: Object.keys(response),
-          hasPosts: !!response.posts,
-          responseStructure: response,
-        });
+        // console.warn("Feed: No returnedPostIds in response", {
+        //   responseKeys: Object.keys(response),
+        //   hasPosts: !!response.posts,
+        //   responseStructure: response,
+        // });
         
         // Fallback: extract IDs from posts if returnedPostIds is missing
         if (response.posts && response.posts.length > 0) {
@@ -384,11 +386,11 @@ export default function TICFeedPage() {
         const pinnedPostIds = response.pinnedPosts?.map((p) => p.id) || [];
         const allPostIds = [...response.posts.map((p) => p.id), ...pinnedPostIds];
         
-        console.log("Feed: Resetting posts", {
-          postsCount: response.posts.length,
-          pinnedPostsCount: response.pinnedPosts?.length || 0,
-          allPostIds,
-        });
+        // console.log("Feed: Resetting posts", {
+        //   postsCount: response.posts.length,
+        //   pinnedPostsCount: response.pinnedPosts?.length || 0,
+        //   allPostIds,
+        // });
 
         setPosts(response.posts);
         setPinnedPosts(response.pinnedPosts || []);
@@ -399,10 +401,10 @@ export default function TICFeedPage() {
           const newIds = pinnedPostIds.filter((id) => !currentSeenIds.includes(id));
           if (newIds.length > 0) {
             seenPostIdsRef.current = [...currentSeenIds, ...newIds];
-            console.log("Feed: Added pinned post IDs to seenPostIds", {
-              newIds,
-              newCount: seenPostIdsRef.current.length,
-            });
+            // console.log("Feed: Added pinned post IDs to seenPostIds", {
+            //   newIds,
+            //   newCount: seenPostIdsRef.current.length,
+            // });
           }
         }
         
@@ -413,10 +415,10 @@ export default function TICFeedPage() {
           const newIds = postIds.filter((id) => !currentSeenIds.includes(id));
           if (newIds.length > 0) {
             seenPostIdsRef.current = [...currentSeenIds, ...newIds];
-            console.log("Feed: Added regular post IDs to seenPostIds on reset", {
-              newIds,
-              newCount: seenPostIdsRef.current.length,
-            });
+            // console.log("Feed: Added regular post IDs to seenPostIds on reset", {
+            //   newIds,
+            //   newCount: seenPostIdsRef.current.length,
+            // });
           }
         }
       } else {
@@ -426,22 +428,22 @@ export default function TICFeedPage() {
         
         const duplicateCount = response.posts.length - newPosts.length;
         if (duplicateCount > 0) {
-          console.warn("Feed: Filtered out duplicate posts", {
-            totalReceived: response.posts.length,
-            duplicates: duplicateCount,
-            newPosts: newPosts.length,
-            duplicateIds: response.posts
-              .filter((p) => existingPostIds.includes(p.id))
-              .map((p) => p.id),
-          });
+          // console.warn("Feed: Filtered out duplicate posts", {
+          //   totalReceived: response.posts.length,
+          //   duplicates: duplicateCount,
+          //   newPosts: newPosts.length,
+          //   duplicateIds: response.posts
+          //     .filter((p) => existingPostIds.includes(p.id))
+          //     .map((p) => p.id),
+          // });
         }
 
-        console.log("Feed: Adding new posts", {
-          existingCount: posts.length,
-          receivedCount: response.posts.length,
-          newCount: newPosts.length,
-          newPostIds: newPosts.map((p) => p.id),
-        });
+        // console.log("Feed: Adding new posts", {
+        //   existingCount: posts.length,
+        //   receivedCount: response.posts.length,
+        //   newCount: newPosts.length,
+        //   newPostIds: newPosts.map((p) => p.id),
+        // });
 
         if (newPosts.length > 0) {
           setPosts((prev) => {
@@ -451,10 +453,10 @@ export default function TICFeedPage() {
               new Map(combined.map((post) => [post.id, post])).values()
             );
             if (uniquePosts.length !== combined.length) {
-              console.warn("Feed: Removed additional duplicates from combined posts", {
-                before: combined.length,
-                after: uniquePosts.length,
-              });
+              // console.warn("Feed: Removed additional duplicates from combined posts", {
+              //   before: combined.length,
+              //   after: uniquePosts.length,
+              // });
             }
             return uniquePosts;
           });
