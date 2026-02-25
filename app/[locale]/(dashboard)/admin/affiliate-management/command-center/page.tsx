@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Filter, Calendar, Shield, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Filter, Calendar, Shield, Loader2, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { cn } from "../../../../../../src/utils/cn";
 import { affiliateService, type FinancialOverview, type LedgerEntry } from "@/src/lib/services/affiliateService";
 import { toast } from "sonner";
@@ -16,29 +16,76 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+type CommissionFilter = "all" | "completed" | "error" | "pending";
+type TransactionFilter = "all" | "PENDING" | "CONFIRMED" | "FAILED" | "REFUNDED";
+
 export default function CommandCenterPage() {
   const [ledgerPage, setLedgerPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [financialOverview, setFinancialOverview] = useState<FinancialOverview | null>(null);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+  const [allLedgerEntries, setAllLedgerEntries] = useState<LedgerEntry[]>([]);
   const [ledgerTotal, setLedgerTotal] = useState(0);
   const [totalLedgerPages, setTotalLedgerPages] = useState(1);
+  const [commissionFilter, setCommissionFilter] = useState<CommissionFilter>("all");
+  const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>("all");
+  const [showCommissionFilter, setShowCommissionFilter] = useState(false);
+  const [showTransactionFilter, setShowTransactionFilter] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const commissionFilterRef = useRef<HTMLDivElement>(null);
+  const transactionFilterRef = useRef<HTMLDivElement>(null);
+  const dateFilterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
-  }, [ledgerPage]);
+  }, [ledgerPage, transactionFilter, startDate, endDate]);
+
+  useEffect(() => {
+    if (commissionFilter === "all") {
+      setLedgerEntries(allLedgerEntries);
+    } else {
+      setLedgerEntries(allLedgerEntries.filter((e) => (e.commissionStatus || e.status) === commissionFilter));
+    }
+  }, [commissionFilter, allLedgerEntries]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const outsideCommission = !commissionFilterRef.current?.contains(target);
+      const outsideTransaction = !transactionFilterRef.current?.contains(target);
+      const outsideDate = !dateFilterRef.current?.contains(target);
+      if (outsideCommission && outsideTransaction && outsideDate) {
+        setShowCommissionFilter(false);
+        setShowTransactionFilter(false);
+        setShowDateFilter(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      const params: any = { page: ledgerPage, limit: 10 };
+      if (transactionFilter !== "all") params.transactionStatus = transactionFilter;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
       const [overview, ledger] = await Promise.all([
         affiliateService.getFinancialOverview(),
-        affiliateService.getSystemLedger({ page: ledgerPage, limit: 10 }),
+        affiliateService.getSystemLedger(params),
       ]);
       setFinancialOverview(overview);
-      setLedgerEntries(ledger.entries);
+      setAllLedgerEntries(ledger.entries);
       setLedgerTotal(ledger.pagination.total);
       setTotalLedgerPages(ledger.pagination.pages);
+      if (commissionFilter === "all") {
+        setLedgerEntries(ledger.entries);
+      } else {
+        setLedgerEntries(ledger.entries.filter((e) => (e.commissionStatus || e.status) === commissionFilter));
+      }
     } catch (error: any) {
       console.error("Failed to load command center data:", error);
       toast.error(error?.message || "Failed to load data");
@@ -127,65 +174,107 @@ export default function CommandCenterPage() {
               System Ledger
             </h2>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 sm:gap-1.5 sm:px-3 sm:py-2"
-              >
-                <Filter size={14} />
-                <span className="hidden sm:inline">Filter</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 sm:gap-1.5 sm:px-3 sm:py-2"
-              >
-                <Calendar size={14} />
-                <span className="hidden sm:inline">Date range</span>
-              </button>
+              <div className="relative" ref={transactionFilterRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowTransactionFilter(!showTransactionFilter)}
+                  className={cn(
+                    "flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium sm:gap-1.5 sm:px-3 sm:py-2",
+                    transactionFilter !== "all" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  <Filter size={14} />
+                  <span className="hidden sm:inline">Transaction</span>
+                </button>
+                {showTransactionFilter && (
+                  <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border border-slate-200 bg-white shadow-lg">
+                    {(["all", "PENDING", "CONFIRMED", "FAILED", "REFUNDED"] as TransactionFilter[]).map((s) => (
+                      <button key={s} type="button" onClick={() => { setTransactionFilter(s); setShowTransactionFilter(false); }} className="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-slate-50">
+                        {s === "all" ? "All" : s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="relative" ref={commissionFilterRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowCommissionFilter(!showCommissionFilter)}
+                  className={cn(
+                    "flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium sm:gap-1.5 sm:px-3 sm:py-2",
+                    commissionFilter !== "all" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  <Filter size={14} />
+                  <span className="hidden sm:inline">Commission</span>
+                </button>
+                {showCommissionFilter && (
+                  <div className="absolute right-0 top-full z-20 mt-1 w-36 rounded-lg border border-slate-200 bg-white shadow-lg">
+                    {(["all", "completed", "error", "pending"] as CommissionFilter[]).map((s) => (
+                      <button key={s} type="button" onClick={() => { setCommissionFilter(s); setShowCommissionFilter(false); }} className="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-slate-50">
+                        {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="relative" ref={dateFilterRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowDateFilter(!showDateFilter)}
+                  className={cn(
+                    "flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium sm:gap-1.5 sm:px-3 sm:py-2",
+                    startDate || endDate ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  <Calendar size={14} />
+                  <span className="hidden sm:inline">Date</span>
+                </button>
+                {showDateFilter && (
+                  <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mb-2 w-full rounded border px-2 py-1 text-xs" />
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded border px-2 py-1 text-xs" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm sm:mt-3 sm:rounded-xl">
             <table className="w-full min-w-[520px] text-left text-xs sm:min-w-[640px] sm:text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/80">
-                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                    Student
-                  </th>
-                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                    Payment
-                  </th>
-                  <th className="hidden px-2 py-2 font-medium text-slate-600 sm:table-cell sm:px-3 sm:py-2.5">
-                    Splits
-                  </th>
-                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                    TIC Net
-                  </th>
-                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">
-                    Status
-                  </th>
+                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">Student</th>
+                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">Payment</th>
+                  <th className="hidden px-2 py-2 font-medium text-slate-600 sm:table-cell sm:px-3 sm:py-2.5">Splits</th>
+                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">TIC Net</th>
+                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">Transaction</th>
+                  <th className="px-2 py-2 font-medium text-slate-600 sm:px-3 sm:py-2.5">Commission</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && ledgerEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center">
+                    <td colSpan={6} className="px-4 py-8 text-center">
                       <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
                     </td>
                   </tr>
                 ) : ledgerEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                       No ledger entries found.
                     </td>
                   </tr>
                 ) : (
                   ledgerEntries.map((row) => {
                     const studentName = `${row.student.firstName} ${row.student.lastName}`;
+                    const transactionStatus = row.transactionStatus || row.payment?.status;
+                    const commissionStatus = row.commissionStatus || row.status;
                     return (
                       <tr
                         key={row.id}
                         className={cn(
                           "border-b border-slate-100",
-                          row.status === "error" && "bg-red-50/50"
+                          commissionStatus === "error" && "bg-red-50/50"
                         )}
                       >
                         <td className="px-2 py-2 sm:px-3 sm:py-2.5">
@@ -209,13 +298,26 @@ export default function CommandCenterPage() {
                         <td className="px-2 py-2 sm:px-3 sm:py-2.5">
                           <span
                             className={cn(
-                              "inline-flex rounded-full px-2.5 py-1 text-xs font-medium text-white",
-                              row.status === "error"
-                                ? "bg-red-600"
-                                : "bg-slate-900"
+                              "inline-flex rounded-full px-2 py-1 text-xs font-medium",
+                              transactionStatus === "CONFIRMED" && "bg-green-100 text-green-800",
+                              transactionStatus === "PENDING" && "bg-amber-100 text-amber-800",
+                              transactionStatus === "FAILED" && "bg-red-100 text-red-800",
+                              transactionStatus === "REFUNDED" && "bg-slate-100 text-slate-700"
                             )}
                           >
-                            {row.status === "error" ? "Error" : "Done"}
+                            {transactionStatus || "—"}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2 sm:px-3 sm:py-2.5">
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-white",
+                              commissionStatus === "completed" && "bg-green-600",
+                              commissionStatus === "error" && "bg-red-600",
+                              commissionStatus === "pending" && "bg-amber-500"
+                            )}
+                          >
+                            {commissionStatus === "error" ? <><AlertCircle size={10} /> Error</> : commissionStatus === "completed" ? <><CheckCircle size={10} /> Applied</> : commissionStatus === "pending" ? <><Clock size={10} /> Pending</> : "—"}
                           </span>
                         </td>
                       </tr>

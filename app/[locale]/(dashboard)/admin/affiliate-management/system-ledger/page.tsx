@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Filter, Calendar, Loader2, X, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from "lucide-react";
+import { Filter, Calendar, Loader2, X, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { cn } from "../../../../../../src/utils/cn";
 import { affiliateService, type LedgerEntry } from "@/src/lib/services/affiliateService";
 import { toast } from "sonner";
@@ -17,7 +17,8 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-type StatusFilter = "all" | "completed" | "error";
+type CommissionFilter = "all" | "completed" | "error" | "pending";
+type TransactionFilter = "all" | "PENDING" | "CONFIRMED" | "FAILED" | "REFUNDED";
 
 export default function SystemLedgerPage() {
   const [page, setPage] = useState(1);
@@ -27,25 +28,28 @@ export default function SystemLedgerPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [showDateFilter, setShowDateFilter] = useState(false);
-  const [showStatusFilter, setShowStatusFilter] = useState(false);
+  const [showCommissionFilter, setShowCommissionFilter] = useState(false);
+  const [showTransactionFilter, setShowTransactionFilter] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [commissionFilter, setCommissionFilter] = useState<CommissionFilter>("all");
+  const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>("all");
   const dateFilterRef = useRef<HTMLDivElement>(null);
-  const statusFilterRef = useRef<HTMLDivElement>(null);
+  const commissionFilterRef = useRef<HTMLDivElement>(null);
+  const transactionFilterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadLedger();
-  }, [page, startDate, endDate]);
+  }, [page, startDate, endDate, transactionFilter]);
 
   useEffect(() => {
-    // Filter entries by status
-    if (statusFilter === "all") {
-      setEntries(allEntries);
-    } else {
-      setEntries(allEntries.filter((entry) => entry.status === statusFilter));
+    // Filter entries by commission status (client-side for commission, transaction is server-side)
+    let filtered = allEntries;
+    if (commissionFilter !== "all") {
+      filtered = filtered.filter((entry) => entry.commissionStatus === commissionFilter);
     }
-  }, [statusFilter, allEntries]);
+    setEntries(filtered);
+  }, [commissionFilter, allEntries]);
 
   useEffect(() => {
     // Close dropdowns when clicking outside
@@ -53,17 +57,20 @@ export default function SystemLedgerPage() {
       if (dateFilterRef.current && !dateFilterRef.current.contains(event.target as Node)) {
         setShowDateFilter(false);
       }
-      if (statusFilterRef.current && !statusFilterRef.current.contains(event.target as Node)) {
-        setShowStatusFilter(false);
+      if (commissionFilterRef.current && !commissionFilterRef.current.contains(event.target as Node)) {
+        setShowCommissionFilter(false);
+      }
+      if (transactionFilterRef.current && !transactionFilterRef.current.contains(event.target as Node)) {
+        setShowTransactionFilter(false);
       }
     };
-    if (showDateFilter || showStatusFilter) {
+    if (showDateFilter || showCommissionFilter || showTransactionFilter) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showDateFilter, showStatusFilter]);
+  }, [showDateFilter, showCommissionFilter, showTransactionFilter]);
 
   const loadLedger = async () => {
     try {
@@ -71,17 +78,18 @@ export default function SystemLedgerPage() {
       const params: any = { page, limit: 50 };
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
+      if (transactionFilter !== "all") params.transactionStatus = transactionFilter;
       
       const response = await affiliateService.getSystemLedger(params);
       setAllEntries(response.entries);
       setTotalPages(response.pagination.pages);
       setTotal(response.pagination.total);
       
-      // Apply status filter
-      if (statusFilter === "all") {
+      // Apply commission filter
+      if (commissionFilter === "all") {
         setEntries(response.entries);
       } else {
-        setEntries(response.entries.filter((entry) => entry.status === statusFilter));
+        setEntries(response.entries.filter((entry) => entry.commissionStatus === commissionFilter));
       }
     } catch (error: any) {
       console.error("Failed to load ledger:", error);
@@ -94,12 +102,13 @@ export default function SystemLedgerPage() {
   const clearFilters = () => {
     setStartDate("");
     setEndDate("");
-    setStatusFilter("all");
+    setCommissionFilter("all");
+    setTransactionFilter("all");
     setPage(1);
   };
 
-  const hasActiveFilters = startDate || endDate || statusFilter !== "all";
-  const filteredTotal = statusFilter === "all" ? total : entries.length;
+  const hasActiveFilters = startDate || endDate || commissionFilter !== "all" || transactionFilter !== "all";
+  const filteredTotal = commissionFilter === "all" ? total : entries.length;
 
   return (
     <div className="min-w-0 space-y-4">
@@ -113,49 +122,99 @@ export default function SystemLedgerPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Status Filter */}
-        <div className="relative" ref={statusFilterRef}>
+        {/* Transaction Status Filter */}
+        <div className="relative" ref={transactionFilterRef}>
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setShowStatusFilter(!showStatusFilter);
+              setShowTransactionFilter(!showTransactionFilter);
             }}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-              statusFilter !== "all"
+              transactionFilter !== "all"
                 ? "border-slate-900 bg-slate-900 text-white"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             )}
           >
             <Filter size={14} />
-            Status
-            {statusFilter !== "all" && (
+            Transaction
+            {transactionFilter !== "all" && (
               <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">
                 1
               </span>
             )}
           </button>
-          {showStatusFilter && (
-            <div className="absolute left-0 top-full z-20 mt-1 w-40 rounded-lg border border-slate-200 bg-white shadow-lg">
+          {showTransactionFilter && (
+            <div className="absolute left-0 top-full z-20 mt-1 w-44 rounded-lg border border-slate-200 bg-white shadow-lg">
               <div className="p-1">
-                {(["all", "completed", "error"] as StatusFilter[]).map((status) => (
+                {(["all", "PENDING", "CONFIRMED", "FAILED", "REFUNDED"] as TransactionFilter[]).map((status) => (
                   <button
                     key={status}
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setStatusFilter(status);
-                      setShowStatusFilter(false);
+                      setTransactionFilter(status);
+                      setShowTransactionFilter(false);
                     }}
                     className={cn(
                       "w-full rounded px-2.5 py-1.5 text-left text-xs font-medium transition-colors",
-                      statusFilter === status
+                      transactionFilter === status
                         ? "bg-slate-900 text-white"
                         : "text-slate-700 hover:bg-slate-50"
                     )}
                   >
-                    {status === "all" ? "All Status" : status === "completed" ? "Completed" : "Error"}
+                    {status === "all" ? "All Transactions" : status.charAt(0) + status.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Commission Status Filter */}
+        <div className="relative" ref={commissionFilterRef}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCommissionFilter(!showCommissionFilter);
+            }}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+              commissionFilter !== "all"
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            )}
+          >
+            <Filter size={14} />
+            Commission
+            {commissionFilter !== "all" && (
+              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">
+                1
+              </span>
+            )}
+          </button>
+          {showCommissionFilter && (
+            <div className="absolute left-0 top-full z-20 mt-1 w-40 rounded-lg border border-slate-200 bg-white shadow-lg">
+              <div className="p-1">
+                {(["all", "completed", "error", "pending"] as CommissionFilter[]).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCommissionFilter(status);
+                      setShowCommissionFilter(false);
+                    }}
+                    className={cn(
+                      "w-full rounded px-2.5 py-1.5 text-left text-xs font-medium transition-colors",
+                      commissionFilter === status
+                        ? "bg-slate-900 text-white"
+                        : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    {status === "all" ? "All Status" : status.charAt(0).toUpperCase() + status.slice(1)}
                   </button>
                 ))}
               </div>
@@ -257,33 +316,35 @@ export default function SystemLedgerPage() {
                 <th className="px-4 py-3 font-medium text-slate-600">Commission Splits</th>
                 <th className="px-4 py-3 font-medium text-slate-600 text-right">TIC Net</th>
                 <th className="px-4 py-3 font-medium text-slate-600">Date</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Status</th>
+                <th className="px-4 py-3 font-medium text-slate-600">Transaction</th>
+                <th className="px-4 py-3 font-medium text-slate-600">Commission</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && entries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
                   </td>
                 </tr>
               ) : entries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-xs text-slate-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-xs text-slate-500">
                     No ledger entries found.
                   </td>
                 </tr>
               ) : (
                 entries.map((row) => {
                   const studentName = `${row.student.firstName} ${row.student.lastName}`;
-                  const hasCommissions = row.affiliateCommission || row.regionalCommission || row.nationalCommission;
+                  const transactionStatus = row.transactionStatus || row.payment.status;
+                  const commissionStatus = row.commissionStatus || row.status;
                   
                   return (
                     <tr
                       key={row.id}
                       className={cn(
                         "transition-colors hover:bg-slate-50/50",
-                        row.status === "error" && "bg-red-50/20"
+                        commissionStatus === "error" && "bg-red-50/20"
                       )}
                     >
                       <td className="px-4 py-3">
@@ -310,21 +371,39 @@ export default function SystemLedgerPage() {
                       <td className="px-4 py-3">
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-white",
-                            row.status === "error"
-                              ? "bg-red-600"
-                              : "bg-slate-900"
+                            "inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium",
+                            transactionStatus === "CONFIRMED" && "bg-green-100 text-green-800",
+                            transactionStatus === "PENDING" && "bg-amber-100 text-amber-800",
+                            transactionStatus === "FAILED" && "bg-red-100 text-red-800",
+                            transactionStatus === "REFUNDED" && "bg-slate-100 text-slate-700"
                           )}
                         >
-                          {row.status === "error" ? (
+                          {transactionStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-white",
+                            commissionStatus === "completed" && "bg-green-600",
+                            commissionStatus === "error" && "bg-red-600",
+                            commissionStatus === "pending" && "bg-amber-500"
+                          )}
+                        >
+                          {commissionStatus === "error" ? (
                             <>
                               <AlertCircle size={12} />
                               Error
                             </>
-                          ) : (
+                          ) : commissionStatus === "completed" ? (
                             <>
                               <CheckCircle size={12} />
-                              Completed
+                              Applied
+                            </>
+                          ) : (
+                            <>
+                              <Clock size={12} />
+                              Pending
                             </>
                           )}
                         </span>

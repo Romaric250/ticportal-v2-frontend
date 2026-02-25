@@ -378,6 +378,11 @@ export interface LedgerEntry {
   regionalCommission?: number;
   nationalCommission?: number;
   ticNet: number;
+  /** Transaction status: PENDING | CONFIRMED | FAILED | REFUNDED */
+  transactionStatus: string;
+  /** Commission status: whether commissions were successfully applied */
+  commissionStatus: "completed" | "error" | "pending";
+  /** @deprecated Use commissionStatus - kept for backward compatibility */
   status: "completed" | "error";
   createdAt: string;
 }
@@ -387,6 +392,7 @@ export interface GetLedgerParams {
   limit?: number;
   startDate?: string;
   endDate?: string;
+  transactionStatus?: "PENDING" | "CONFIRMED" | "FAILED" | "REFUNDED";
 }
 
 export interface GetLedgerResponse {
