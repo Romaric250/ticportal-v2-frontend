@@ -6,6 +6,7 @@ export type UserProfile = {
   username?: string;
   firstName: string;
   lastName: string;
+  role?: string;
   bio?: string;
   profilePhoto?: string;
   school?: string;

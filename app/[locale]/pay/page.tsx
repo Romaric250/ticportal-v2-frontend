@@ -110,9 +110,10 @@ export default function PaymentPage() {
           setCurrentUserProfile(profile);
           setUser({
             id: profile.id,
+            
             name: `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || profile.email,
             email: profile.email,
-            role: null,
+            role: (profile.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate" | null,
             firstName: profile.firstName,
             lastName: profile.lastName,
           });
@@ -442,7 +443,20 @@ export default function PaymentPage() {
   };
 
   const handleClose = () => {
-    router.push(`/${locale}/student`);
+    // Redirect to the appropriate dashboard based on user role
+    if (user && accessToken) {
+      const userRole = user.role?.toLowerCase() || "student";
+      const redirectTo =
+        userRole === "admin" || userRole === "super-admin"
+          ? `/${userRole}`
+          : userRole === "affiliate"
+            ? "/affiliate"
+            : "/student";
+      router.push(`/${locale}${redirectTo}`);
+    } else {
+      // Not logged in - go to login (home redirects there)
+      router.push(`/${locale}`);
+    }
   };
 
   if (loading || checkingAuth) {
