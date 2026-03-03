@@ -31,7 +31,7 @@ export default function DashboardLayout({ children }: Props) {
     | "super-admin"
     | "affiliate";
 
-  const { user, accessToken, initialize, initialized, logout } = useAuthStore();
+  const { user, accessToken, initialize, initialized, logout, setUser } = useAuthStore();
   const router = useRouter();
   const locale = useLocale();
 
@@ -75,10 +75,18 @@ export default function DashboardLayout({ children }: Props) {
         return;
       }
 
-      // Validate token by calling getProfile API
+      // Validate token by calling getProfile API and sync user to store
       try {
-        await userService.getProfile();
-        // Token is valid, allow access
+        const profile = await userService.getProfile();
+        // Sync user to store so we always have latest role (fixes 403 when persisted user is stale)
+        setUser({
+          id: profile.id,
+          name: `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || profile.email,
+          email: profile.email,
+          role: (profile.role?.toLowerCase().replace(/_/g, "-") || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate" | null,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+        });
         setValidatingAuth(false);
       } catch (error: any) {
         // Only logout on 401 (Unauthorized) errors - not 403 (Forbidden) or other errors
@@ -107,7 +115,7 @@ export default function DashboardLayout({ children }: Props) {
     };
 
     validateAuth();
-  }, [initialized, accessToken, router, locale, logout]);
+  }, [initialized, accessToken, router, locale, logout, setUser]);
 
   // Protect admin routes - check immediately and redirect silently if not authorized
   useEffect(() => {
