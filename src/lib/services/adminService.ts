@@ -21,6 +21,8 @@ export type AdminUser = {
   lastLogin?: string;
   affiliation?: string; // Team name or school
   jurisdiction?: string; // Region/Area
+  hasPaid?: boolean; // For students: has confirmed payment
+  isManualSubscription?: boolean; // For students: payment was manual (can be reversed)
 };
 
 export type AdminUserResponse = {
@@ -70,6 +72,13 @@ export type UserFilters = {
   jurisdiction?: string;
   status?: string;
   search?: string;
+  paymentStatus?: "paid" | "not_paid";
+};
+
+export type RegionStats = {
+  region: string;
+  total: number;
+  paid: number;
 };
 
 export type DashboardStats = {
@@ -135,11 +144,14 @@ export const adminService = {
     if (filters?.role && filters.role !== "All Roles") {
       params.append("role", filters.role);
     }
-    if (filters?.jurisdiction && filters.jurisdiction !== "All Areas") {
+    if (filters?.jurisdiction && filters.jurisdiction !== "All Areas" && filters.jurisdiction !== "All Regions") {
       params.append("jurisdiction", filters.jurisdiction);
     }
     if (filters?.status && filters.status !== "All Statuses") {
       params.append("status", filters.status);
+    }
+    if (filters?.paymentStatus) {
+      params.append("paymentStatus", filters.paymentStatus);
     }
     if (filters?.search) {
       params.append("search", filters.search);
@@ -173,8 +185,35 @@ export const adminService = {
   /**
    * Create a new user
    */
-  async createUser(payload: CreateUserPayload): Promise<AdminUser> {
-    const { data } = await apiClient.post<AdminUser>("/admin/users", payload);
+  async createUser(payload: CreateUserPayload): Promise<{ user: AdminUser; plainPassword?: string }> {
+    const { data } = await apiClient.post<{ user: AdminUser; plainPassword?: string }>("/admin/users", payload);
+    return data;
+  },
+
+  /**
+   * Send OTP to email for verification before creating new user
+   */
+  async sendVerificationOtp(email: string): Promise<void> {
+    await apiClient.post("/admin/users/send-verification-otp", { email });
+  },
+
+  /**
+   * Verify OTP and create user
+   */
+  async verifyAndCreateUser(payload: {
+    email: string;
+    code: string;
+    firstName: string;
+    lastName: string;
+    role: CreateUserPayload["role"];
+    school?: string;
+    region?: string;
+    password?: string;
+  }): Promise<{ user: AdminUser; plainPassword?: string }> {
+    const { data } = await apiClient.post<{ user: AdminUser; plainPassword?: string }>(
+      "/admin/users/verify-and-create",
+      payload
+    );
     return data;
   },
 
@@ -205,6 +244,25 @@ export const adminService = {
    */
   async deleteUser(userId: string): Promise<void> {
     await apiClient.delete(`/admin/users/${userId}`);
+  },
+
+  /**
+   * Bulk delete users
+   */
+  async deleteUsers(userIds: string[]): Promise<{ deleted: number; failed: Array<{ userId: string; error: string }> }> {
+    const { data } = await apiClient.post<{ deleted: number; failed: Array<{ userId: string; error: string }> }>(
+      "/admin/users/bulk-delete",
+      { userIds }
+    );
+    return data;
+  },
+
+  /**
+   * Get students by region with paid counts
+   */
+  async getUsersByRegionStats(): Promise<RegionStats[]> {
+    const { data } = await apiClient.get<RegionStats[]>("/admin/users/by-region-stats");
+    return Array.isArray(data) ? data : [];
   },
 
   /**

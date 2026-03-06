@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, X } from "lucide-react";
+import { cn } from "@/src/utils/cn";
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -10,6 +11,10 @@ interface DeleteConfirmationModalProps {
   message: string;
   itemName?: string;
   loading?: boolean;
+  confirmLabel?: string;
+  loadingLabel?: string;
+  confirmVariant?: "danger" | "warning";
+  warningText?: string; // Custom warning, e.g. "This action cannot be undone"
 }
 
 export function DeleteConfirmationModal({
@@ -20,6 +25,10 @@ export function DeleteConfirmationModal({
   message,
   itemName,
   loading = false,
+  confirmLabel = "Delete",
+  loadingLabel = "Deleting...",
+  confirmVariant = "danger",
+  warningText = "This action cannot be undone.",
 }: DeleteConfirmationModalProps) {
   if (!isOpen) return null;
 
@@ -60,9 +69,11 @@ export function DeleteConfirmationModal({
               <p className="text-sm font-medium text-slate-900 break-words">{itemName}</p>
             </div>
           )}
-          <p className="mt-4 text-xs sm:text-sm font-medium text-red-600">
-            This action cannot be undone.
-          </p>
+          {warningText && (
+            <p className="mt-4 text-xs sm:text-sm font-medium text-red-600">
+              {warningText}
+            </p>
+          )}
         </div>
 
         {/* Footer */}
@@ -77,15 +88,20 @@ export function DeleteConfirmationModal({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 sm:flex-initial rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className={cn(
+              "flex-1 sm:flex-initial rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2",
+              confirmVariant === "warning"
+                ? "bg-amber-600 hover:bg-amber-700"
+                : "bg-red-600 hover:bg-red-700"
+            )}
           >
             {loading ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Deleting...</span>
+                <span>{loadingLabel}</span>
               </>
             ) : (
-              "Delete"
+              confirmLabel
             )}
           </button>
         </div>

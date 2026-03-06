@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Filter, Download, UserPlus, CheckCircle, AlertCircle, GraduationCap, Gavel, Users, Loader2, Edit2, Trash2 } from "lucide-react";
-import { adminService, type AdminUser, type UserFilters } from "../../../../../src/lib/services/adminService";
+import { Search, Filter, Download, UserPlus, CreditCard, AlertCircle, GraduationCap, Gavel, Users, Loader2, Edit2, Trash2, MapPin, Undo2 } from "lucide-react";
+import { adminService, type AdminUser, type UserFilters, type RegionStats } from "../../../../../src/lib/services/adminService";
+import { CAMEROON_REGIONS } from "../../../../../src/constants/regions";
 import { toast } from "sonner";
 import { cn } from "../../../../../src/utils/cn";
 import { EditUserModal } from "../../../../../components/dashboard/admin/EditUserModal";
 import { DeleteConfirmationModal } from "../../../../../components/dashboard/admin/DeleteConfirmationModal";
+import { AddUserModal } from "../../../../../components/dashboard/admin/AddUserModal";
+import { ManualSubscriptionModal } from "../../../../../components/dashboard/admin/ManualSubscriptionModal";
+import { paymentService } from "../../../../../src/lib/services/paymentService";
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -34,18 +38,30 @@ export default function UserManagementPage() {
     role: "All Roles",
     jurisdiction: "All Areas",
     status: "All Statuses",
+    paymentStatus: undefined,
     search: "",
   });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [regionStats, setRegionStats] = useState<RegionStats[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [manualSubscriptionOpen, setManualSubscriptionOpen] = useState(false);
+  const [reversingUser, setReversingUser] = useState<AdminUser | null>(null);
+  const [reverseLoading, setReverseLoading] = useState(false);
 
   // Load stats
   const loadStats = useCallback(async () => {
     try {
-      const statsData = await adminService.getStats();
+      const [statsData, regionData] = await Promise.all([
+        adminService.getStats(),
+        adminService.getUsersByRegionStats(),
+      ]);
       setStats(statsData);
+      setRegionStats(regionData);
     } catch (error) {
       console.error("Error loading stats:", error);
     }
@@ -113,6 +129,58 @@ export default function UserManagementPage() {
     }
   };
 
+  const handleReverseConfirm = async () => {
+    if (!reversingUser) return;
+
+    setReverseLoading(true);
+    try {
+      await paymentService.reverseManualSubscription(reversingUser.id);
+      toast.success("Manual subscription reversed. Student is now marked as not paid.");
+      setReversingUser(null);
+      loadUsers(pagination.page);
+      loadStats();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reverse subscription");
+    } finally {
+      setReverseLoading(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === users.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(users.map((u) => u.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedIds.size === 0) return;
+    setDeleteLoading(true);
+    try {
+      const result = await adminService.deleteUsers(Array.from(selectedIds));
+      toast.success(result.deleted > 0 ? `Deleted ${result.deleted} user(s)` : "No users deleted");
+      if (result.failed.length > 0) {
+        toast.error(`${result.failed.length} user(s) could not be deleted`);
+      }
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+      loadUsers(pagination.page);
+      loadStats();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to delete users");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleUserUpdated = () => {
     loadUsers(pagination.page);
     loadStats();
@@ -134,19 +202,6 @@ export default function UserManagementPage() {
     }
   };
 
-  const getStatusDot = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return <div className="h-2 w-2 rounded-full bg-emerald-500" />;
-      case "PENDING":
-        return <div className="h-2 w-2 rounded-full bg-amber-500" />;
-      case "SUSPENDED":
-        return <div className="h-2 w-2 rounded-full bg-red-500" />;
-      default:
-        return <div className="h-2 w-2 rounded-full bg-slate-400" />;
-    }
-  };
-
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -161,17 +216,102 @@ export default function UserManagementPage() {
             Oversee users, approve registrations, and manage roles for your jurisdiction.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {selectedIds.size > 0 && (
+            <>
+              <span className="text-sm text-slate-600">{selectedIds.size} selected</span>
+              <button
+                type="button"
+                onClick={() => setBulkDeleteOpen(true)}
+                className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+              >
+                <Trash2 size={16} />
+                Delete selected
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-sm text-slate-500 hover:text-slate-700 underline"
+              >
+                Clear selection
+              </button>
+            </>
+          )}
           <button className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
             <Download size={16} />
             Import CSV
           </button>
-          <button className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800">
+          <button
+            type="button"
+            onClick={() => setManualSubscriptionOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <CreditCard size={16} />
+            Manual Subscription
+          </button>
+          <button
+            type="button"
+            onClick={() => setAddUserOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+          >
             <UserPlus size={16} />
             Add New User
           </button>
         </div>
       </div>
+
+      {/* Region Stats - Students by region with paid counts */}
+      {regionStats.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <MapPin size={18} />
+              Students by Region
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Payment status by region • {regionStats.reduce((a, r) => a + r.total, 0)} total students
+            </p>
+          </div>
+          <div className="overflow-x-auto max-h-64 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-slate-600">Region</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-600">Total</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-600">Paid</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-600">%</th>
+                  <th className="px-4 py-3 w-24 font-medium text-slate-600">Progress</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {regionStats.map((r) => {
+                  const pct = r.total > 0 ? Math.round((r.paid / r.total) * 100) : 0;
+                  return (
+                    <tr key={r.region} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-slate-900">{r.region}</td>
+                      <td className="px-4 py-2.5 text-right text-slate-700">{r.total}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={r.paid > 0 ? "text-emerald-600 font-medium" : "text-slate-500"}>
+                          {r.paid}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-slate-600">{pct}%</td>
+                      <td className="px-4 py-2.5">
+                        <div className="h-2 w-full min-w-[4rem] rounded-full bg-slate-200 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500 transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -266,23 +406,29 @@ export default function UserManagementPage() {
             onChange={(e) => setFilters((prev) => ({ ...prev, jurisdiction: e.target.value }))}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
           >
-            <option>All Areas</option>
-            <option>North Region</option>
-            <option>South Region</option>
-            <option>East Region</option>
-            <option>West Region</option>
+            <option>All Regions</option>
+            {CAMEROON_REGIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
           </select>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-          >
-            <option>All Statuses</option>
-            <option>ACTIVE</option>
-            <option>PENDING</option>
-            <option>SUSPENDED</option>
-            <option>INACTIVE</option>
-          </select>
+          {(filters.role === "STUDENT" || filters.role === "All Roles") && (
+            <select
+              value={filters.paymentStatus ?? ""}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  paymentStatus: (e.target.value || undefined) as "paid" | "not_paid" | undefined,
+                }))
+              }
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+            >
+              <option value="">All Payment Status</option>
+              <option value="paid">Paid</option>
+              <option value="not_paid">Not Paid</option>
+            </select>
+          )}
           <button className="rounded-lg border border-slate-300 bg-white p-2.5 transition-colors hover:bg-slate-50 hover:border-slate-900">
             <Filter size={18} className="text-slate-600" />
           </button>
@@ -296,7 +442,12 @@ export default function UserManagementPage() {
             <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
                 <th className="px-6 py-4 text-left">
-                  <input type="checkbox" className="rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
+                  <input
+                    type="checkbox"
+                    checked={users.length > 0 && selectedIds.size === users.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                  />
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   User Details
@@ -305,13 +456,13 @@ export default function UserManagementPage() {
                   Role
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
-                  Jurisdiction
+                  Region
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
-                  Affiliation
+                  Team
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
-                  Status
+                  Payment Status
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Actions
@@ -336,7 +487,12 @@ export default function UserManagementPage() {
                 users.map((user) => (
                   <tr key={user.id} className="transition-colors hover:bg-slate-50/50">
                     <td className="px-6 py-4">
-                      <input type="checkbox" className="rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(user.id)}
+                        onChange={() => toggleSelect(user.id)}
+                        className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                      />
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -366,34 +522,39 @@ export default function UserManagementPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-slate-700">{user.jurisdiction || user.region || "Unassigned"}</span>
+                      <span className="text-sm text-slate-700">{user.region || "Unassigned"}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-slate-700">{user.affiliation || user.school || "Unassigned"}</span>
+                      <span className="text-sm text-slate-700">{user.affiliation || "—"}</span>
                     </td>
                     <td className="px-6 py-4">
-                      {user.status === "PENDING" ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1">
-                            {getStatusDot(user.status)}
-                            <span className="text-xs font-medium text-amber-700">Pending</span>
+                      {user.role === "STUDENT" ? (
+                        user.hasPaid ? (
+                          <div className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1">
+                            <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                            <span className="text-xs font-medium text-emerald-700">Paid</span>
                           </div>
-                          <button
-                            onClick={() => handleApprove(user.id)}
-                            className="rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-slate-800"
-                          >
-                            Approve
-                          </button>
-                        </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1">
+                            <div className="h-2 w-2 rounded-full bg-amber-500" />
+                            <span className="text-xs font-medium text-amber-700">Not Paid</span>
+                          </div>
+                        )
                       ) : (
-                        <div className="flex items-center gap-1.5">
-                          {getStatusDot(user.status)}
-                          <span className="text-xs font-medium text-slate-700">{user.status}</span>
-                        </div>
+                        <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5">
+                        {user.role === "STUDENT" && user.hasPaid && user.isManualSubscription && (
+                          <button
+                            onClick={() => setReversingUser(user)}
+                            className="rounded-lg p-2 text-amber-600 transition-colors hover:bg-amber-50 hover:text-amber-700"
+                            title="Reverse manual subscription"
+                          >
+                            <Undo2 size={16} />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEdit(user)}
                           className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
@@ -459,6 +620,17 @@ export default function UserManagementPage() {
         onUserUpdated={handleUserUpdated}
       />
 
+      {/* Bulk Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={handleBulkDeleteConfirm}
+        title="Delete Selected Users"
+        message={`Are you sure you want to delete ${selectedIds.size} user(s)? This action cannot be undone.`}
+        itemName={undefined}
+        loading={deleteLoading}
+      />
+
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={!!deletingUser}
@@ -468,6 +640,41 @@ export default function UserManagementPage() {
         message="Are you sure you want to delete this user? This action cannot be undone and will permanently remove the user from the system."
         itemName={deletingUser ? `${deletingUser.firstName} ${deletingUser.lastName} (${deletingUser.email})` : undefined}
         loading={deleteLoading}
+      />
+
+      {/* Reverse Manual Subscription Modal */}
+      <DeleteConfirmationModal
+        isOpen={!!reversingUser}
+        onClose={() => setReversingUser(null)}
+        onConfirm={handleReverseConfirm}
+        title="Reverse Manual Subscription"
+        message="Are you sure you want to reverse this manual subscription? The student will be marked as not paid. Affiliate commissions will be revoked."
+        itemName={reversingUser ? `${reversingUser.firstName} ${reversingUser.lastName} (${reversingUser.email})` : undefined}
+        loading={reverseLoading}
+        confirmLabel="Reverse"
+        loadingLabel="Reversing..."
+        confirmVariant="warning"
+        warningText="You can add a new manual subscription later if needed."
+      />
+
+      {/* Add User Modal (OTP verification flow) */}
+      <AddUserModal
+        isOpen={addUserOpen}
+        onClose={() => setAddUserOpen(false)}
+        onUserCreated={() => {
+          loadUsers(pagination.page);
+          loadStats();
+        }}
+      />
+
+      {/* Manual Subscription Modal */}
+      <ManualSubscriptionModal
+        isOpen={manualSubscriptionOpen}
+        onClose={() => setManualSubscriptionOpen(false)}
+        onSuccess={() => {
+          loadUsers(pagination.page);
+          loadStats();
+        }}
       />
     </div>
   );

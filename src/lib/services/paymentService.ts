@@ -140,4 +140,40 @@ export const paymentService = {
     const { data } = await apiClient.post<{ success: boolean }>("/payment/confirm-success", payload);
     return data;
   },
+
+  /**
+   * Admin: Create manual subscription for a user
+   * POST /api/payment/admin/manual-subscription
+   */
+  async createManualSubscription(payload: {
+    userId: string;
+    countryId: string;
+    amount: number;
+    affiliateId?: string;
+    referralCode?: string;
+  }): Promise<{
+    paymentId: string;
+    paymentReference: string;
+    amount: number;
+    currency: string;
+    status: string;
+    referralId?: string;
+    message: string;
+  }> {
+    const { data } = await apiClient.post("/payment/admin/manual-subscription", payload);
+    return data;
+  },
+
+  /**
+   * Admin: Reverse a manual subscription
+   * POST /api/payment/admin/reverse-manual-subscription
+   */
+  async reverseManualSubscription(userId: string): Promise<{
+    success: boolean;
+    paymentId: string;
+    message: string;
+  }> {
+    const { data } = await apiClient.post("/payment/admin/reverse-manual-subscription", { userId });
+    return data;
+  },
 };
