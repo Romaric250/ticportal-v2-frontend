@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { X, CheckCircle, Loader2, Phone, Lock, Search, User, Users } from "lucide-react";
+import { X, CheckCircle, Loader2, Phone, Lock, Search, User, Users, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { paymentService, type PaymentMethod } from "@/src/lib/services/paymentService";
 import { affiliateService, type Country } from "@/src/lib/services/affiliateService";
 import { useAuthStore } from "@/src/state/auth-store";
+import { authService } from "@/src/lib/services/authService";
 import { userService, type SearchUserResult } from "@/src/lib/services/userService";
 import { tokenStorage } from "@/src/lib/api-client";
 
@@ -38,7 +39,7 @@ export default function PaymentPage() {
   const router = useRouter();
   const locale = useLocale();
   const searchParams = useSearchParams();
-  const { user, accessToken, initialize, initialized, setUser } = useAuthStore();
+  const { user, accessToken, refreshToken, initialize, initialized, setUser, logout } = useAuthStore();
   
   const referralCode = searchParams.get("ref") || undefined;
   
@@ -458,6 +459,19 @@ export default function PaymentPage() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      if (refreshToken) {
+        await authService.logout({ refreshToken });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      logout();
+      router.replace(`/${locale}/login?redirect=/pay${referralCode ? `?ref=${referralCode}` : ""}`);
+    }
+  };
+
   const handleClose = () => {
     // Redirect to the appropriate dashboard based on user role
     if (user && accessToken) {
@@ -506,15 +520,28 @@ export default function PaymentPage() {
       
       {/* Modal - Fixed height, no scrolling */}
       <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5 max-h-[90vh] flex flex-col overflow-hidden lg:overflow-hidden">
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={handleClose}
-          className="absolute right-4 top-4 z-20 rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
+        {/* Close Button & Sign Out */}
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+          {user && accessToken && (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+              aria-label="Sign out"
+            >
+              <LogOut size={16} />
+              Sign out
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleClose}
+            className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-0 flex-1 overflow-y-auto lg:overflow-hidden">
           {/* Payment Form Column (First on mobile, second on desktop) */}
