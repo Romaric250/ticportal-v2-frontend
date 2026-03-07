@@ -117,31 +117,29 @@ export default function DashboardLayout({ children }: Props) {
     validateAuth();
   }, [initialized, accessToken, router, locale, logout, setUser]);
 
-  // Protect admin routes - check immediately and redirect silently if not authorized
+  // Protect routes by role - redirect users to their correct dashboard
   useEffect(() => {
-    // Wait for auth validation to complete
-    if (validatingAuth || !initialized) {
-      return;
-    }
+    if (validatingAuth || !initialized) return;
+
+    const userRole = user?.role?.toLowerCase();
 
     if (role === "admin" || role === "super-admin") {
-      if (user) {
-        const userRole = user.role?.toLowerCase();
-        if (userRole !== "admin" && userRole !== "super-admin") {
-          const redirectRole = userRole || "student";
-          router.replace(`/${locale}/${redirectRole}`);
-          return;
-        }
+      if (user && userRole !== "admin" && userRole !== "super-admin") {
+        router.replace(`/${locale}/${userRole || "student"}`);
+        return;
       }
       setAuthChecked(true);
     } else if (role === "affiliate") {
-      if (user) {
-        const userRole = user.role?.toLowerCase();
-        if (userRole !== "affiliate") {
-          const redirectRole = userRole || "student";
-          router.replace(`/${locale}/${redirectRole}`);
-          return;
-        }
+      if (user && userRole !== "affiliate") {
+        router.replace(`/${locale}/${userRole || "student"}`);
+        return;
+      }
+      setAuthChecked(true);
+    } else if (role === "mentor" || role === "judge") {
+      // Students must not access mentor/judge dashboards
+      if (user && userRole === "student") {
+        router.replace(`/${locale}/student`);
+        return;
       }
       setAuthChecked(true);
     } else {
@@ -196,6 +194,7 @@ export default function DashboardLayout({ children }: Props) {
   }, [validatingAuth, initialized, authChecked, role, user, router, locale]);
 
   // Check payment status - redirect to payment page if payment is required but not paid
+  // CRITICAL: Use user.role (from profile), NOT URL path - students can't bypass by visiting /mentor etc.
   useEffect(() => {
     const checkPaymentStatus = async () => {
       // Wait for auth validation to complete
@@ -203,15 +202,16 @@ export default function DashboardLayout({ children }: Props) {
         return;
       }
 
-      // Only check payment for student role (other roles don't need payment)
-      if (role !== "student") {
+      // Only check payment for students (use actual user role, not URL)
+      const isStudent = user.role?.toLowerCase() === "student";
+      if (!isStudent) {
         setPaymentChecked(true);
         return;
       }
 
       try {
         const paymentStatus = await paymentService.checkUserPaymentStatus();
-        
+
         // If payment is required but user hasn't paid, redirect to payment page
         if (paymentStatus.isRequired && !paymentStatus.hasPaid) {
           router.replace(`/${locale}/pay`);
@@ -221,14 +221,14 @@ export default function DashboardLayout({ children }: Props) {
         setPaymentChecked(true);
       } catch (error: any) {
         console.error("Error checking payment status:", error);
-        // On error, allow access (might be network issue or user doesn't need payment)
-        // Don't block dashboard access on payment check errors
-        setPaymentChecked(true);
+        // FAIL CLOSED: On error, redirect to pay - never allow access when we can't verify payment
+        // Unpaid students must not reach the dashboard under any circumstance
+        router.replace(`/${locale}/pay`);
       }
     };
 
     checkPaymentStatus();
-  }, [validatingAuth, initialized, user, role, router, locale]);
+  }, [validatingAuth, initialized, user, router, locale]);
 
   // Check if student needs onboarding
   useEffect(() => {
@@ -353,12 +353,13 @@ export default function DashboardLayout({ children }: Props) {
   };
 
   // Don't render anything until auth is validated and checked - show nothing (invisible)
-  // This check happens AFTER all hooks are called to follow Rules of Hooks
+  // CRITICAL: Block students until payment is verified (use user.role, not URL)
+  const isStudent = user?.role?.toLowerCase() === "student";
   if (
-    validatingAuth || 
+    validatingAuth ||
     ((role === "admin" || role === "super-admin" || role === "affiliate") && !authChecked) ||
     (role === "affiliate" && !affiliateProfileChecked) ||
-    (role === "student" && !paymentChecked)
+    (isStudent && !paymentChecked)
   ) {
     return null; // Render nothing - completely invisible
   }

@@ -136,6 +136,22 @@ export default function PaymentPage() {
     checkAuth();
   }, [initialized, accessToken, user, setUser]);
 
+  // Redirect paid students to dashboard (e.g. when sent here due to payment check error)
+  useEffect(() => {
+    if (checkingAuth || !user || !accessToken) return;
+    const isStudent = user.role?.toLowerCase() === "student";
+    if (!isStudent) return;
+
+    paymentService
+      .checkUserPaymentStatus()
+      .then((status) => {
+        if (status.isRequired && status.hasPaid) {
+          router.replace(`/${locale}/student`);
+        }
+      })
+      .catch(() => { /* ignore - user stays on pay page */ });
+  }, [checkingAuth, user, accessToken, router, locale]);
+
   // Load payment data once auth is checked (load even if not logged in)
   useEffect(() => {
     if (!checkingAuth && initialized) {
