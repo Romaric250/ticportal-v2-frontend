@@ -7,6 +7,7 @@ import Link from "next/link";
 import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
+import { normalizeEmail, normalizePassword } from "../../../../src/utils/normalizeInput";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Password strength
   const [passwordStrength, setPasswordStrength] = useState<"weak" | "fair" | "good" | "strong">("weak");
@@ -81,6 +83,7 @@ export default function RegisterPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
@@ -104,21 +107,35 @@ export default function RegisterPage() {
 
     setSubmitting(true);
 
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedPassword = normalizePassword(password);
+
     try {
       await authService.register({
-        email,
-        password,
+        email: normalizedEmail,
+        password: normalizedPassword,
         firstName,
         lastName,
         role: "STUDENT",
       });
-      
+
       toast.success("Registration successful! Please check your email for the verification code.");
-      router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}&role=STUDENT`);
-    } catch (error: any) {
-      console.error(error);
-      const errorMessage = error?.message || "Registration failed. Please try again.";
-      toast.error(errorMessage);
+      router.push(`/${locale}/verify-email?email=${encodeURIComponent(normalizedEmail)}&role=STUDENT`);
+    } catch (err: any) {
+      console.error(err);
+      const status = err?.response?.status;
+      const errorMessage = err?.response?.data?.error?.message || err?.response?.data?.message || err?.message || "";
+
+      if (status === 400 || status === 409) {
+        const msg = (errorMessage as string).toLowerCase();
+        if (msg.includes("already exists") || msg.includes("email")) {
+          setError("This email is already registered. Please log in or use a different email.");
+        } else {
+          setError(errorMessage || "Registration failed. Please try again.");
+        }
+      } else {
+        setError(errorMessage || "Registration failed. Please try again.");
+      }
       setSubmitting(false);
     }
   };
@@ -178,6 +195,12 @@ export default function RegisterPage() {
 
                 {/* Form Card */}
                 <form onSubmit={onSubmit} className="space-y-4">
+              {/* Error Message */}
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                  <p className="text-xs font-medium text-red-800">{error}</p>
+                </div>
+              )}
               {/* Full Name */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700">Full Name</label>
@@ -190,7 +213,10 @@ export default function RegisterPage() {
                     type="text"
                     required
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      if (error) setError(null);
+                    }}
                     className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20 transition-colors"
                     placeholder="e.g. Jane Doe"
                   />
@@ -209,8 +235,12 @@ export default function RegisterPage() {
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (error) setError(null);
+                    }}
                     className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20 transition-colors"
+                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
                     placeholder="e.g. jane@school.edu"
                   />
                 </div>
@@ -230,6 +260,7 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-11 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20 transition-colors"
+                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
                     placeholder="Min. 8 characters"
                   />
                   <button
@@ -289,6 +320,7 @@ export default function RegisterPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-11 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#111827] focus:ring-2 focus:ring-[#111827]/20 transition-colors"
+                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
                     placeholder="Re-enter password"
                   />
                   <button
@@ -375,6 +407,17 @@ export default function RegisterPage() {
                     >
                       Log in
                     </Link>
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Need help?{" "}
+                    <a
+                      href="https://wa.me/237650503544"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-emerald-600 hover:underline"
+                    >
+                      Contact support: 237 6 50 50 35 44
+                    </a>
                   </p>
                   <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
                     <Link href="#" className="hover:text-[#111827] hover:underline">

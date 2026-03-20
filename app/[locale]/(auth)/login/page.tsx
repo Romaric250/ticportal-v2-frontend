@@ -7,7 +7,8 @@ import { useLocale } from "next-intl";
 import { useAuthStore } from "../../../../src/state/auth-store";
 import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, HelpCircle } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { normalizeEmail, normalizePassword } from "../../../../src/utils/normalizeInput";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,24 +68,28 @@ export default function LoginPage() {
   }, [accessToken, user, initialized, router, locale, submitting]);
 
   const handleLogin = async () => {
-    setError(null); // Clear any previous errors
+    setError(null);
     setSubmitting(true);
     setLoading(true);
 
+    // Normalize inputs to prevent font/Unicode-related "invalid credentials" errors
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedPassword = normalizePassword(password);
+
     try {
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ email: normalizedEmail, password: normalizedPassword });
       
       // Check if email is verified
       if (response.user.isVerified === false) {
         // User is not verified, redirect to verify-email page and auto-request OTP
         try {
-          await authService.sendOTP(email, "EMAIL_VERIFICATION");
+          await authService.sendOTP(normalizedEmail, "EMAIL_VERIFICATION");
           toast.info("Please verify your email. A verification code has been sent to your email.");
         } catch (otpError) {
           // If sending OTP fails, still redirect but show a message
           toast.info("Please verify your email to continue.");
         }
-        router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}&autoRequest=true`);
+        router.push(`/${locale}/verify-email?email=${encodeURIComponent(normalizedEmail)}&autoRequest=true`);
         return;
       }
       
@@ -120,39 +125,46 @@ export default function LoginPage() {
       toast.success("Logged in successfully");
       router.push(`/${locale}${redirectTo}`);
     } catch (error: any) {
-      // Check if error is due to unverified email
+      const status = error?.response?.status;
       const errorCode = error?.response?.data?.error?.code || error?.response?.data?.[0]?.code;
-      const errorMessage = error?.response?.data?.error?.message || error?.message || "Login failed. Please check your credentials.";
-      
-      // Common error codes for unverified email: UNVERIFIED_EMAIL, EMAIL_NOT_VERIFIED, etc.
+      const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message || "";
+
+      // User-friendly message for 400 (e.g. email already exists) - show on form, not toast
+      if (status === 400) {
+        const msg = (errorMessage as string).toLowerCase();
+        if (msg.includes("already exists") || msg.includes("email")) {
+          setError("This email is already registered. Please log in or use a different email.");
+        } else {
+          setError(errorMessage || "Invalid request. Please check your credentials.");
+        }
+        return;
+      }
+
+      // Common error codes for unverified email
       if (
         errorCode === "UNVERIFIED_EMAIL" ||
         errorCode === "EMAIL_NOT_VERIFIED" ||
-        errorMessage.toLowerCase().includes("verify") ||
-        errorMessage.toLowerCase().includes("unverified")
+        (errorMessage && typeof errorMessage === "string" && (errorMessage.toLowerCase().includes("verify") || errorMessage.toLowerCase().includes("unverified")))
       ) {
         // Resend OTP for email verification
         try {
           // Try to resend OTP by calling register (backend should handle existing users)
           await authService.register({
-            email,
+            email: normalizedEmail,
             password: "", // Not needed for resending OTP, but required by type
             firstName: "",
             lastName: "",
             role: "STUDENT", // Default, backend might ignore this for existing users
           });
           toast.info("Please verify your email. A verification code has been sent to your email.");
-          router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
+          router.push(`/${locale}/verify-email?email=${encodeURIComponent(normalizedEmail)}`);
         } catch (resendError) {
-          // If resend fails, still redirect to verify-email page
           toast.info("Please verify your email to continue.");
-          router.push(`/${locale}/verify-email?email=${encodeURIComponent(email)}`);
+          router.push(`/${locale}/verify-email?email=${encodeURIComponent(normalizedEmail)}`);
         }
       } else {
-        // Set form-level error for invalid credentials - preserve email and password fields
-        setError("Invalid email or password");
-        toast.error("Invalid email or password");
-        // Don't clear email/password - let user see what they entered and try again
+        setError("Invalid email or password. Please try again.");
+        toast.error("Invalid email or password. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -247,6 +259,7 @@ export default function LoginPage() {
                         className={`w-full rounded-lg border bg-white pl-9 pr-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#111827]/20 ${
                           error ? "border-red-300 focus:border-red-500" : "border-slate-300 focus:border-[#111827]"
                         }`}
+                        style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
                         placeholder="student@school.edu"
                       />
                     </div>
@@ -288,6 +301,7 @@ export default function LoginPage() {
                         className={`w-full rounded-lg border bg-white pl-9 pr-11 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#111827]/20 ${
                           error ? "border-red-300 focus:border-red-500" : "border-slate-300 focus:border-[#111827]"
                         }`}
+                        style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
                         placeholder="Enter your password"
                       />
                       <button
@@ -337,6 +351,19 @@ export default function LoginPage() {
                     >
                       Create an account
                     </Link>
+                  </p>
+
+                  {/* Support */}
+                  <p className="text-center text-xs text-slate-500">
+                    Need help?{" "}
+                    <a
+                      href="https://wa.me/237650503544"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-emerald-600 hover:underline"
+                    >
+                      Contact support via WhatsApp: 237 6 50 50 35 44
+                    </a>
                   </p>
                 </div>
               </div>

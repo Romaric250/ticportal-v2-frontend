@@ -220,10 +220,34 @@ export default function StudentTeamDeliverablesPage() {
     return <span className="text-slate-400 italic">No content</span>;
   };
 
+  // Show loading UI while verifying team status
+  if (loading) {
+    return (
+      <div className="space-y-5 p-5">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Team Deliverables</h1>
+          <p className="mt-1 text-xs text-slate-600">View required deliverables and submit your team's work.</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
+          <p className="mt-4 text-sm text-slate-500">Loading deliverables...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show "must be in team" after loading is complete
   if (!team) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-slate-500">You must be in a team to view deliverables</p>
+      <div className="space-y-5 p-5">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Team Deliverables</h1>
+          <p className="mt-1 text-xs text-slate-600">View required deliverables and submit your team's work.</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-slate-200 bg-white">
+          <p className="text-sm font-medium text-slate-700">You must be in a team to view deliverables</p>
+          <p className="mt-1 text-xs text-slate-500">Join or create a team first to access this page.</p>
+        </div>
       </div>
     );
   }
@@ -237,12 +261,7 @@ export default function StudentTeamDeliverablesPage() {
         </p>
       </div>
 
-      {loading ? (
-        <div className="text-center py-10">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
-          <p className="mt-3 text-xs text-slate-500">Loading deliverables...</p>
-        </div>
-      ) : deliverables.length === 0 ? (
+      {deliverables.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mx-auto">
             <FileText size={24} className="text-slate-400" />
