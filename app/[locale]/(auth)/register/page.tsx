@@ -408,17 +408,6 @@ export default function RegisterPage() {
                       Log in
                     </Link>
                   </p>
-                  <p className="text-xs text-slate-500">
-                    Need help?{" "}
-                    <a
-                      href="https://wa.me/237650503544"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-emerald-600 hover:underline"
-                    >
-                      Contact support: 237 6 50 50 35 44
-                    </a>
-                  </p>
                   <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
                     <Link href="#" className="hover:text-[#111827] hover:underline">
                       Privacy Policy

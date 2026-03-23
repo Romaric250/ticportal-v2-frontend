@@ -353,18 +353,6 @@ export default function LoginPage() {
                     </Link>
                   </p>
 
-                  {/* Support */}
-                  <p className="text-center text-xs text-slate-500">
-                    Need help?{" "}
-                    <a
-                      href="https://wa.me/237650503544"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-emerald-600 hover:underline"
-                    >
-                      Contact support via WhatsApp: 237 6 50 50 35 44
-                    </a>
-                  </p>
                 </div>
               </div>
             </div>
