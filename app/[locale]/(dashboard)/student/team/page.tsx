@@ -6,7 +6,6 @@ import { TeamMetrics } from "../../../../../components/dashboard/team/TeamMetric
 import { TeamDeliverables } from "../../../../../components/dashboard/team/TeamDeliverables";
 import { TeamMembers } from "../../../../../components/dashboard/team/TeamMembers";
 import { PendingRequests } from "../../../../../components/dashboard/team/PendingRequests";
-import { AssignedMentor } from "../../../../../components/dashboard/team/AssignedMentor";
 import { TeamChatModal } from "../../../../../components/dashboard/team/TeamChatModal";
 import { RequestMentorshipModal } from "../../../../../components/dashboard/team/RequestMentorshipModal";
 import { AddMemberModal } from "../../../../../components/dashboard/team/AddMemberModal";
@@ -14,7 +13,7 @@ import { EditTeamModal } from "../../../../../components/dashboard/team/EditTeam
 import { teamService, type Team, type TeamJoinRequest } from "../../../../../src/lib/services/teamService";
 import { useAuthStore } from "../../../../../src/state/auth-store";
 import { toast } from "sonner";
-import { Loader2, Clock, Users } from "lucide-react";
+import { Clock, Users } from "lucide-react";
 
 export default function TeamPage() {
   const { user } = useAuthStore();
@@ -128,8 +127,106 @@ export default function TeamPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 size={32} className="animate-spin text-slate-400" />
+      <div className="space-y-6 min-w-0">
+        {/* Header skeleton */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm animate-pulse">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="h-16 w-16 rounded-full bg-slate-200" />
+              <div className="flex-1 space-y-2 min-w-0">
+                <div className="h-6 w-48 rounded bg-slate-200" />
+                <div className="h-4 w-full max-w-sm rounded bg-slate-100" />
+                <div className="h-4 w-32 rounded bg-slate-100" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="h-10 w-24 rounded-lg bg-slate-200" />
+              <div className="h-10 w-28 rounded-lg bg-slate-200" />
+            </div>
+          </div>
+        </div>
+
+        {/* Metrics skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-20 rounded bg-slate-200" />
+                  <div className="h-5 w-16 rounded bg-slate-200" />
+                </div>
+                <div className="h-9 w-9 rounded-lg bg-slate-200" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div className="space-y-6">
+            {/* Team Deliverables skeleton */}
+            <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden animate-pulse">
+              <div className="border-b border-slate-100 bg-slate-50/80 px-4 sm:px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-slate-200" />
+                    <div className="space-y-1">
+                      <div className="h-4 w-32 rounded bg-slate-200" />
+                      <div className="h-3 w-24 rounded bg-slate-100" />
+                    </div>
+                  </div>
+                  <div className="h-9 w-20 rounded-lg bg-slate-200" />
+                </div>
+              </div>
+              <div className="p-4 sm:p-5 bg-slate-50/30">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {[1, 2, 3, 4, 5, 6].map((j) => (
+                    <div key={j} className="rounded-xl border border-slate-200/80 bg-white p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-lg bg-slate-200" />
+                        <div className="h-4 flex-1 rounded bg-slate-200" />
+                      </div>
+                      <div className="mb-3 flex gap-2">
+                        <div className="h-5 w-20 rounded bg-slate-200" />
+                        <div className="h-5 w-16 rounded-full bg-slate-100" />
+                      </div>
+                      <div className="flex justify-between">
+                        <div className="h-3 w-16 rounded bg-slate-100" />
+                        <div className="h-6 w-14 rounded-md bg-slate-200" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Team Members skeleton */}
+            <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden animate-pulse">
+              <div className="border-b border-slate-100 bg-slate-50/80 px-4 sm:px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-slate-200" />
+                    <div className="space-y-1">
+                      <div className="h-4 w-28 rounded bg-slate-200" />
+                      <div className="h-3 w-20 rounded bg-slate-100" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="space-y-3">
+                  {[1, 2, 3].map((k) => (
+                    <div key={k} className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-slate-200" />
+                      <div className="flex-1 space-y-1">
+                        <div className="h-4 w-32 rounded bg-slate-200" />
+                        <div className="h-3 w-20 rounded bg-slate-100" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+        </div>
       </div>
     );
   }
@@ -223,7 +320,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="space-y-6 text-slate-900">
+    <div className="space-y-6 text-slate-900 min-w-0 overflow-x-hidden">
       <TeamHeader 
         team={team}
         onRequestMentorship={() => setShowMentorshipModal(true)}
@@ -233,22 +330,14 @@ export default function TeamPage() {
       />
       <TeamMetrics team={team} />
       
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        {/* Left Column */}
-        <div className="space-y-6">
-          <TeamDeliverables team={team} />
-          <TeamMembers 
-            team={team}
-            onAddMember={() => setShowAddMemberModal(true)}
-            onMemberUpdate={handleTeamUpdate}
-          />
-          <PendingRequests team={team} onUpdate={handleTeamUpdate} />
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          <AssignedMentor team={team} />
-        </div>
+      <div className="space-y-6 min-w-0">
+        <TeamDeliverables team={team} />
+        <TeamMembers 
+          team={team}
+          onAddMember={() => setShowAddMemberModal(true)}
+          onMemberUpdate={handleTeamUpdate}
+        />
+        <PendingRequests team={team} onUpdate={handleTeamUpdate} />
       </div>
 
       {/* Modals */}

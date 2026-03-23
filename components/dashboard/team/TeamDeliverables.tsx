@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, ArrowRight, FileText, Code, Play, Link as LinkIcon, Type } from "lucide-react";
+import { Check, ArrowRight, FileText, Link as LinkIcon, Type, Upload } from "lucide-react";
 import { LocalizedLink } from "@/components/ui/LocalizedLink";
 import { teamService, type Team, type TeamDeliverable } from "../../../src/lib/services/teamService";
 
@@ -45,23 +45,22 @@ export function TeamDeliverables({ team }: Props) {
     return "to-do";
   };
 
-  const getProgress = (deliverable: TeamDeliverable): number => {
-    const status = getStatus(deliverable);
-    if (status === "done") return 100;
-    if (status === "in-progress") return 50;
-    return 0;
+  const needsSubmission = (d: TeamDeliverable): boolean => {
+    const submitted = d.content && d.content.length > 0;
+    const reviewStatus = d.reviewStatus || d.status || "PENDING";
+    return !submitted || reviewStatus === "REJECTED";
   };
 
-  const getIcon = (contentType: string) => {
+  const getIcon = (contentType: string, size = 14) => {
     switch (contentType) {
       case "FILE":
-        return <FileText size={16} />;
+        return <FileText size={size} />;
       case "URL":
-        return <LinkIcon size={16} />;
+        return <LinkIcon size={size} />;
       case "TEXT":
-        return <Type size={16} />;
+        return <Type size={size} />;
       default:
-        return <FileText size={16} />;
+        return <FileText size={size} />;
     }
   };
 
@@ -91,22 +90,20 @@ export function TeamDeliverables({ team }: Props) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
-                <Check size={18} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">Team Deliverables</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Loading...</p>
-              </div>
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+        <div className="border-b border-slate-100 bg-slate-50/80 px-4 sm:px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900">
+              <Check size={18} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Team Deliverables</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Loading...</p>
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-center py-10">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900"></div>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
         </div>
       </div>
     );
@@ -114,186 +111,139 @@ export function TeamDeliverables({ team }: Props) {
 
   if (deliverables.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
-                <Check size={18} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">Team Deliverables</h2>
-                <p className="text-xs text-slate-500 mt-0.5">No deliverables assigned</p>
-              </div>
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+        <div className="border-b border-slate-100 bg-slate-50/80 px-4 sm:px-5 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900">
+              <Check size={18} className="text-white" />
             </div>
-            <LocalizedLink
-              href="/student/team/deliverables"
-              className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
-            >
-              View All <ArrowRight size={14} />
-            </LocalizedLink>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Team Deliverables</h2>
+              <p className="text-xs text-slate-500 mt-0.5">No deliverables assigned</p>
+            </div>
           </div>
+          <LocalizedLink
+            href="/student/team/deliverables"
+            className="inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
+          >
+            View All <ArrowRight size={12} />
+          </LocalizedLink>
         </div>
-        <div className="px-5 py-10 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mx-auto">
+        </div>
+        <div className="px-5 py-12 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
             <FileText size={24} className="text-slate-400" />
           </div>
-          <p className="text-xs text-slate-500">No deliverables assigned yet</p>
+          <p className="text-sm text-slate-500">No deliverables assigned yet</p>
         </div>
       </div>
     );
   }
 
-  // Show only the first 5 deliverables
-  const displayDeliverables = deliverables.slice(0, 5);
+  // Show only the first 6 deliverables (2 rows of 3 on desktop)
+  const displayDeliverables = deliverables.slice(0, 6);
+
+  const statusConfig = {
+    done: {
+      label: "Completed",
+      accent: "border-l-emerald-500",
+      badge: "bg-emerald-50 text-emerald-700",
+    },
+    "in-progress": {
+      label: "In Progress",
+      accent: "border-l-amber-500",
+      badge: "bg-amber-50 text-amber-700",
+    },
+    "to-do": {
+      label: "Pending",
+      accent: "border-l-slate-300",
+      badge: "bg-slate-100 text-slate-600",
+    },
+  };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
+    <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden min-w-0">
+      <div className="border-b border-slate-100 bg-slate-50/80 px-3 sm:px-4 md:px-5 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900">
               <Check size={18} className="text-white" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-sm font-bold text-slate-900">Team Deliverables</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5 truncate">
                 {deliverables.length} {deliverables.length === 1 ? "deliverable" : "deliverables"} assigned
               </p>
             </div>
           </div>
           <LocalizedLink
             href="/student/team/deliverables"
-            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
+            className="inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
           >
-            View All <ArrowRight size={14} />
+            View All <ArrowRight size={12} />
           </LocalizedLink>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                Deliverable
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                Status
-              </th>
-              <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                Progress
-              </th>
-              <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                Due Date
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
-            {displayDeliverables.map((deliverable) => {
-              const status = getStatus(deliverable);
-              const progress = getProgress(deliverable);
-              return (
-                <DeliverableRow
-                  key={deliverable.id}
-                  icon={getIcon(deliverable.template.contentType)}
-                  milestone={deliverable.template.title}
-                  status={status}
-                  progress={progress}
-                  dueDate={formatDueDate(deliverable.template.dueDate)}
-                />
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="min-w-0 overflow-hidden p-3 sm:p-4 md:p-5 bg-slate-50/30">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+          {displayDeliverables.map((deliverable) => {
+            const status = getStatus(deliverable);
+            const config = statusConfig[status];
+            const needsSubmit = needsSubmission(deliverable);
+            const dueDate = formatDueDate(deliverable.template.dueDate);
+            const isOverdue = dueDate.includes("overdue");
+
+            return (
+              <div
+                key={deliverable.id}
+                className={`min-w-0 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:shadow-md border-l-4 ${config.accent}`}
+              >
+                <div className="mb-2 flex items-center gap-2 min-w-0 overflow-hidden">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+                    {getIcon(deliverable.template.contentType, 12)}
+                  </div>
+                  <div className="min-w-0 flex-1 flex items-center gap-2 overflow-hidden">
+                    <h3 className="text-xs sm:text-sm font-semibold text-slate-900 truncate" title={deliverable.template.title}>
+                      {deliverable.template.title}
+                    </h3>
+                    {deliverable.template.required && (
+                      <span className="shrink-0 inline-flex items-center rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
+                        Required
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="mb-3 flex flex-wrap items-center gap-1.5 min-w-0">
+                  <span className="inline-flex shrink-0 items-center rounded-lg bg-blue-950 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                    Content type: {deliverable.template.contentType}
+                  </span>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${config.badge}`}>
+                    {config.label}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 min-w-0 flex-wrap">
+                  <span className={`shrink-0 text-[10px] font-medium ${isOverdue ? "text-red-600" : "text-slate-500"}`}>
+                    {dueDate}
+                  </span>
+                  {needsSubmit ? (
+                    <LocalizedLink
+                      href="/student/team/deliverables"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md bg-slate-900 px-2 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-slate-800"
+                    >
+                      <Upload size={10} />
+                      Submit
+                    </LocalizedLink>
+                  ) : (
+                    <span className="text-[10px] text-slate-400">—</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
-  );
-}
-
-type DeliverableRowProps = {
-  icon: React.ReactNode;
-  milestone: string;
-  status: "done" | "in-progress" | "to-do";
-  progress: number;
-  dueDate: string;
-};
-
-function DeliverableRow({
-  icon,
-  milestone,
-  status,
-  progress,
-  dueDate,
-}: DeliverableRowProps) {
-  const statusConfig = {
-    done: {
-      label: "Completed",
-      className: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      iconColor: "text-emerald-600",
-      progressColor: "bg-emerald-500",
-    },
-    "in-progress": {
-      label: "In Progress",
-      className: "bg-amber-50 text-amber-700 border-amber-200",
-      iconColor: "text-amber-600",
-      progressColor: "bg-amber-500",
-    },
-    "to-do": {
-      label: "Pending",
-      className: "bg-slate-100 text-slate-600 border-slate-200",
-      iconColor: "text-slate-400",
-      progressColor: "bg-slate-300",
-    },
-  };
-
-  const config = statusConfig[status];
-  const isOverdue = dueDate.includes("overdue");
-
-  return (
-    <tr className="hover:bg-slate-50 transition-colors">
-      <td className="px-5 py-3.5">
-        <div className="flex items-center gap-2.5">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 ${config.iconColor}`}>
-            <div className="text-white">
-              {icon}
-            </div>
-          </div>
-          <div>
-            <span className="font-semibold text-slate-900 text-sm">{milestone}</span>
-          </div>
-        </div>
-      </td>
-      <td className="px-5 py-3.5">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${config.className}`}
-        >
-          <div className={`h-1.5 w-1.5 rounded-full ${
-            status === "done" ? "bg-emerald-600" :
-            status === "in-progress" ? "bg-amber-600" :
-            "bg-slate-400"
-          }`} />
-          {config.label}
-        </span>
-      </td>
-      <td className="px-5 py-3.5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex-1 h-1.5 max-w-32 overflow-hidden rounded-full bg-slate-200">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${config.progressColor}`}
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <span className="text-xs font-semibold text-slate-700 min-w-[3rem]">{progress}%</span>
-        </div>
-      </td>
-      <td className="px-5 py-3.5 text-right">
-        <span className={`text-xs font-medium ${
-          isOverdue ? "text-red-600" : "text-slate-600"
-        }`}>
-          {dueDate}
-        </span>
-      </td>
-    </tr>
   );
 }
