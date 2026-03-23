@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Sidebar } from "../../../components/layout/Sidebar";
 import { TopNav } from "../../../components/layout/TopNav";
+import { WhatsAppSupportWidget } from "../../../components/layout/WhatsAppSupportWidget";
 import { OnboardingModal } from "../../../components/dashboard/OnboardingModal";
 import { TeamModal } from "../../../components/dashboard/TeamModal";
 import { useAuthStore } from "../../../src/state/auth-store";
@@ -388,6 +389,9 @@ export default function DashboardLayout({ children }: Props) {
           onClose={handleTeamModalClose}
         />
       )}
+
+      {/* WhatsApp Support Widget - Fixed bottom-right for entire dashboard */}
+      <WhatsAppSupportWidget />
     </div>
   );
 }
