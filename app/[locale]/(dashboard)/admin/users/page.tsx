@@ -46,6 +46,7 @@ export default function UserManagementPage() {
   const [regionStats, setRegionStats] = useState<RegionStats[]>([]);
   const [regionPaymentFilter, setRegionPaymentFilter] = useState<"all" | "manual" | "online">("all");
   const [affiliatePaySummary, setAffiliatePaySummary] = useState<ReferralPaymentSummaryRow[]>([]);
+  const [affiliatePaySummaryError, setAffiliatePaySummaryError] = useState<string | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
@@ -59,16 +60,25 @@ export default function UserManagementPage() {
   // Load stats
   const loadStats = useCallback(async () => {
     try {
-      const [statsData, regionData, affSummary] = await Promise.all([
+      const [statsData, regionData] = await Promise.all([
         adminService.getStats(),
         adminService.getUsersByRegionStats(regionPaymentFilter),
-        affiliateService.getReferralPaymentSummary().catch(() => [] as ReferralPaymentSummaryRow[]),
       ]);
       setStats(statsData);
       setRegionStats(regionData);
-      setAffiliatePaySummary(affSummary);
     } catch (error) {
       console.error("Error loading stats:", error);
+    }
+    setAffiliatePaySummaryError(null);
+    try {
+      const affSummary = await affiliateService.getReferralPaymentSummary();
+      setAffiliatePaySummary(affSummary);
+    } catch (error: unknown) {
+      console.error("Error loading affiliate referral payment summary:", error);
+      setAffiliatePaySummary([]);
+      setAffiliatePaySummaryError(
+        error instanceof Error ? error.message : "Could not load paid students by affiliate"
+      );
     }
   }, [regionPaymentFilter]);
 
@@ -353,15 +363,25 @@ export default function UserManagementPage() {
         </div>
       )}
 
-      {/* Paid students by affiliate (referral attribution) */}
-      {affiliatePaySummary.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
-            <h3 className="text-sm font-semibold text-slate-800">Paid students by affiliate</h3>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Confirmed payments linked to a referral code • manual (bank/cash) vs online (MoMo/card)
+      {/* Paid students by affiliate (referral attribution) — always visible; errors surface if API fails on deploy */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+          <h3 className="text-sm font-semibold text-slate-800">Paid students by affiliate</h3>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Confirmed payments linked to a referral code • manual (bank/cash) vs online (MoMo/card)
+          </p>
+        </div>
+        {affiliatePaySummaryError ? (
+          <div className="px-4 py-6 text-center">
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 inline-block max-w-lg">
+              Network error
             </p>
           </div>
+        ) : affiliatePaySummary.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-slate-500">
+            No paid referral rows yet, or all counts are zero.
+          </div>
+        ) : (
           <div className="overflow-x-auto max-h-56 overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
@@ -388,8 +408,8 @@ export default function UserManagementPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

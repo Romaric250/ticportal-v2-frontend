@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/src/utils/cn";
+import { commissionRateToPercentPoints } from "@/src/utils/commissionRates";
 import { affiliateService, type AffiliateDashboard, type Referral } from "@/src/lib/services/affiliateService";
 import { toast } from "sonner";
 
@@ -269,7 +270,7 @@ export default function AffiliateDashboardPage() {
             <div>
               <p className="text-xs font-medium text-slate-600">Commission Rate</p>
               <p className="mt-1 text-base font-bold text-slate-900">
-                {(commissionRate * 100).toFixed(1)}%
+                {commissionRateToPercentPoints(commissionRate).toFixed(1)}%
               </p>
             </div>
             <div className="rounded-lg bg-slate-900 px-2.5 py-1">

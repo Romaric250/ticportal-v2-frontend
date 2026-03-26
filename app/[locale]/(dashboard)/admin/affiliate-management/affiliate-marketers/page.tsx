@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Search, Ban, CheckCircle, Loader2, Plus, X, User, Edit2, Trash2, AlertTriangle, MoreVertical } from "lucide-react";
+import { Search, Ban, CheckCircle, Loader2, Plus, X, User, Edit2, Trash2, AlertTriangle, MoreVertical, ChevronDown } from "lucide-react";
 import { cn } from "../../../../../../src/utils/cn";
 import {
   affiliateService,
@@ -72,6 +72,8 @@ export default function AffiliateMarketersPage() {
   const [creating, setCreating] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const affiliateFilterRef = useRef<HTMLDivElement>(null);
+  const [affiliateFilterOpen, setAffiliateFilterOpen] = useState(false);
   
   // Edit Affiliate Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -251,6 +253,19 @@ export default function AffiliateMarketersPage() {
         !searchInputRef.current.contains(event.target as Node)
       ) {
         setShowUserSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        affiliateFilterRef.current &&
+        !affiliateFilterRef.current.contains(event.target as Node)
+      ) {
+        setAffiliateFilterOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -477,9 +492,6 @@ export default function AffiliateMarketersPage() {
           <h1 className="text-lg font-bold text-slate-900 sm:text-xl lg:text-2xl">
             Affiliate Marketers
           </h1>
-          <p className="mt-0.5 text-xs text-slate-600 sm:mt-1 sm:text-sm">
-            Students (comm.) counts distinct referrals that generated commissions (includes regional/national). Ref. links = referrals tied to this profile. Amounts in XAF.
-          </p>
         </div>
         <button
           type="button"
@@ -580,21 +592,6 @@ export default function AffiliateMarketersPage() {
               ))}
             </select>
           </div>
-          <div className="xl:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Affiliate (marketer)</label>
-            <select
-              value={affiliateIdFilter}
-              onChange={(e) => setAffiliateIdFilter(e.target.value)}
-              className={FILTER_SELECT}
-            >
-              <option value="">All affiliates</option>
-              {affiliatePickerOptions.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Commission</label>
             <select
@@ -623,6 +620,78 @@ export default function AffiliateMarketersPage() {
               <option value="online">Online</option>
             </select>
           </div>
+          <div className="relative col-span-full z-10 overflow-visible border-t border-slate-100 pt-3 sm:col-span-2 lg:col-span-3 xl:col-span-4">
+            <label className="mb-1 block text-xs font-medium text-slate-600" id="affiliate-filter-label">
+              Filter by affiliate (marketer)
+            </label>
+            <div className="relative" ref={affiliateFilterRef}>
+              <button
+                type="button"
+                id="affiliate-filter-trigger"
+                aria-haspopup="listbox"
+                aria-expanded={affiliateFilterOpen}
+                aria-labelledby="affiliate-filter-label affiliate-filter-trigger"
+                onClick={() => setAffiliateFilterOpen((o) => !o)}
+                className={cn(
+                  FILTER_SELECT,
+                  "flex w-full cursor-pointer items-center justify-between gap-2 text-left"
+                )}
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  {affiliateIdFilter
+                    ? affiliatePickerOptions.find((o) => o.id === affiliateIdFilter)?.label ??
+                      "Affiliate"
+                    : "All affiliates"}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={cn(
+                    "shrink-0 text-slate-500 transition-transform",
+                    affiliateFilterOpen && "rotate-180"
+                  )}
+                />
+              </button>
+              {affiliateFilterOpen && (
+                <ul
+                  role="listbox"
+                  className="absolute left-0 right-0 top-full z-[100] mt-1 max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                >
+                  <li role="option" aria-selected={affiliateIdFilter === ""}>
+                    <button
+                      type="button"
+                      className={cn(
+                        "w-full px-3 py-2 text-left text-sm hover:bg-slate-50",
+                        affiliateIdFilter === "" && "bg-slate-50 font-medium text-slate-900"
+                      )}
+                      onClick={() => {
+                        setAffiliateIdFilter("");
+                        setAffiliateFilterOpen(false);
+                      }}
+                    >
+                      All affiliates
+                    </button>
+                  </li>
+                  {affiliatePickerOptions.map((o) => (
+                    <li key={o.id} role="option" aria-selected={affiliateIdFilter === o.id}>
+                      <button
+                        type="button"
+                        className={cn(
+                          "w-full px-3 py-2 text-left text-sm hover:bg-slate-50",
+                          affiliateIdFilter === o.id && "bg-slate-50 font-medium text-slate-900"
+                        )}
+                        onClick={() => {
+                          setAffiliateIdFilter(o.id);
+                          setAffiliateFilterOpen(false);
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -637,14 +706,21 @@ export default function AffiliateMarketersPage() {
                 <th className="hidden px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] sm:table-cell">
                   Region
                 </th>
-                <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-center">
-                  Students (comm.)
+                <th className="px-4 py-3 text-center text-[10px] font-semibold leading-tight text-slate-700">
+                  <span className="block uppercase tracking-wider">Students (comm.)</span>
+                  <span className="mt-0.5 block text-[9px] font-normal normal-case text-slate-500">
+                    (paid)
+                  </span>
                 </th>
-                <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-center">
-                  Ref. links
+                <th className="px-4 py-3 text-center text-[10px] font-semibold leading-tight text-slate-700">
+                  <span className="block uppercase tracking-wider">Referrals</span>
+                  <span className="mt-0.5 block text-[9px] font-normal normal-case text-slate-500">
+                    (via code)
+                  </span>
                 </th>
-                <th className="hidden md:table-cell px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-center">
-                  M / O
+                <th className="hidden max-w-[5.5rem] px-2 py-3 text-center text-[10px] font-semibold leading-tight text-slate-700 md:table-cell">
+                  <span className="block normal-case">Manual / Online</span>
+                  <span className="mt-0.5 block text-[9px] font-normal text-slate-500">(paid)</span>
                 </th>
                 <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-right">
                   Earned (XAF)

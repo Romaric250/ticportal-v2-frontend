@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Globe, MapPin, Loader2, X, CheckCircle, AlertCircle, Edit2, Trash2 } from "lucide-react";
 import { affiliateService, type Country, type Region } from "@/src/lib/services/affiliateService";
+import { commissionRateToPercentPoints, formatStoredCommissionPercent } from "@/src/utils/commissionRates";
 import { toast } from "sonner";
 
 const THEME = "#111827";
@@ -13,9 +14,6 @@ function formatXAF(value: number): string {
   return value.toLocaleString("fr-FR") + " XAF";
 }
 
-function formatPercentage(value: number): string {
-  return (value * 100).toFixed(1) + "%";
-}
 
 export default function AffiliateSettingsPage() {
   const [activeTab, setActiveTab] = useState<"countries" | "regions">("countries");
@@ -38,9 +36,10 @@ export default function AffiliateSettingsPage() {
     currency: "XAF",
     studentPrice: 0,
     platformFee: 0,
-    affiliateCommissionRate: 0.09,
-    regionalCommissionRate: 0.06,
-    nationalCommissionRate: 0.05,
+    /** Percentage points (9 = 9%), matches API storage */
+    affiliateCommissionRate: 9,
+    regionalCommissionRate: 6,
+    nationalCommissionRate: 5,
     status: "ACTIVE" as "ACTIVE" | "SUSPENDED" | "INACTIVE",
   });
 
@@ -113,9 +112,9 @@ export default function AffiliateSettingsPage() {
         currency: "XAF",
         studentPrice: 0,
         platformFee: 0,
-        affiliateCommissionRate: 0.09,
-        regionalCommissionRate: 0.06,
-        nationalCommissionRate: 0.05,
+        affiliateCommissionRate: 9,
+        regionalCommissionRate: 6,
+        nationalCommissionRate: 5,
         status: "ACTIVE",
       });
       await loadData();
@@ -135,9 +134,9 @@ export default function AffiliateSettingsPage() {
       currency: country.currency || "XAF",
       studentPrice: country.studentPrice,
       platformFee: country.platformFee,
-      affiliateCommissionRate: country.affiliateCommissionRate,
-      regionalCommissionRate: country.regionalCommissionRate,
-      nationalCommissionRate: country.nationalCommissionRate,
+      affiliateCommissionRate: commissionRateToPercentPoints(country.affiliateCommissionRate),
+      regionalCommissionRate: commissionRateToPercentPoints(country.regionalCommissionRate),
+      nationalCommissionRate: commissionRateToPercentPoints(country.nationalCommissionRate),
       status: country.status,
     });
     setShowCountryForm(true);
@@ -451,18 +450,21 @@ export default function AffiliateSettingsPage() {
                 </div>
 
                 <div className="border-t border-slate-200 pt-4">
-                  <h4 className="mb-3 text-sm font-semibold text-slate-900">Commission Rates (%)</h4>
+                  <h4 className="mb-3 text-sm font-semibold text-slate-900">Commission rates (%)</h4>
+                  <p className="mb-3 text-xs text-slate-500">
+                    Enter each tier as a percentage of commissionable amount (e.g. 9 for 9%). Saved values match payment commission math on the server.
+                  </p>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
                       <label className="block text-xs font-medium text-slate-700 mb-1">
-                        Affiliate Rate <span className="text-red-500">*</span>
+                        Affiliate rate (%) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
                         required
                         min="0"
-                        max="1"
-                        step="0.01"
+                        max="100"
+                        step="0.1"
                         value={countryForm.affiliateCommissionRate || ""}
                         onChange={(e) =>
                           setCountryForm({
@@ -470,23 +472,20 @@ export default function AffiliateSettingsPage() {
                             affiliateCommissionRate: parseFloat(e.target.value) || 0,
                           })
                         }
-                        placeholder="0.09"
+                        placeholder="9"
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
                       />
-                      <p className="mt-1 text-xs text-slate-500">
-                        {formatPercentage(countryForm.affiliateCommissionRate || 0)}
-                      </p>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-700 mb-1">
-                        Regional Rate <span className="text-red-500">*</span>
+                        Regional rate (%) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
                         required
                         min="0"
-                        max="1"
-                        step="0.01"
+                        max="100"
+                        step="0.1"
                         value={countryForm.regionalCommissionRate || ""}
                         onChange={(e) =>
                           setCountryForm({
@@ -494,23 +493,20 @@ export default function AffiliateSettingsPage() {
                             regionalCommissionRate: parseFloat(e.target.value) || 0,
                           })
                         }
-                        placeholder="0.06"
+                        placeholder="6"
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
                       />
-                      <p className="mt-1 text-xs text-slate-500">
-                        {formatPercentage(countryForm.regionalCommissionRate || 0)}
-                      </p>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-700 mb-1">
-                        National Rate <span className="text-red-500">*</span>
+                        National rate (%) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
                         required
                         min="0"
-                        max="1"
-                        step="0.01"
+                        max="100"
+                        step="0.1"
                         value={countryForm.nationalCommissionRate || ""}
                         onChange={(e) =>
                           setCountryForm({
@@ -518,12 +514,9 @@ export default function AffiliateSettingsPage() {
                             nationalCommissionRate: parseFloat(e.target.value) || 0,
                           })
                         }
-                        placeholder="0.05"
+                        placeholder="5"
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200"
                       />
-                      <p className="mt-1 text-xs text-slate-500">
-                        {formatPercentage(countryForm.nationalCommissionRate || 0)}
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -540,9 +533,9 @@ export default function AffiliateSettingsPage() {
                         currency: "XAF",
                         studentPrice: 0,
                         platformFee: 0,
-                        affiliateCommissionRate: 0.09,
-                        regionalCommissionRate: 0.06,
-                        nationalCommissionRate: 0.05,
+                        affiliateCommissionRate: 9,
+                        regionalCommissionRate: 6,
+                        nationalCommissionRate: 5,
                         status: "ACTIVE",
                       });
                     }}
@@ -615,9 +608,9 @@ export default function AffiliateSettingsPage() {
                           </td>
                           <td className="px-4 py-3 text-xs text-slate-600">
                             <div className="space-y-0.5">
-                              <div>AFF: {formatPercentage(country.affiliateCommissionRate)}</div>
-                              <div>REG: {formatPercentage(country.regionalCommissionRate)}</div>
-                              <div>NAT: {formatPercentage(country.nationalCommissionRate)}</div>
+                              <div>AFF: {formatStoredCommissionPercent(country.affiliateCommissionRate)}</div>
+                              <div>REG: {formatStoredCommissionPercent(country.regionalCommissionRate)}</div>
+                              <div>NAT: {formatStoredCommissionPercent(country.nationalCommissionRate)}</div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
