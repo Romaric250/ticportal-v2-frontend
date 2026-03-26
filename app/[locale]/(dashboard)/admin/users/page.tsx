@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Filter, Download, UserPlus, CreditCard, AlertCircle, GraduationCap, Gavel, Users, Loader2, Edit2, Trash2, MapPin, Undo2 } from "lucide-react";
 import { adminService, type AdminUser, type UserFilters, type RegionStats } from "../../../../../src/lib/services/adminService";
+import { affiliateService, type ReferralPaymentSummaryRow } from "../../../../../src/lib/services/affiliateService";
 import { CAMEROON_REGIONS } from "../../../../../src/constants/regions";
 import { toast } from "sonner";
 import { cn } from "../../../../../src/utils/cn";
@@ -43,6 +44,8 @@ export default function UserManagementPage() {
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [regionStats, setRegionStats] = useState<RegionStats[]>([]);
+  const [regionPaymentFilter, setRegionPaymentFilter] = useState<"all" | "manual" | "online">("all");
+  const [affiliatePaySummary, setAffiliatePaySummary] = useState<ReferralPaymentSummaryRow[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
@@ -56,16 +59,18 @@ export default function UserManagementPage() {
   // Load stats
   const loadStats = useCallback(async () => {
     try {
-      const [statsData, regionData] = await Promise.all([
+      const [statsData, regionData, affSummary] = await Promise.all([
         adminService.getStats(),
-        adminService.getUsersByRegionStats(),
+        adminService.getUsersByRegionStats(regionPaymentFilter),
+        affiliateService.getReferralPaymentSummary().catch(() => [] as ReferralPaymentSummaryRow[]),
       ]);
       setStats(statsData);
       setRegionStats(regionData);
+      setAffiliatePaySummary(affSummary);
     } catch (error) {
       console.error("Error loading stats:", error);
     }
-  }, []);
+  }, [regionPaymentFilter]);
 
   // Load users
   const loadUsers = useCallback(async (page: number = 1) => {
@@ -88,6 +93,14 @@ export default function UserManagementPage() {
   useEffect(() => {
     loadStats();
   }, [loadStats]);
+
+  useEffect(() => {
+    if (filters.role !== "STUDENT" && filters.role !== "All Roles") {
+      setFilters((prev) =>
+        prev.paymentStatus ? { ...prev, paymentStatus: undefined } : prev
+      );
+    }
+  }, [filters.role]);
 
   useEffect(() => {
     loadUsers(1);
@@ -263,14 +276,33 @@ export default function UserManagementPage() {
       {/* Region Stats - Students by region with paid counts */}
       {regionStats.length > 0 && (
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <MapPin size={18} />
-              Students by Region
-            </h3>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Payment status by region • {regionStats.reduce((a, r) => a + r.total, 0)} total students
-            </p>
+          <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                <MapPin size={18} />
+                Students by Region
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {regionPaymentFilter === "all" && "Paid = any confirmed payment • "}
+                {regionPaymentFilter === "manual" && "Paid = students with manual/bank/cash payment • "}
+                {regionPaymentFilter === "online" && "Paid = students with MoMo/card • "}
+                {regionStats.reduce((a, r) => a + r.total, 0)} total students
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-600">Count paid by</span>
+              <select
+                value={regionPaymentFilter}
+                onChange={(e) =>
+                  setRegionPaymentFilter(e.target.value as "all" | "manual" | "online")
+                }
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
+              >
+                <option value="all">All methods</option>
+                <option value="manual">Manual only</option>
+                <option value="online">Online only</option>
+              </select>
+            </div>
           </div>
           <div className="overflow-x-auto max-h-64 overflow-y-auto">
             <table className="w-full text-sm">
@@ -278,7 +310,9 @@ export default function UserManagementPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-slate-600">Region</th>
                   <th className="px-4 py-3 text-right font-medium text-slate-600">Total</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-600">Paid</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-600">Paid (filter)</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-600 hidden sm:table-cell">Manual</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-600 hidden sm:table-cell">Online</th>
                   <th className="px-4 py-3 text-right font-medium text-slate-600">%</th>
                   <th className="px-4 py-3 w-24 font-medium text-slate-600">Progress</th>
                 </tr>
@@ -295,6 +329,12 @@ export default function UserManagementPage() {
                           {r.paid}
                         </span>
                       </td>
+                      <td className="px-4 py-2.5 text-right text-slate-600 hidden sm:table-cell">
+                        {r.paidManual ?? "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-slate-600 hidden sm:table-cell">
+                        {r.paidOnline ?? "—"}
+                      </td>
                       <td className="px-4 py-2.5 text-right text-slate-600">{pct}%</td>
                       <td className="px-4 py-2.5">
                         <div className="h-2 w-full min-w-[4rem] rounded-full bg-slate-200 overflow-hidden">
@@ -307,6 +347,44 @@ export default function UserManagementPage() {
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Paid students by affiliate (referral attribution) */}
+      {affiliatePaySummary.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-800">Paid students by affiliate</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Confirmed payments linked to a referral code • manual (bank/cash) vs online (MoMo/card)
+            </p>
+          </div>
+          <div className="overflow-x-auto max-h-56 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium text-slate-600">Code</th>
+                  <th className="px-4 py-2 text-left font-medium text-slate-600">Marketer</th>
+                  <th className="px-4 py-2 text-left font-medium text-slate-600">Region</th>
+                  <th className="px-4 py-2 text-right font-medium text-slate-600">Total</th>
+                  <th className="px-4 py-2 text-right font-medium text-slate-600">Manual</th>
+                  <th className="px-4 py-2 text-right font-medium text-slate-600">Online</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {affiliatePaySummary.map((row) => (
+                  <tr key={row.affiliateId} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-2 font-mono text-xs text-slate-800">{row.referralCode}</td>
+                    <td className="px-4 py-2 text-slate-800">{row.marketerName || "—"}</td>
+                    <td className="px-4 py-2 text-slate-600">{row.regionName}</td>
+                    <td className="px-4 py-2 text-right font-medium text-slate-900">{row.totalPaid}</td>
+                    <td className="px-4 py-2 text-right text-slate-700">{row.manualPaid}</td>
+                    <td className="px-4 py-2 text-right text-slate-700">{row.onlinePaid}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -419,14 +497,19 @@ export default function UserManagementPage() {
               onChange={(e) =>
                 setFilters((prev) => ({
                   ...prev,
-                  paymentStatus: (e.target.value || undefined) as "paid" | "not_paid" | undefined,
+                  paymentStatus: (e.target.value || undefined) as
+                    | "paid"
+                    | "not_paid"
+                    | "manual_paid"
+                    | undefined,
                 }))
               }
               className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm transition-colors focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
             >
               <option value="">All Payment Status</option>
-              <option value="paid">Paid</option>
-              <option value="not_paid">Not Paid</option>
+              <option value="paid">Paid (any)</option>
+              <option value="manual_paid">Manual paid</option>
+              <option value="not_paid">Not paid</option>
             </select>
           )}
           <button className="rounded-lg border border-slate-300 bg-white p-2.5 transition-colors hover:bg-slate-50 hover:border-slate-900">
@@ -437,6 +520,22 @@ export default function UserManagementPage() {
 
       {/* Users Table */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-3">
+          {loading ? (
+            <p className="text-sm text-slate-500">Loading results…</p>
+          ) : pagination.total === 0 ? (
+            <p className="text-sm text-slate-600">
+              <span className="font-semibold text-slate-900">0</span> users match your filters
+            </p>
+          ) : (
+            <p className="text-sm text-slate-600">
+              <span className="font-semibold tabular-nums text-slate-900">
+                {pagination.total.toLocaleString()}
+              </span>{" "}
+              {pagination.total === 1 ? "user matches" : "users match"} your filters
+            </p>
+          )}
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-slate-200 bg-slate-50">
@@ -530,14 +629,21 @@ export default function UserManagementPage() {
                     <td className="px-6 py-4">
                       {user.role === "STUDENT" ? (
                         user.hasPaid ? (
-                          <div className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1">
-                            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                            <span className="text-xs font-medium text-emerald-700">Paid</span>
-                          </div>
+                          user.isManualChannelPaid ? (
+                            <div className="flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1">
+                              <div className="h-2 w-2 rounded-full bg-slate-600" />
+                              <span className="text-xs font-medium text-slate-800">Manual paid</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1">
+                              <div className="h-2 w-2 rounded-full bg-slate-500" />
+                              <span className="text-xs font-medium text-slate-800">Paid (online)</span>
+                            </div>
+                          )
                         ) : (
                           <div className="flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1">
                             <div className="h-2 w-2 rounded-full bg-amber-500" />
-                            <span className="text-xs font-medium text-amber-700">Not Paid</span>
+                            <span className="text-xs font-medium text-amber-700">Not paid</span>
                           </div>
                         )
                       ) : (
@@ -578,16 +684,30 @@ export default function UserManagementPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 sm:flex-row">
-            <p className="text-sm font-medium text-slate-600">
-              Showing <span className="font-semibold text-slate-900">{((pagination.page - 1) * pagination.limit) + 1}</span> to{" "}
-              <span className="font-semibold text-slate-900">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{" "}
-              <span className="font-semibold text-slate-900">{pagination.total}</span> results
-            </p>
+        {/* Pagination + total (total reflects active filters) */}
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 sm:flex-row">
+          <p className="text-sm font-medium text-slate-600">
+            {pagination.total === 0 ? (
+              <>No users match the current filters.</>
+            ) : (
+              <>
+                Showing{" "}
+                <span className="font-semibold text-slate-900">
+                  {(pagination.page - 1) * pagination.limit + 1}
+                </span>
+                –
+                <span className="font-semibold text-slate-900">
+                  {Math.min(pagination.page * pagination.limit, pagination.total)}
+                </span>{" "}
+                of <span className="font-semibold text-slate-900">{pagination.total}</span> matching
+                users
+              </>
+            )}
+          </p>
+          {pagination.totalPages > 1 && (
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => loadUsers(pagination.page - 1)}
                 disabled={pagination.page === 1}
                 className={cn(
@@ -598,6 +718,7 @@ export default function UserManagementPage() {
                 Previous
               </button>
               <button
+                type="button"
                 onClick={() => loadUsers(pagination.page + 1)}
                 disabled={pagination.page >= pagination.totalPages}
                 className={cn(
@@ -608,8 +729,8 @@ export default function UserManagementPage() {
                 Next
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Edit User Modal */}

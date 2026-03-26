@@ -3,7 +3,7 @@ import axios from "axios";
 import { tokenStorage } from "../api-client";
 
 const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5005/api";
 
 export type AdminUser = {
   id: string;
@@ -22,7 +22,9 @@ export type AdminUser = {
   affiliation?: string; // Team name or school
   jurisdiction?: string; // Region/Area
   hasPaid?: boolean; // For students: has confirmed payment
-  isManualSubscription?: boolean; // For students: payment was manual (can be reversed)
+  /** True if any confirmed payment is manual channel (bank/cash/other) or admin manual subscription */
+  isManualChannelPaid?: boolean;
+  isManualSubscription?: boolean; // For students: metadata.manualSubscription (can be reversed)
 };
 
 export type AdminUserResponse = {
@@ -72,13 +74,16 @@ export type UserFilters = {
   jurisdiction?: string;
   status?: string;
   search?: string;
-  paymentStatus?: "paid" | "not_paid";
+  paymentStatus?: "paid" | "not_paid" | "manual_paid";
 };
 
 export type RegionStats = {
   region: string;
   total: number;
   paid: number;
+  paidManual?: number;
+  paidOnline?: number;
+  paymentChannel?: "all" | "manual" | "online";
 };
 
 export type DashboardStats = {
@@ -258,11 +263,25 @@ export const adminService = {
   },
 
   /**
-   * Get students by region with paid counts
+   * Get students by region with paid counts (optional payment channel for the `paid` column).
    */
-  async getUsersByRegionStats(): Promise<RegionStats[]> {
-    const { data } = await apiClient.get<RegionStats[]>("/admin/users/by-region-stats");
-    return Array.isArray(data) ? data : [];
+  async getUsersByRegionStats(
+    paymentChannel: "all" | "manual" | "online" = "all"
+  ): Promise<RegionStats[]> {
+    const { data } = await apiClient.get<
+      RegionStats[] | { success: boolean; data: RegionStats[] }
+    >("/admin/users/by-region-stats", {
+      params:
+        paymentChannel !== "all"
+          ? { paymentChannel }
+          : undefined,
+    });
+    const raw = data as RegionStats[] | { success?: boolean; data?: RegionStats[] };
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === "object" && "data" in raw && Array.isArray(raw.data)) {
+      return raw.data;
+    }
+    return [];
   },
 
   /**

@@ -1,14 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Search, Ban, CheckCircle, Loader2, Plus, X, User, Edit2, Trash2, AlertTriangle, MoreVertical } from "lucide-react";
 import { cn } from "../../../../../../src/utils/cn";
-import { affiliateService, type AffiliateProfile, type AffiliateSubRole, type Country, type Region } from "@/src/lib/services/affiliateService";
+import {
+  affiliateService,
+  type AffiliateListStats,
+  type AffiliateProfile,
+  type AffiliateSubRole,
+  type Country,
+  type Region,
+} from "@/src/lib/services/affiliateService";
 import { userService } from "@/src/lib/services/userService";
 import { toast } from "sonner";
 
 const THEME = "#111827";
+
+const FILTER_SELECT =
+  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300";
 
 function formatXAF(value: number): string {
   return value.toLocaleString("fr-FR") + " XAF";
@@ -20,13 +30,23 @@ type AffiliateMarketer = AffiliateProfile & {
     lastName: string;
     email: string;
   };
+  listStats?: AffiliateListStats;
 };
 
 export default function AffiliateMarketersPage() {
   const [affiliates, setAffiliates] = useState<AffiliateMarketer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterBanned, setFilterBanned] = useState<"all" | "active" | "banned">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "SUSPENDED">("all");
+  const [subRoleFilter, setSubRoleFilter] = useState<"" | AffiliateSubRole>("");
+  const [filterToolbarCountryId, setFilterToolbarCountryId] = useState("");
+  const [filterToolbarRegionId, setFilterToolbarRegionId] = useState("");
+  const [filterToolbarRegions, setFilterToolbarRegions] = useState<Region[]>([]);
+  const [filterToolbarCountries, setFilterToolbarCountries] = useState<Country[]>([]);
+  const [affiliatePickerOptions, setAffiliatePickerOptions] = useState<{ id: string; label: string }[]>([]);
+  const [affiliateIdFilter, setAffiliateIdFilter] = useState("");
+  const [earnFilter, setEarnFilter] = useState<"all" | "with_commission" | "no_commission">("all");
+  const [paymentChannelFilter, setPaymentChannelFilter] = useState<"all" | "manual" | "online">("all");
   const [actingId, setActingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -67,9 +87,101 @@ export default function AffiliateMarketersPage() {
   const [editMobileMoneyProvider, setEditMobileMoneyProvider] = useState<string>("");
   const [updating, setUpdating] = useState(false);
 
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    affiliateService.getCountries().then(setFilterToolbarCountries).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!filterToolbarCountryId) {
+      setFilterToolbarRegions([]);
+      setFilterToolbarRegionId("");
+      return;
+    }
+    affiliateService
+      .getRegionsByCountry(filterToolbarCountryId)
+      .then(setFilterToolbarRegions)
+      .catch(() => setFilterToolbarRegions([]));
+  }, [filterToolbarCountryId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    affiliateService
+      .listAffiliates({ page: 1, limit: 400 })
+      .then((r) => {
+        if (cancelled) return;
+        setAffiliatePickerOptions(
+          r.affiliates.map((a) => ({
+            id: a.id,
+            label: `${a.user?.firstName ?? ""} ${a.user?.lastName ?? ""} · ${a.referralCode}`.trim(),
+          }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const loadAffiliates = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await affiliateService.listAffiliates({
+        page,
+        limit: 50,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        search: debouncedSearch || undefined,
+        subRole: subRoleFilter || undefined,
+        affiliateId: affiliateIdFilter || undefined,
+        regionId: filterToolbarRegionId || undefined,
+        countryId:
+          !filterToolbarRegionId && filterToolbarCountryId ? filterToolbarCountryId : undefined,
+        earnFilter: earnFilter === "all" ? undefined : earnFilter,
+        paymentChannel: paymentChannelFilter === "all" ? undefined : paymentChannelFilter,
+      });
+
+      setAffiliates(response.affiliates as AffiliateMarketer[]);
+      setTotalPages(response.pagination.pages);
+      setTotal(response.pagination.total);
+    } catch (error: unknown) {
+      console.error("Failed to load affiliates:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to load affiliates");
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    page,
+    debouncedSearch,
+    statusFilter,
+    subRoleFilter,
+    affiliateIdFilter,
+    filterToolbarRegionId,
+    filterToolbarCountryId,
+    earnFilter,
+    paymentChannelFilter,
+  ]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    debouncedSearch,
+    statusFilter,
+    subRoleFilter,
+    affiliateIdFilter,
+    filterToolbarRegionId,
+    filterToolbarCountryId,
+    earnFilter,
+    paymentChannelFilter,
+  ]);
+
   useEffect(() => {
     loadAffiliates();
-  }, [filterBanned, page]);
+  }, [loadAffiliates]);
 
   useEffect(() => {
     if (showAddModal || showEditModal) {
@@ -145,56 +257,18 @@ export default function AffiliateMarketersPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const loadAffiliates = async () => {
-    try {
-      setLoading(true);
-      const statusMap: Record<string, "SUSPENDED" | "TERMINATED" | undefined> = {
-        all: undefined,
-        active: undefined,
-        banned: "SUSPENDED",
-      };
-
-      const response = await affiliateService.listAffiliates({
-        page,
-        limit: 50,
-        status: statusMap[filterBanned],
-        search: search || undefined,
-      });
-
-      setAffiliates(response.affiliates as AffiliateMarketer[]);
-      setTotalPages(response.pagination.pages);
-      setTotal(response.pagination.total);
-    } catch (error: any) {
-      console.error("Failed to load affiliates:", error);
-      toast.error(error?.message || "Failed to load affiliates");
-    } finally {
-      setLoading(false);
-    }
+  const resetFilters = () => {
+    setStatusFilter("all");
+    setSubRoleFilter("");
+    setFilterToolbarCountryId("");
+    setFilterToolbarRegionId("");
+    setAffiliateIdFilter("");
+    setEarnFilter("all");
+    setPaymentChannelFilter("all");
+    setSearch("");
+    setDebouncedSearch("");
+    setPage(1);
   };
-
-  useEffect(() => {
-    const debounce = setTimeout(() => {
-      if (page === 1) {
-        loadAffiliates();
-      } else {
-        setPage(1);
-      }
-    }, 500);
-
-    return () => clearTimeout(debounce);
-  }, [search]);
-
-  const filtered = affiliates.filter((a) => {
-    if (!search) return true;
-    const name = a.user ? `${a.user.firstName} ${a.user.lastName}` : "";
-    const email = a.user?.email || "";
-    const code = a.referralCode || "";
-    return (
-      name.toLowerCase().includes(search.toLowerCase()) ||
-      email.toLowerCase().includes(search.toLowerCase()) ||
-      code.toLowerCase().includes(search.toLowerCase())
-    );
-  });
 
   const loadCountries = async () => {
     try {
@@ -404,7 +478,7 @@ export default function AffiliateMarketersPage() {
             Affiliate Marketers
           </h1>
           <p className="mt-0.5 text-xs text-slate-600 sm:mt-1 sm:text-sm">
-            View all affiliate marketers. Suspend or unsuspend accounts as needed. Amounts in XAF.
+            Students (comm.) counts distinct referrals that generated commissions (includes regional/national). Ref. links = referrals tied to this profile. Amounts in XAF.
           </p>
         </div>
         <button
@@ -418,42 +492,143 @@ export default function AffiliateMarketersPage() {
         </button>
       </header>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search
-            size={16}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            type="search"
-            placeholder="Search by name, email, code…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-1 focus:ring-slate-300"
-          />
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 flex-1 sm:max-w-md">
+            <label className="mb-1 block text-xs font-medium text-slate-600">Search</label>
+            <div className="relative">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="search"
+                placeholder="Name, email, referral code…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300"
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Reset filters
+          </button>
         </div>
-        <div className="flex gap-2">
-          {(["all", "active", "banned"] as const).map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => setFilterBanned(opt)}
-              className={cn(
-                "rounded-lg border px-3 py-2 text-xs font-medium capitalize transition-colors sm:text-sm",
-                filterBanned === opt
-                  ? "border-slate-700 bg-slate-900 text-white"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              )}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className={FILTER_SELECT}
             >
-              {opt}
-            </button>
-          ))}
+              <option value="all">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Role</label>
+            <select
+              value={subRoleFilter}
+              onChange={(e) => setSubRoleFilter(e.target.value as "" | AffiliateSubRole)}
+              className={FILTER_SELECT}
+            >
+              <option value="">All roles</option>
+              <option value="AFFILIATE">Affiliate</option>
+              <option value="REGIONAL_COORDINATOR">Regional coordinator</option>
+              <option value="ASSISTANT_REGIONAL_COORDINATOR">Assistant regional</option>
+              <option value="NATIONAL_COORDINATOR">National coordinator</option>
+              <option value="ASSISTANT_NATIONAL_COORDINATOR">Assistant national</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Country</label>
+            <select
+              value={filterToolbarCountryId}
+              onChange={(e) => {
+                setFilterToolbarCountryId(e.target.value);
+                setFilterToolbarRegionId("");
+              }}
+              className={FILTER_SELECT}
+            >
+              <option value="">All countries</option>
+              {filterToolbarCountries.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Region</label>
+            <select
+              value={filterToolbarRegionId}
+              onChange={(e) => setFilterToolbarRegionId(e.target.value)}
+              disabled={!filterToolbarCountryId}
+              className={cn(FILTER_SELECT, !filterToolbarCountryId && "bg-slate-50 text-slate-400")}
+            >
+              <option value="">{filterToolbarCountryId ? "All regions" : "Select country first"}</option>
+              {filterToolbarRegions.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="xl:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-slate-600">Affiliate (marketer)</label>
+            <select
+              value={affiliateIdFilter}
+              onChange={(e) => setAffiliateIdFilter(e.target.value)}
+              className={FILTER_SELECT}
+            >
+              <option value="">All affiliates</option>
+              {affiliatePickerOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Commission</label>
+            <select
+              value={earnFilter}
+              onChange={(e) =>
+                setEarnFilter(e.target.value as "all" | "with_commission" | "no_commission")
+              }
+              className={FILTER_SELECT}
+            >
+              <option value="all">All</option>
+              <option value="with_commission">Has earnings</option>
+              <option value="no_commission">No earnings</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Payment (referrals)</label>
+            <select
+              value={paymentChannelFilter}
+              onChange={(e) =>
+                setPaymentChannelFilter(e.target.value as "all" | "manual" | "online")
+              }
+              className={FILTER_SELECT}
+            >
+              <option value="all">All</option>
+              <option value="manual">Manual</option>
+              <option value="online">Online</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-left text-xs">
+          <table className="w-full min-w-[900px] text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px]">
@@ -463,7 +638,13 @@ export default function AffiliateMarketersPage() {
                   Region
                 </th>
                 <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-center">
-                  Signups
+                  Students (comm.)
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-center">
+                  Ref. links
+                </th>
+                <th className="hidden md:table-cell px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-center">
+                  M / O
                 </th>
                 <th className="px-4 py-3 font-semibold text-slate-700 uppercase tracking-wider text-[10px] text-right">
                   Earned (XAF)
@@ -477,20 +658,20 @@ export default function AffiliateMarketersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-            {loading && filtered.length === 0 ? (
+            {loading && affiliates.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
+                <td colSpan={8} className="px-4 py-12 text-center">
                   <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
                 </td>
               </tr>
-            ) : filtered.length === 0 ? (
+            ) : affiliates.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-xs text-slate-500">
+                <td colSpan={8} className="px-4 py-12 text-center text-xs text-slate-500">
                   No affiliate marketers match your filters.
                 </td>
               </tr>
             ) : (
-              filtered.map((affiliate) => {
+              affiliates.map((affiliate) => {
                 const isBanned = affiliate.status === "SUSPENDED" || affiliate.status === "TERMINATED";
                 const name = affiliate.user ? `${affiliate.user.firstName} ${affiliate.user.lastName}` : "N/A";
                 const email = affiliate.user?.email || "N/A";
@@ -516,7 +697,19 @@ export default function AffiliateMarketersPage() {
                       <div className="font-medium">{regionName}</div>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="font-semibold text-slate-900">{affiliate.totalReferrals}</div>
+                      <div className="font-semibold text-slate-900">
+                        {affiliate.listStats?.studentsWithCommissions ?? 0}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="font-semibold text-slate-700">
+                        {affiliate.listStats?.referralCount ?? affiliate.totalReferrals}
+                      </div>
+                    </td>
+                    <td className="hidden md:table-cell px-4 py-3 text-center text-[10px] text-slate-600">
+                      {affiliate.listStats
+                        ? `${affiliate.listStats.manualPaidStudents} / ${affiliate.listStats.onlinePaidStudents}`
+                        : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="font-semibold text-slate-900">{formatXAF(affiliate.totalEarned)}</div>
@@ -566,7 +759,7 @@ export default function AffiliateMarketersPage() {
           </tbody>
         </table>
         </div>
-        {filtered.length > 0 && (
+        {affiliates.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-3">
             <p className="text-xs text-slate-500">
               Showing <span className="font-medium text-slate-700">{(page - 1) * 50 + 1}</span>–
@@ -651,7 +844,7 @@ export default function AffiliateMarketersPage() {
                                 actingId === affiliate.id
                                   ? "text-slate-500 cursor-wait"
                                   : isBanned
-                                  ? "text-emerald-700"
+                                  ? "text-slate-700"
                                   : "text-red-700"
                               )}
                             >
@@ -858,7 +1051,7 @@ export default function AffiliateMarketersPage() {
                   )}
                 </div>
                 {selectedUser && (
-                  <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                  <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <div className="flex items-center gap-2">
                       {selectedUser.profilePhoto ? (
                         <img
@@ -867,15 +1060,15 @@ export default function AffiliateMarketersPage() {
                           className="h-8 w-8 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-semibold text-white">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-xs font-semibold text-white">
                           {selectedUser.firstName?.[0]}{selectedUser.lastName?.[0]}
                         </div>
                       )}
                       <div className="flex-1">
-                        <div className="text-xs font-medium text-emerald-900">
+                        <div className="text-xs font-medium text-slate-900">
                           {selectedUser.firstName} {selectedUser.lastName}
                         </div>
-                        <div className="text-xs text-emerald-700">{selectedUser.email}</div>
+                        <div className="text-xs text-slate-600">{selectedUser.email}</div>
                       </div>
                       <button
                         type="button"
@@ -883,7 +1076,7 @@ export default function AffiliateMarketersPage() {
                           setSelectedUser(null);
                           setUserSearchQuery("");
                         }}
-                        className="rounded p-1 text-emerald-600 hover:bg-emerald-100"
+                        className="rounded p-1 text-slate-500 hover:bg-slate-200"
                       >
                         <X size={14} />
                       </button>

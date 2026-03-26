@@ -334,6 +334,15 @@ export interface ActivateAffiliateRequest {
   mobileMoneyProvider?: string;
 }
 
+export interface AffiliateListStats {
+  referralCount: number;
+  paidStudents: number;
+  manualPaidStudents: number;
+  onlinePaidStudents: number;
+  /** Distinct referrals that generated a commission for this profile (includes regional/national). */
+  studentsWithCommissions: number;
+}
+
 export interface ListAffiliatesParams {
   page?: number;
   limit?: number;
@@ -341,18 +350,37 @@ export interface ListAffiliatesParams {
   search?: string;
   regionId?: string;
   countryId?: string;
+  subRole?: AffiliateSubRole;
+  affiliateId?: string;
+  minEarned?: number;
+  maxEarned?: number;
+  earnFilter?: "with_commission" | "no_commission";
+  paymentChannel?: "all" | "manual" | "online";
 }
 
 export interface ListAffiliatesResponse {
-  affiliates: Array<AffiliateProfile & {
-    user?: {
-      firstName: string;
-      lastName: string;
-      email: string;
-    };
-  }>;
+  affiliates: Array<
+    AffiliateProfile & {
+      user?: {
+        firstName: string;
+        lastName: string;
+        email: string;
+      };
+      listStats?: AffiliateListStats;
+    }
+  >;
   pagination: Pagination;
 }
+
+export type ReferralPaymentSummaryRow = {
+  affiliateId: string;
+  referralCode: string;
+  marketerName: string;
+  regionName: string;
+  totalPaid: number;
+  manualPaid: number;
+  onlinePaid: number;
+};
 
 export interface FinancialOverview {
   totalRevenue: number;
@@ -682,13 +710,33 @@ export const affiliateService = {
    * GET /api/affiliate/admin/affiliates
    */
   async listAffiliates(params?: ListAffiliatesParams): Promise<ListAffiliatesResponse> {
-    const { data } = await apiClient.get<ListAffiliatesResponse>("/affiliate/admin/affiliates", {
+    const { data } = await apiClient.get<
+      ListAffiliatesResponse | { success: boolean; data: ListAffiliatesResponse }
+    >("/affiliate/admin/affiliates", {
       params,
     });
+    const payload =
+      data && typeof data === "object" && "data" in data && "success" in data
+        ? (data as { data: ListAffiliatesResponse }).data
+        : (data as ListAffiliatesResponse);
     return {
-      ...data,
-      affiliates: data.affiliates.map(mapSubRoleToRole),
+      ...payload,
+      affiliates: payload.affiliates.map(mapSubRoleToRole),
     };
+  },
+
+  /**
+   * Paid students per affiliate (manual vs online), admin dashboard.
+   */
+  async getReferralPaymentSummary(): Promise<ReferralPaymentSummaryRow[]> {
+    const { data } = await apiClient.get<
+      { success: boolean; data: ReferralPaymentSummaryRow[] } | ReferralPaymentSummaryRow[]
+    >("/affiliate/admin/referral-payment-summary");
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === "object" && "data" in data) {
+      return (data as { data: ReferralPaymentSummaryRow[] }).data;
+    }
+    return [];
   },
 
   /**
