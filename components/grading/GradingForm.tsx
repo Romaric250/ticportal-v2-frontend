@@ -456,7 +456,12 @@ function SectionSlide({
         )}
       </div>
 
-      <div className={cn("grid gap-0 bg-slate-100/60", hasDeliverables ? "lg:grid-cols-2 lg:divide-x lg:divide-slate-200" : "")}>
+      <div
+        className={cn(
+          "grid gap-0 bg-slate-100/60",
+          hasDeliverables ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:divide-x lg:divide-slate-200" : ""
+        )}
+      >
         {hasDeliverables && (
           <div className="border-b border-slate-200 bg-slate-100 p-5 lg:border-b-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Submission</p>
