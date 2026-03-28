@@ -15,6 +15,7 @@ import { teamService } from "../../../src/lib/services/teamService";
 import { paymentService } from "../../../src/lib/services/paymentService";
 import { affiliateService, type AffiliateProfile } from "../../../src/lib/services/affiliateService";
 import { tokenStorage } from "../../../src/lib/api-client";
+import { getDashboardPathForRole } from "../../../src/utils/dashboardPath";
 import { toast } from "sonner";
 
 type Props = {
@@ -24,13 +25,15 @@ type Props = {
 export default function DashboardLayout({ children }: Props) {
   const pathname = usePathname();
   const segments = pathname.split("/");
-  const role = (segments[2] ?? "student") as
+  /** First segment after locale (student, mentor, reviewer, …) — used for route guards only. */
+  const pathRole = (segments[2] ?? "student") as
     | "student"
     | "mentor"
     | "judge"
     | "admin"
     | "super-admin"
-    | "affiliate";
+    | "affiliate"
+    | "reviewer";
 
   const { user, accessToken, initialize, initialized, logout, setUser } = useAuthStore();
   const router = useRouter();
@@ -87,6 +90,7 @@ export default function DashboardLayout({ children }: Props) {
           role: (profile.role?.toLowerCase().replace(/_/g, "-") || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate" | null,
           firstName: profile.firstName,
           lastName: profile.lastName,
+          isReviewer: profile.isReviewer === true,
         });
         setValidatingAuth(false);
       } catch (error: any) {
@@ -124,29 +128,45 @@ export default function DashboardLayout({ children }: Props) {
 
     const userRole = user?.role?.toLowerCase();
 
-    if (role === "admin" || role === "super-admin") {
+    if (pathRole === "admin" || pathRole === "super-admin") {
       if (user && userRole !== "admin" && userRole !== "super-admin") {
-        router.replace(`/${locale}/${userRole || "student"}`);
+        router.replace(`/${locale}${getDashboardPathForRole(user.role)}`);
         return;
       }
       setAuthChecked(true);
-    } else if (role === "affiliate") {
+    } else if (pathRole === "affiliate") {
       if (user && userRole !== "affiliate") {
-        router.replace(`/${locale}/${userRole || "student"}`);
+        router.replace(`/${locale}${getDashboardPathForRole(user.role)}`);
         return;
       }
       setAuthChecked(true);
-    } else if (role === "mentor" || role === "judge") {
+    } else if (pathRole === "mentor" || pathRole === "judge") {
       // Students must not access mentor/judge dashboards
       if (user && userRole === "student") {
         router.replace(`/${locale}/student`);
         return;
       }
       setAuthChecked(true);
+    } else if (pathRole === "reviewer") {
+      /** Shared reviewer grading UI — judges or users with isReviewer */
+      const allowed =
+        user && (user.isReviewer === true || userRole === "judge");
+      if (user && !allowed) {
+        router.replace(`/${locale}${getDashboardPathForRole(user.role)}`);
+        return;
+      }
+      setAuthChecked(true);
+    } else if (pathRole === "student") {
+      // Mentors/judges/admins must not stay on student URLs — send them to their dashboard
+      if (user && userRole && userRole !== "student") {
+        router.replace(`/${locale}${getDashboardPathForRole(user.role)}`);
+        return;
+      }
+      setAuthChecked(true);
     } else {
       setAuthChecked(true);
     }
-  }, [role, user, router, locale, initialized, validatingAuth]);
+  }, [pathRole, user, router, locale, initialized, validatingAuth]);
 
   // Check affiliate profile - verify user is affiliate and fetch profile before showing dashboard
   useEffect(() => {
@@ -157,7 +177,7 @@ export default function DashboardLayout({ children }: Props) {
       }
 
       // Only check for affiliate role
-      if (role !== "affiliate") {
+      if (pathRole !== "affiliate") {
         setAffiliateProfileChecked(true);
         return;
       }
@@ -192,7 +212,7 @@ export default function DashboardLayout({ children }: Props) {
     };
 
     checkAffiliateProfile();
-  }, [validatingAuth, initialized, authChecked, role, user, router, locale]);
+  }, [validatingAuth, initialized, authChecked, pathRole, user, router, locale]);
 
   // Check payment status - redirect to payment page if payment is required but not paid
   // CRITICAL: Use user.role (from profile), NOT URL path - students can't bypass by visiting /mentor etc.
@@ -203,7 +223,7 @@ export default function DashboardLayout({ children }: Props) {
         return;
       }
 
-      // Only check payment for students (use actual user role, not URL)
+      // Only students owe the program fee — mentors, judges, admins, affiliates, etc. never get payment-gated here.
       const isStudent = user.role?.toLowerCase() === "student";
       if (!isStudent) {
         setPaymentChecked(true);
@@ -234,7 +254,7 @@ export default function DashboardLayout({ children }: Props) {
   // Check if student needs onboarding
   useEffect(() => {
     const checkOnboarding = async () => {
-      if (role !== "student" || !user) {
+      if (user?.role?.toLowerCase() !== "student" || !user) {
         setLoading(false);
         return;
       }
@@ -267,12 +287,12 @@ export default function DashboardLayout({ children }: Props) {
     };
 
     checkOnboarding();
-  }, [role, user]);
+  }, [user]);
 
   // Check if student is in a team
   useEffect(() => {
     const checkTeam = async () => {
-      if (role !== "student" || !user) {
+      if (user?.role?.toLowerCase() !== "student" || !user) {
         setLoadingTeam(false);
         return;
       }
@@ -308,7 +328,7 @@ export default function DashboardLayout({ children }: Props) {
     if (!showOnboarding) {
       checkTeam();
     }
-  }, [role, user, showOnboarding]);
+  }, [user, showOnboarding]);
 
   const handleOnboardingClose = () => {
     setShowOnboarding(false);
@@ -358,16 +378,34 @@ export default function DashboardLayout({ children }: Props) {
   const isStudent = user?.role?.toLowerCase() === "student";
   if (
     validatingAuth ||
-    ((role === "admin" || role === "super-admin" || role === "affiliate") && !authChecked) ||
-    (role === "affiliate" && !affiliateProfileChecked) ||
+    ((pathRole === "admin" ||
+      pathRole === "super-admin" ||
+      pathRole === "affiliate" ||
+      pathRole === "reviewer") &&
+      !authChecked) ||
+    (pathRole === "affiliate" && !affiliateProfileChecked) ||
     (isStudent && !paymentChecked)
   ) {
     return null; // Render nothing - completely invisible
   }
 
+  const sidebarRole = (() => {
+    const r = user?.role?.toLowerCase().replace(/_/g, "-") ?? "student";
+    if (r === "super-admin") return "super-admin" as const;
+    if (r === "admin") return "admin" as const;
+    if (r === "affiliate") return "affiliate" as const;
+    if (r === "mentor") return "mentor" as const;
+    if (r === "judge") return "judge" as const;
+    return "student" as const;
+  })();
+
   return (
     <div className="flex h-screen bg-[#f9fafb] text-slate-900" style={{ overflow: 'visible', position: 'relative' }}>
-      <Sidebar role={role} affiliateProfile={affiliateProfile || undefined} />
+      <Sidebar
+        role={sidebarRole}
+        affiliateProfile={affiliateProfile || undefined}
+        isReviewer={user?.isReviewer === true}
+      />
       <div className="flex h-screen flex-1 flex-col overflow-hidden">
         <TopNav />
         <main className="flex-1 overflow-y-auto px-1 py-4 sm:px-5 sm:py-5 md:px-8 md:py-6">{children}</main>

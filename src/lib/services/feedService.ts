@@ -126,6 +126,22 @@ export const feedService = {
   /**
    * Get paginated feed posts
    */
+  /** Student daily post cap (2/day UTC). Mentors/admins: applies false. */
+  async getDailyPostQuota(): Promise<{
+    applies: boolean;
+    limit: number;
+    used: number;
+    remaining: number | null;
+  }> {
+    const { data } = await apiClient.get<{
+      applies: boolean;
+      limit: number;
+      used: number;
+      remaining: number | null;
+    }>("/feed/posts/quota/daily");
+    return data;
+  },
+
   async getPosts(params: {
     category?: FeedCategory | "all";
     visibility?: FeedVisibility;

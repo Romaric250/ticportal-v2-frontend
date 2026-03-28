@@ -20,9 +20,10 @@ type SidebarLink = {
 type Props = {
   role: "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate";
   affiliateProfile?: AffiliateProfile;
+  isReviewer?: boolean;
 };
 
-export function Sidebar({ role, affiliateProfile }: Props) {
+export function Sidebar({ role, affiliateProfile, isReviewer }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const locale = useLocale();
@@ -53,6 +54,8 @@ export function Sidebar({ role, affiliateProfile }: Props) {
   }, []);
 
   const basePath = `/${locale}/${role}`;
+  /** Role-agnostic path — same Review UI for every reviewer (mentor, student, affiliate, judge). */
+  const reviewerGradingHref = `/${locale}/reviewer/grading`;
 
   const links: SidebarLink[] = [
     { href: `${basePath}`, label: role === "affiliate" ? "Dashboard" : "Overview", icon: <Home size={16} /> },
@@ -65,12 +68,14 @@ export function Sidebar({ role, affiliateProfile }: Props) {
           { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
           { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
           { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
+          ...(isReviewer ? [{ href: reviewerGradingHref, label: "Review", icon: <Gavel size={16} /> }] : []),
         ]
       : role === "affiliate"
       ? [
           { href: `${basePath}/referral-toolkit`, label: "Referral Toolkit", icon: <Briefcase size={16} /> },
           { href: `${basePath}/pipeline`, label: "Pipeline", icon: <Filter size={16} /> },
           { href: `${basePath}/earnings`, label: "Earnings", icon: <Banknote size={16} /> },
+          ...(isReviewer ? [{ href: reviewerGradingHref, label: "Review", icon: <Gavel size={16} /> }] : []),
         ]
       : role === "admin" || role === "super-admin"
       ? [
@@ -89,6 +94,9 @@ export function Sidebar({ role, affiliateProfile }: Props) {
           { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
           { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
           { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
+          ...(role === "judge" || (role === "mentor" && isReviewer)
+            ? [{ href: reviewerGradingHref, label: "Review", icon: <Gavel size={16} /> }]
+            : []),
         ]),
   ];
 

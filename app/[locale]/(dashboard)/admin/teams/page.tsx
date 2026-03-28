@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Search, Filter, Eye, Edit2, Trash2, Users, FileText, Plus, X, Save } from "lucide-react";
-import { adminService, type Team, type TeamsResponse } from "../../../../../src/lib/services/adminService";
+import { adminService, type Team } from "../../../../../src/lib/services/adminService";
 import { toast } from "sonner";
 import { useLocale } from "next-intl";
 import Link from "next/link";
@@ -14,8 +14,10 @@ export default function AdminTeamsPage() {
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
-    total: 0,
-    totalPages: 0,
+    total: null as number | null,
+    totalPages: null as number | null,
+    hasNextPage: false,
+    hasPrevPage: false,
   });
   const [filters, setFilters] = useState({
     search: "",
@@ -222,7 +224,9 @@ export default function AdminTeamsPage() {
           <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 shadow-sm">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-slate-600" />
-              <span className="text-sm font-semibold text-slate-900">{pagination.total}</span>
+              <span className="text-sm font-semibold text-slate-900">
+                {pagination.total != null ? pagination.total : "—"}
+              </span>
               <span className="text-xs text-slate-500">teams</span>
             </div>
           </div>
@@ -350,7 +354,9 @@ export default function AdminTeamsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Users size={16} className="text-slate-500" />
-                        <span className="text-sm font-medium text-slate-700">{team.members?.length || 0}</span>
+                        <span className="text-sm font-medium text-slate-700">
+                          {team.memberCount ?? team.members?.length ?? 0}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -390,28 +396,41 @@ export default function AdminTeamsPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
+        {(pagination.hasNextPage || pagination.hasPrevPage || (pagination.totalPages != null && pagination.totalPages > 1)) && (
           <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 px-6 py-4 sm:flex-row">
             <p className="text-sm font-medium text-slate-600">
-              Showing <span className="font-semibold text-slate-900">{((pagination.page - 1) * pagination.limit) + 1}</span> to{" "}
-              <span className="font-semibold text-slate-900">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{" "}
-              <span className="font-semibold text-slate-900">{pagination.total}</span> teams
+              Showing{" "}
+              <span className="font-semibold text-slate-900">
+                {teams.length === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-slate-900">
+                {(pagination.page - 1) * pagination.limit + teams.length}
+              </span>
+              {pagination.total != null ? (
+                <>
+                  {" "}
+                  of <span className="font-semibold text-slate-900">{pagination.total}</span> teams
+                </>
+              ) : (
+                " teams"
+              )}
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-                disabled={pagination.page === 1}
+                disabled={!pagination.hasPrevPage}
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:border-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-300"
               >
                 Previous
               </button>
               <span className="text-sm font-medium text-slate-600">
-                Page {pagination.page} of {pagination.totalPages}
+                Page {pagination.page}
+                {pagination.totalPages != null ? ` of ${pagination.totalPages}` : ""}
               </span>
               <button
                 onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-                disabled={pagination.page >= pagination.totalPages}
+                disabled={!pagination.hasNextPage}
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:border-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-300"
               >
                 Next

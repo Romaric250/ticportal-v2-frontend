@@ -42,6 +42,7 @@ type LogoutPayload = {
 type AuthResponse = {
   user: AuthUser & {
     isVerified?: boolean;
+    isReviewer?: boolean;
   };
   accessToken: string;
   refreshToken: string;

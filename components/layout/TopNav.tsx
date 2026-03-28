@@ -50,6 +50,14 @@ export function TopNav() {
     const segments = pathname.split("/").filter(Boolean);
     const route = segments.slice(2).join("/") || "overview";
 
+    if (route === "grading" || route.startsWith("grading/")) {
+      return {
+        title: "Review",
+        subtitle: "Score rubric sections for teams assigned to you",
+        icon: <Gavel className="text-[#111827] w-full h-full" />,
+      };
+    }
+
     const pageMap: Record<string, PageInfo> = {
       overview: {
         title: "Overview",

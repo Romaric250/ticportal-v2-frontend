@@ -9,6 +9,7 @@ import { authService } from "../../../../src/lib/services/authService";
 import { toast } from "sonner";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { normalizeEmail, normalizePassword } from "../../../../src/utils/normalizeInput";
+import { getDashboardPathForRole } from "../../../../src/utils/dashboardPath";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,12 +58,7 @@ export default function LoginPage() {
 
     // If user has tokens and user data, redirect to their dashboard
     if (accessToken && user) {
-      const userRole = user.role?.toLowerCase() || "student";
-      const redirectTo = userRole === "admin" || userRole === "super-admin"
-        ? `/${userRole}`
-        : userRole === "affiliate"
-          ? "/affiliate"
-          : "/student";
+      const redirectTo = getDashboardPathForRole(user.role);
       router.replace(`/${locale}${redirectTo}`);
     }
   }, [accessToken, user, initialized, router, locale, submitting]);
@@ -104,22 +100,15 @@ export default function LoginPage() {
         role: (response.user.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate" | null,
         firstName: response.user.firstName,
         lastName: response.user.lastName,
+        isReviewer: (response.user as { isReviewer?: boolean }).isReviewer === true,
       };
 
       setUser(user);
 
-      // Auto-redirect admins to admin dashboard
-      const userRole = user.role?.toLowerCase();
       let redirectTo = searchParams.get("redirect");
-      
+
       if (!redirectTo) {
-        if (userRole === "admin" || userRole === "super-admin") {
-          redirectTo = `/${userRole}`;
-        } else if (userRole === "affiliate") {
-          redirectTo = "/affiliate";
-        } else {
-          redirectTo = "/student";
-        }
+        redirectTo = getDashboardPathForRole(user.role);
       }
       
       toast.success("Logged in successfully");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { X, Image as ImageIcon, FileText, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { feedService, type CreatePostPayload, type FeedCategory, type FeedAttachment } from "@/src/lib/services/feedService";
@@ -25,10 +25,38 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
   const [attachments, setAttachments] = useState<FeedAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [dailyQuota, setDailyQuota] = useState<{
+    applies: boolean;
+    limit: number;
+    used: number;
+    remaining: number | null;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!isOpen || !isStudent) {
+      setDailyQuota(null);
+      return;
+    }
+    let cancelled = false;
+    void feedService
+      .getDailyPostQuota()
+      .then((q) => {
+        if (!cancelled) setDailyQuota(q);
+      })
+      .catch(() => {
+        if (!cancelled) setDailyQuota(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isStudent]);
+
   if (!isOpen) return null;
+
+  const quotaBlocked =
+    isStudent && dailyQuota?.applies === true && dailyQuota.remaining === 0;
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -245,6 +273,10 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       toast.error("Please enter post content");
       return;
     }
+    if (quotaBlocked) {
+      toast.error("Limit of 2 posts per day reached.");
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -280,7 +312,12 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       onPostCreated();
       onClose();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to create post");
+      if (error?.response?.status === 429) {
+        toast.error("Limit of 2 posts per day reached.");
+        void feedService.getDailyPostQuota().then(setDailyQuota).catch(() => {});
+      } else {
+        toast.error(error?.response?.data?.message || "Failed to create post");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -322,6 +359,11 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6">
           <div className="space-y-4 sm:space-y-5">
+            {isStudent && dailyQuota?.applies && dailyQuota.remaining === 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+                Limit of 2 posts per day reached.
+              </div>
+            )}
             {/* Category */}
             <div>
               <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
@@ -557,7 +599,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
             </button>
             <button
               type="submit"
-              disabled={submitting || !content.trim() || uploading}
+              disabled={submitting || !content.trim() || uploading || quotaBlocked}
               className="w-full sm:w-auto cursor-pointer rounded-lg bg-[#111827] px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#1f2937] hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {submitting ? (

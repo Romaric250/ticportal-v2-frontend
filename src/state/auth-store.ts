@@ -10,6 +10,7 @@ export type AuthUser = {
   role: UserRole;
   firstName?: string;
   lastName?: string;
+  isReviewer?: boolean;
 };
 
 type AuthState = {

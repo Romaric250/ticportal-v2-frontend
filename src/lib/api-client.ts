@@ -17,6 +17,8 @@ export const apiClient = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true, // Required for CORS with credentials
+  /** Avoid indefinite loading when the server or DB hangs (default axios has no timeout). */
+  timeout: 120_000,
 });
 
 // Token storage helpers with encryption
@@ -79,9 +81,17 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
 
 apiClient.interceptors.response.use(
   (response) => {
-    // Extract response data based on API format: { success: true, data: {...} }
-    if (response.data?.success && response.data?.data) {
-      response.data = response.data.data;
+    // Extract response data based on API format: { success: true, data: ... }
+    // Use `data in` so we unwrap when data is null, 0, [], or "" (truthy check would skip those).
+    if (
+      response.data &&
+      typeof response.data === "object" &&
+      !Array.isArray(response.data) &&
+      "success" in response.data &&
+      (response.data as { success?: boolean }).success === true &&
+      "data" in response.data
+    ) {
+      response.data = (response.data as { data: unknown }).data;
     }
     return response;
   },
@@ -201,6 +211,16 @@ apiClient.interceptors.response.use(
         ) {
           const apiError = error.response.data as { error: { code: string; message: string } };
           error.message = apiError.error.message || error.message;
+        }
+        // Grading and other controllers: { success: false, message: "..." }
+        else if (
+          typeof error.response.data === "object" &&
+          error.response.data !== null &&
+          "message" in error.response.data &&
+          typeof (error.response.data as { message: unknown }).message === "string"
+        ) {
+          const m = (error.response.data as { message: string }).message;
+          if (m) error.message = m;
         }
       }
       return Promise.reject(error);

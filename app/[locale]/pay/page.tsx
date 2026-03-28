@@ -111,12 +111,13 @@ export default function PaymentPage() {
           setCurrentUserProfile(profile);
           setUser({
             id: profile.id,
-            
+
             name: `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || profile.email,
             email: profile.email,
             role: (profile.role?.toLowerCase() || "student") as "student" | "mentor" | "judge" | "admin" | "super-admin" | "affiliate" | null,
             firstName: profile.firstName,
             lastName: profile.lastName,
+            isReviewer: profile.isReviewer === true,
           });
         } catch (error: any) {
           console.warn("Auth check:", error?.response?.status === 401 ? "Token invalid" : "Auth check failed");

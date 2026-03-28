@@ -675,6 +675,13 @@ export type Team = {
   projectTitle?: string;
   description?: string;
   profileImage?: string;
+  /** Set on list endpoints when members are not embedded (lighter payload). */
+  memberCount?: number;
+  /** Required-template deliverables submitted / total (list endpoints). */
+  deliverableSubmitted?: number;
+  deliverableTotal?: number;
+  /** Reviewer slots filled (max 2 per team for judging). */
+  reviewerAssignmentCount?: number;
   members?: Array<{
     id: string;
     userId: string;
@@ -687,6 +694,7 @@ export type Team = {
       profilePhoto?: string;
     };
   }>;
+  deliverables?: TeamDeliverable[];
   createdAt: string;
 };
 
@@ -696,8 +704,10 @@ export type TeamsResponse = {
   pagination: {
     page: number;
     limit: number;
-    total: number;
-    totalPages: number;
+    total: number | null;
+    totalPages: number | null;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
   };
 };
 
@@ -755,6 +765,9 @@ export type TeamDeliverable = {
     description: string;
     contentType: "TEXT" | "FILE" | "URL";
     dueDate?: string;
+    required?: boolean;
+    type?: string;
+    customType?: string | null;
   };
 };
 

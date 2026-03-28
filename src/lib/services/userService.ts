@@ -7,6 +7,7 @@ export type UserProfile = {
   firstName: string;
   lastName: string;
   role?: string;
+  isReviewer?: boolean;
   bio?: string;
   profilePhoto?: string;
   school?: string;
