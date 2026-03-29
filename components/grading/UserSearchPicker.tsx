@@ -1,26 +1,57 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useDebounce } from "use-debounce";
-import { adminService, type AdminUser } from "../../src/lib/services/adminService";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { gradingService, type ReviewerRow } from "../../src/lib/services/gradingService";
 import { cn } from "../../src/utils/cn";
+
+let _cachedReviewers: ReviewerRow[] | null = null;
+let _cachePromise: Promise<ReviewerRow[]> | null = null;
+
+function loadReviewers(): Promise<ReviewerRow[]> {
+  if (_cachedReviewers) return Promise.resolve(_cachedReviewers);
+  if (_cachePromise) return _cachePromise;
+  _cachePromise = gradingService
+    .listReviewers()
+    .then((list) => {
+      _cachedReviewers = list;
+      return _cachedReviewers;
+    })
+    .catch(() => {
+      _cachePromise = null;
+      return [] as ReviewerRow[];
+    });
+  return _cachePromise;
+}
 
 type Props = {
   value: string | null;
-  onChange: (userId: string | null, user?: AdminUser) => void;
+  onChange: (userId: string | null, user?: ReviewerRow) => void;
   label: string;
   placeholder?: string;
   disabled?: boolean;
 };
 
-export function UserSearchPicker({ value, onChange, label, placeholder = "Search by name or email…", disabled }: Props) {
+export function UserSearchPicker({ value, onChange, label, placeholder = "Type to filter…", disabled }: Props) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [debounced] = useDebounce(q, 350);
-  const [results, setResults] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [picked, setPicked] = useState<AdminUser | null>(null);
+  const [allJudges, setAllJudges] = useState<ReviewerRow[]>(_cachedReviewers ?? []);
+  const [loading, setLoading] = useState(!_cachedReviewers);
+  const [picked, setPicked] = useState<ReviewerRow | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!_cachedReviewers) {
+      setLoading(true);
+      loadReviewers().then((list) => {
+        if (!cancelled) {
+          setAllJudges(list);
+          setLoading(false);
+        }
+      });
+    }
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!value) {
@@ -33,7 +64,7 @@ export function UserSearchPicker({ value, onChange, label, placeholder = "Search
     picked && picked.id === value
       ? picked
       : value
-        ? results.find((u) => u.id === value)
+        ? allJudges.find((u) => u.id === value)
         : undefined;
 
   useEffect(() => {
@@ -44,28 +75,16 @@ export function UserSearchPicker({ value, onChange, label, placeholder = "Search
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  useEffect(() => {
-    if (!debounced || debounced.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    adminService
-      .getUsers(1, 30, { search: debounced.trim() })
-      .then((res) => {
-        if (!cancelled) setResults(res.users ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setResults([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [debounced]);
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return allJudges;
+    return allJudges.filter(
+      (u) =>
+        u.firstName?.toLowerCase().includes(term) ||
+        u.lastName?.toLowerCase().includes(term) ||
+        u.email?.toLowerCase().includes(term)
+    );
+  }, [allJudges, q]);
 
   return (
     <div ref={wrapRef} className="relative">
@@ -110,35 +129,34 @@ export function UserSearchPicker({ value, onChange, label, placeholder = "Search
             "text-sm"
           )}
         >
-          {loading && <li className="px-3 py-2 text-slate-500">Searching…</li>}
-          {!loading && q.trim().length < 2 && (
-            <li className="px-3 py-2 text-slate-500">Type at least 2 characters</li>
+          {loading && <li className="px-3 py-2 text-slate-500">Loading reviewers…</li>}
+          {!loading && filtered.length === 0 && (
+            <li className="px-3 py-2 text-slate-500">No reviewers found</li>
           )}
           {!loading &&
-            debounced.trim().length >= 2 &&
-            results.length === 0 && (
-              <li className="px-3 py-2 text-slate-500">No users found</li>
-            )}
-          {results.map((u) => (
-            <li key={u.id}>
-              <button
-                type="button"
-                className="w-full px-3 py-2 text-left hover:bg-slate-50"
-                onClick={() => {
-                  setPicked(u);
-                  onChange(u.id, u);
-                  setQ("");
-                  setOpen(false);
-                }}
-              >
-                <span className="font-medium text-slate-900">
-                  {u.firstName} {u.lastName}
-                </span>
-                <span className="block text-xs text-slate-500">{u.email}</span>
-                <span className="text-xs text-slate-400">{u.role}</span>
-              </button>
-            </li>
-          ))}
+            filtered.map((u) => (
+              <li key={u.id}>
+                <button
+                  type="button"
+                  className={cn(
+                    "w-full px-3 py-2 text-left hover:bg-slate-50",
+                    u.id === value && "bg-slate-100"
+                  )}
+                  onClick={() => {
+                    setPicked(u);
+                    onChange(u.id, u);
+                    setQ("");
+                    setOpen(false);
+                  }}
+                >
+                  <span className="font-medium text-slate-900">
+                    {u.firstName} {u.lastName}
+                  </span>
+                  <span className="ml-2 text-xs text-slate-500">{u.email}</span>
+                  {u.region && <span className="ml-2 text-xs text-slate-400">· {u.region}</span>}
+                </button>
+              </li>
+            ))}
         </ul>
       )}
     </div>

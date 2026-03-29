@@ -131,18 +131,33 @@ export function GradingTeamReview({ teamId, backHref }: Props) {
             </div>
 
             <div className="w-fit max-w-md rounded-md bg-[#111827] px-3 py-2.5">
-              <p className="text-[11px] font-medium uppercase tracking-wider leading-4 text-slate-400">Pair reviewer</p>
-              {team.pairedReviewer ? (
-                <p className="mt-1 text-xs font-medium leading-5 text-white">
-                  {team.pairedReviewer.name}
-                  <span className="font-normal text-slate-400">
-                    {" "}
-                    · {team.pairedReviewer.submitted ? "submitted" : "not submitted"}
-                  </span>
-                </p>
-              ) : (
-                <p className="mt-1 text-xs leading-5 text-slate-500">—</p>
-              )}
+              <p className="text-[11px] font-medium uppercase tracking-wider leading-4 text-slate-400">Review panel</p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                Until you submit your grade, you only see whether others have submitted — not their scores.
+              </p>
+              {(() => {
+                const peers =
+                  team.otherReviewers && team.otherReviewers.length > 0
+                    ? team.otherReviewers
+                    : team.pairedReviewer
+                      ? [team.pairedReviewer]
+                      : [];
+                return peers.length > 0 ? (
+                  <ul className="mt-2 space-y-1 text-xs font-medium leading-5 text-white">
+                    {peers.map((o, i) => (
+                      <li key={`o-${i}`}>
+                        {o.name}
+                        <span className="font-normal text-slate-400">
+                          {" "}
+                          · {o.submitted ? "submitted" : "not submitted"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-xs leading-5 text-slate-500">—</p>
+                );
+              })()}
             </div>
           </div>
         </div>

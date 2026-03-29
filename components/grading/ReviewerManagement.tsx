@@ -53,6 +53,8 @@ export function ReviewerManagement() {
             <tr>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Email</th>
+              <th className="px-3 py-2">Region</th>
+              <th className="px-3 py-2">School</th>
               <th className="px-3 py-2">Role</th>
               <th className="px-3 py-2 text-right">Actions</th>
             </tr>
@@ -66,7 +68,7 @@ export function ReviewerManagement() {
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
                   No reviewers yet. Use &quot;Add reviewer&quot;.
                 </td>
               </tr>
@@ -77,6 +79,8 @@ export function ReviewerManagement() {
                     {r.firstName} {r.lastName}
                   </td>
                   <td className="px-3 py-2 text-slate-600">{r.email}</td>
+                  <td className="px-3 py-2 text-slate-600">{r.region?.trim() || "—"}</td>
+                  <td className="px-3 py-2 text-slate-600">{r.school?.trim() || "—"}</td>
                   <td className="px-3 py-2 text-slate-600">{r.role}</td>
                   <td className="px-3 py-2 text-right">
                     <button

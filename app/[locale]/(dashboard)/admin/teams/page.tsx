@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, Filter, Eye, Edit2, Trash2, Users, FileText, Plus, X, Save } from "lucide-react";
 import { adminService, type Team } from "../../../../../src/lib/services/adminService";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ export default function AdminTeamsPage() {
     school: "All Schools",
     status: "All Statuses",
   });
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -230,9 +231,16 @@ export default function AdminTeamsPage() {
               <span className="text-xs text-slate-500">teams</span>
             </div>
           </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+          >
+            <Plus size={16} />
+            Create Team
+          </button>
           <Link
             href={`/${locale}/admin/teams/deliverables`}
-            className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+            className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
           >
             <FileText size={16} />
             Deliverables
@@ -439,6 +447,17 @@ export default function AdminTeamsPage() {
           </div>
         )}
       </div>
+
+      {/* Create Team Modal */}
+      {showCreateModal && (
+        <CreateTeamModal
+          onClose={() => setShowCreateModal(false)}
+          onCreated={() => {
+            setShowCreateModal(false);
+            loadTeams();
+          }}
+        />
+      )}
 
       {/* Edit Modal */}
       {showEditModal && selectedTeam && (
@@ -856,6 +875,309 @@ export default function AdminTeamsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+type StudentResult = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  school?: string;
+  profilePhoto?: string;
+};
+
+function StudentSearchField({
+  label,
+  value,
+  onSelect,
+  onClear,
+  disabled,
+}: {
+  label: string;
+  value: StudentResult | null;
+  onSelect: (s: StudentResult) => void;
+  onClear: () => void;
+  disabled?: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<StudentResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const doSearch = useCallback(async (query: string) => {
+    if (query.length < 2) { setResults([]); return; }
+    setSearching(true);
+    try {
+      const res = await adminService.getUsers(1, 15, { search: query, role: "STUDENT", status: "ACTIVE" });
+      setResults(res.users ?? []);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => doSearch(q), 300);
+    return () => clearTimeout(t);
+  }, [q, doSearch]);
+
+  if (value) {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700">{label}</label>
+        <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="flex-1">
+            <span className="text-sm font-medium text-slate-900">
+              {value.firstName} {value.lastName}
+            </span>
+            <span className="ml-2 text-xs text-slate-500">{value.email}</span>
+            {value.school && <span className="ml-2 text-xs text-slate-400">· {value.school}</span>}
+          </div>
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={disabled}
+            className="rounded p-1 text-slate-400 hover:text-slate-600 disabled:opacity-50"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-slate-700">{label}</label>
+      <div className="relative">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          disabled={disabled}
+          className="mt-1 w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-4 text-sm focus:border-slate-900 focus:outline-none"
+          placeholder="Search by name or email…"
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
+        />
+      </div>
+      {open && q.length >= 2 && (
+        <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg text-sm">
+          {searching && <li className="px-3 py-2 text-slate-500">Searching…</li>}
+          {!searching && results.length === 0 && <li className="px-3 py-2 text-slate-500">No students found</li>}
+          {!searching && results.map((s) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-left hover:bg-slate-50"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onSelect(s);
+                  setQ("");
+                  setOpen(false);
+                }}
+              >
+                <span className="font-medium text-slate-900">{s.firstName} {s.lastName}</span>
+                <span className="ml-2 text-xs text-slate-500">{s.email}</span>
+                {s.school && <span className="ml-2 text-xs text-slate-400">· {s.school}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function CreateTeamModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [name, setName] = useState("");
+  const [school, setSchool] = useState("");
+  const [projectTitle, setProjectTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [lead, setLead] = useState<StudentResult | null>(null);
+  const [members, setMembers] = useState<StudentResult[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [schools, setSchools] = useState<string[]>([]);
+
+  useEffect(() => {
+    adminService.getDistinctTeamSchools().then(setSchools).catch(() => {});
+  }, []);
+
+  const addMember = (s: StudentResult) => {
+    if (lead?.id === s.id) { toast.error("This student is already selected as the team lead"); return; }
+    if (members.some((m) => m.id === s.id)) { toast.error("This student is already added"); return; }
+    setMembers((prev) => [...prev, s]);
+  };
+
+  const removeMember = (id: string) => setMembers((prev) => prev.filter((m) => m.id !== id));
+
+  const handleSubmit = async () => {
+    if (!name.trim()) { toast.error("Team name is required"); return; }
+    if (!school.trim()) { toast.error("School is required"); return; }
+    if (!lead) { toast.error("Select a team lead"); return; }
+    setSubmitting(true);
+    try {
+      await adminService.createTeam({
+        name: name.trim(),
+        school: school.trim(),
+        projectTitle: projectTitle.trim() || undefined,
+        description: description.trim() || undefined,
+        leadUserId: lead.id,
+        memberUserIds: members.map((m) => m.id),
+      });
+      toast.success("Team created successfully");
+      onCreated();
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || "Failed to create team";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Create Team</h2>
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="rounded p-1 text-slate-400 hover:text-slate-600 disabled:opacity-50"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Team Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={submitting}
+              placeholder="e.g. Team Alpha"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              School <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              list="school-options"
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+              disabled={submitting}
+              placeholder="Type or select a school"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none disabled:opacity-50"
+            />
+            <datalist id="school-options">
+              {schools.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Project Title</label>
+            <input
+              type="text"
+              value={projectTitle}
+              onChange={(e) => setProjectTitle(e.target.value)}
+              disabled={submitting}
+              placeholder="Optional"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={submitting}
+              rows={2}
+              placeholder="Optional"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none disabled:opacity-50"
+            />
+          </div>
+
+          <div className="border-t border-slate-100 pt-4">
+            <StudentSearchField
+              label="Team Lead *"
+              value={lead}
+              onSelect={(s) => {
+                if (members.some((m) => m.id === s.id)) {
+                  setMembers((prev) => prev.filter((m) => m.id !== s.id));
+                }
+                setLead(s);
+              }}
+              onClear={() => setLead(null)}
+              disabled={submitting}
+            />
+          </div>
+
+          <div>
+            <StudentSearchField
+              label="Add Members"
+              value={null}
+              onSelect={addMember}
+              onClear={() => {}}
+              disabled={submitting}
+            />
+            {members.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {members.map((m) => (
+                  <li
+                    key={m.id}
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm"
+                  >
+                    <span className="flex-1 text-slate-900">
+                      {m.firstName} {m.lastName}
+                      <span className="ml-2 text-xs text-slate-500">{m.email}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeMember(m.id)}
+                      disabled={submitting}
+                      className="rounded p-0.5 text-slate-400 hover:text-red-600 disabled:opacity-50"
+                    >
+                      <X size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+            <button
+              onClick={onClose}
+              disabled={submitting}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !name.trim() || !school.trim() || !lead}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? "Creating…" : "Create Team"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

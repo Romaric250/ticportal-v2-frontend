@@ -188,17 +188,21 @@ export function GradingTeamList({ gradingBasePath }: Props) {
 
                       <div className="mt-auto flex flex-col gap-3">
                         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                          <p className={labelMicro}>Pair reviewer</p>
-                          {t.pairedReviewer ? (
-                            <p className={`${valueXs} text-slate-900`}>
-                              {t.pairedReviewer.name}
-                              <span className="font-normal text-slate-500">
-                                {" "}
-                                · {t.pairedReviewer.submitted ? "submitted" : "not submitted"}
-                              </span>
-                            </p>
+                          <p className={labelMicro}>Co-reviewers</p>
+                          {(t.otherReviewers?.length ?? 0) > 0 ? (
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              {t.otherReviewers!.map((r, idx) => (
+                                <span key={idx} className="inline-flex items-center gap-1.5 rounded-md bg-[#111827] px-2 py-1 text-xs font-medium text-white">
+                                  <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${r.submitted ? "bg-emerald-400" : "bg-amber-400"}`} />
+                                  {r.name}
+                                  <span className="text-[11px] font-normal text-slate-400">
+                                    · {r.submitted ? "submitted" : "pending"}
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
                           ) : (
-                            <p className={`${valueXs} text-slate-500`}>—</p>
+                            <p className={`${valueXs} text-slate-500`}>No other reviewers assigned</p>
                           )}
                         </div>
                         <div className="flex items-center justify-center gap-1.5 rounded-md bg-[#111827] px-3 py-2 text-sm font-medium leading-5 text-white">

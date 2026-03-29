@@ -92,13 +92,14 @@ export function LeaderboardConfig() {
       <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-slate-900">Leaderboard blend</h2>
         <p className="text-xs text-slate-600">
-          Rubric scores are out of 100. The final grade (0–100) is{" "}
+          Rubric scores are out of 100. Final grades use the <strong>unweighted average of three reviewers</strong>, then{" "}
           <strong>reviewer average × (100 − w)% + normalized leaderboard × w%</strong>, where <strong>w</strong> is the
           leaderboard share below (default <strong>10</strong> → <strong>90%</strong> from reviews, <strong>10%</strong> from
           the LB index). <strong>Reviewer pts</strong> and <strong>LB pts</strong> are those two contributions. The leaderboard
           index is{" "}
           <code className="rounded bg-slate-100 px-1">min(100, rawPoints / max × 100)</code> unless max is 0 (legacy relative
-          mode). Reports shows Rev pts and LB pts as the exact point contributions.
+          mode). Under <strong className="text-slate-800">Reports</strong>, set a region to scope the live ranking and see how
+          ranks change for that subset.
         </p>
         <div className="flex flex-wrap items-end gap-6">
           <label className="text-sm text-slate-700">

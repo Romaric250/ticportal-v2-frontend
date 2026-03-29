@@ -57,9 +57,9 @@ export function AdminGradingView() {
       );
     }
     if (submittedFilter === "both") {
-      rows = rows.filter((t) => t.submittedCount >= 2);
+      rows = rows.filter((t) => t.submittedCount >= 3);
     } else if (submittedFilter === "not_both") {
-      rows = rows.filter((t) => t.submittedCount < 2);
+      rows = rows.filter((t) => t.submittedCount < 3);
     }
     if (statusFilter !== "all") {
       rows = rows.filter((t) => t.status === statusFilter);
@@ -140,8 +140,8 @@ export function AdminGradingView() {
       <div>
         <h2 className="text-base font-semibold text-slate-900">Finalize grades</h2>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-          After <strong className="text-slate-800">both reviewers submit</strong>, you can finalize to average their
-          scores and blend leaderboard points (see Leaderboard tab for weight and points cap). Only teams with two
+          After <strong className="text-slate-800">all three reviewers submit</strong>, you can finalize to average their
+          scores and blend leaderboard points (see Leaderboard tab for weight and points cap). Only teams with three
           submitted scores can be finalized.
         </p>
       </div>
@@ -165,8 +165,8 @@ export function AdminGradingView() {
             className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900"
           >
             <option value="all">All</option>
-            <option value="both">Both reviewers submitted</option>
-            <option value="not_both">Not both submitted</option>
+            <option value="both">All three reviewers submitted</option>
+            <option value="not_both">Not all three submitted</option>
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-slate-600">
@@ -205,7 +205,7 @@ export function AdminGradingView() {
 
       {loading ? (
         <div className="rounded-lg bg-white p-2">
-          <JudgingTableSkeleton rows={5} cols={8} />
+          <JudgingTableSkeleton rows={5} cols={9} />
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -216,6 +216,7 @@ export function AdminGradingView() {
                 <th className="px-3 py-2.5">Team</th>
                 <th className="px-3 py-2.5">Score 1</th>
                 <th className="px-3 py-2.5">Score 2</th>
+                <th className="px-3 py-2.5">Score 3</th>
                 <th className="px-3 py-2.5">Submitted</th>
                 <th className="px-3 py-2.5">Status</th>
                 <th className="px-3 py-2.5 text-right">Finalize</th>
@@ -224,7 +225,7 @@ export function AdminGradingView() {
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-10 text-center text-slate-500">
+                  <td colSpan={8} className="px-3 py-10 text-center text-slate-500">
                     {pending.length === 0
                       ? "No teams waiting for grading actions."
                       : "No teams match your filters."}
@@ -240,7 +241,7 @@ export function AdminGradingView() {
                         checked={!!selected[t.teamId]}
                         onChange={() => toggleRow(t.teamId, t.canFinalize)}
                         className="rounded border-slate-400"
-                        title={t.canFinalize ? "Include in bulk finalize" : "Both reviewers must submit first"}
+                        title={t.canFinalize ? "Include in bulk finalize" : "All three reviewers must submit first"}
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -249,6 +250,7 @@ export function AdminGradingView() {
                     </td>
                     <td className="px-3 py-2 tabular-nums text-emerald-800">{scoreText(t.score1)}</td>
                     <td className="px-3 py-2 tabular-nums text-emerald-800">{scoreText(t.score2)}</td>
+                    <td className="px-3 py-2 tabular-nums text-emerald-800">{scoreText(t.score3)}</td>
                     <td className="px-3 py-2 tabular-nums text-slate-700">
                       {t.submittedCount}/{t.gradeCount}
                     </td>
@@ -287,7 +289,7 @@ export function AdminGradingView() {
               )}
             </p>
             <p className="text-sm text-slate-600">
-              This will average the two submitted reviewer scores, apply the leaderboard blend, and store the official
+              This will average the three submitted reviewer scores, apply the leaderboard blend, and store the official
               final score.
             </p>
             <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
@@ -322,7 +324,7 @@ export function AdminGradingView() {
         <div className="space-y-4 pt-1">
           <p className="text-sm text-slate-600">
             Finalize <strong className="text-slate-900">{selectedFinalizableIds.length}</strong> team(s)? Each must
-            already have two submitted reviewer scores.
+            already have three submitted reviewer scores.
           </p>
           <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
             <button

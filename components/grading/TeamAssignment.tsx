@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { adminService, type Team } from "../../src/lib/services/adminService";
 import { gradingService } from "../../src/lib/services/gradingService";
-import { TeamSearchPicker } from "./TeamSearchPicker";
 import { UserSearchPicker } from "./UserSearchPicker";
 import { Modal } from "../ui/modal";
 import { JudgingTableSkeleton } from "./grading-skeletons";
@@ -32,7 +32,9 @@ function canUnassignAssignment(a: AssignmentRow): boolean {
 
 export function TeamAssignment() {
   const [manualOpen, setManualOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [autoConfirmOpen, setAutoConfirmOpen] = useState(false);
+  const [excludeReviewersSameRegionAsTeam, setExcludeReviewersSameRegionAsTeam] = useState(true);
   const [busy, setBusy] = useState(false);
   const [unassigningId, setUnassigningId] = useState<string | null>(null);
   const [unassignModal, setUnassignModal] = useState<AssignmentRow | null>(null);
@@ -56,7 +58,9 @@ export function TeamAssignment() {
   const runAuto = async () => {
     setBusy(true);
     try {
-      const res = await gradingService.autoAssign({});
+      const res = await gradingService.autoAssign({
+        excludeReviewersSameRegionAsTeam,
+      });
       const n = res.assigned ?? 0;
       const errList = res.errors ?? [];
       const skipped = res.skipped ?? [];
@@ -78,8 +82,19 @@ export function TeamAssignment() {
           `${skipped.length} team(s) skipped (not enough reviewers under your cap or eligible pool). Check Leaderboard assignment limits.`
         );
       }
+      const warnList = res.warnings ?? [];
+      if (warnList.length > 0) {
+        const preview = warnList
+          .slice(0, 5)
+          .map((w) => w.message)
+          .join(" · ");
+        toast.warning(
+          `Same-region notice: ${warnList.length} assignment(s) have a reviewer from the same region — ${preview}${warnList.length > 5 ? " …" : ""}`,
+          { duration: 10000 }
+        );
+      }
       if (n === 0 && errList.length === 0 && skipped.length === 0) {
-        toast.message("Nothing to assign — every team already has two reviewers, or there are no teams.");
+        toast.message("Nothing to assign — every team already has three reviewers, or there are no teams.");
       }
 
       setAutoConfirmOpen(false);
@@ -108,7 +123,7 @@ export function TeamAssignment() {
         toast.error("Choose someone other than the reviewer you are removing");
         return;
       }
-      if (partnerRow && replacementId === partnerRow.reviewerId) {
+      if (otherRows.some((x) => x.reviewerId === replacementId)) {
         toast.error("That reviewer is already assigned to this team");
         return;
       }
@@ -129,12 +144,12 @@ export function TeamAssignment() {
     }
   };
 
-  const partnerRow =
+  const otherRows =
     unassignModal && assignments
-      ? assignments.find(
+      ? assignments.filter(
           (x) => x.teamId === unassignModal.teamId && x.reviewerId !== unassignModal.reviewerId
         )
-      : undefined;
+      : [];
 
   return (
     <div className="space-y-4">
@@ -142,7 +157,7 @@ export function TeamAssignment() {
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Assignments</h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Auto-assign pairs, manual assign or swap reviewers, or unassign draft slots. Per-reviewer caps live under{" "}
+            Auto-assign three reviewers per team, manual assign, bulk assign, or unassign draft slots. Per-reviewer caps live under{" "}
             <strong className="text-slate-700">Judging → Leaderboard</strong> (assignment limits).
           </p>
         </div>
@@ -162,6 +177,14 @@ export function TeamAssignment() {
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
           >
             Manual assign
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setBulkOpen(true)}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Bulk assign (same 3)
           </button>
         </div>
       </div>
@@ -243,11 +266,23 @@ export function TeamAssignment() {
       >
         <div className="space-y-4 pt-1">
           <p className="text-sm text-slate-600">
-            This will assign <strong className="text-slate-900">two reviewers per team</strong> that do not yet have a
-            full pair, using a fair workload split. Reviewers who are on a team will not be assigned to that team.
+            This will assign <strong className="text-slate-900">three reviewers per team</strong> that do not yet have a
+            full panel, using a fair workload split. Reviewers who are on a team will not be assigned to that team.
           </p>
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              className="mt-1 rounded border-slate-400"
+              checked={excludeReviewersSameRegionAsTeam}
+              onChange={(e) => setExcludeReviewersSameRegionAsTeam(e.target.checked)}
+            />
+            <span>
+              Prefer reviewers from a different region than the team lead (when possible). Same-region assignments still
+              go through if needed, with a warning.
+            </span>
+          </label>
           <ul className="list-inside list-disc space-y-1 text-xs text-slate-500">
-            <li>Teams that already have two assignments are skipped.</li>
+            <li>Teams that already have three assignments are skipped.</li>
             <li>If a max teams per reviewer is set (Leaderboard tab), reviewers at that cap are skipped until unassigned.</li>
             <li>Reviewers may receive email notifications if enabled on the server.</li>
           </ul>
@@ -289,6 +324,22 @@ export function TeamAssignment() {
 
       <Modal
         variant="light"
+        open={bulkOpen}
+        onClose={() => !busy && setBulkOpen(false)}
+        title="Bulk assign the same three reviewers"
+        className="max-w-3xl"
+      >
+        <BulkAssignSameReviewersForm
+          open={bulkOpen}
+          onSuccess={() => {
+            setBulkOpen(false);
+            loadAssignments();
+          }}
+        />
+      </Modal>
+
+      <Modal
+        variant="light"
         open={unassignModal != null}
         onClose={() => !unassigningId && closeUnassignModal()}
         title="Remove or replace reviewer?"
@@ -304,14 +355,14 @@ export function TeamAssignment() {
               on <strong className="text-slate-900">{unassignModal.team.name}</strong>. Their unsaved draft is deleted.
             </p>
             <p className="text-sm text-slate-600">
-              The <strong className="text-slate-900">other reviewer’s scores</strong> are not changed — only pairing
+              The <strong className="text-slate-900">other reviewers’ scores</strong> are not changed — only assignment
               metadata is updated when you replace someone.
             </p>
-            {partnerRow ? (
+            {otherRows.length > 0 ? (
               <>
                 <p className="text-xs text-slate-500">
-                  Other reviewer on this team: {partnerRow.reviewer.firstName} {partnerRow.reviewer.lastName} (
-                  {partnerRow.reviewer.email}).
+                  Other reviewer{otherRows.length !== 1 ? "s" : ""} on this team:{" "}
+                  {otherRows.map((p) => `${p.reviewer.firstName} ${p.reviewer.lastName}`).join(" · ")}.
                 </p>
                 <UserSearchPicker
                   label="Replace with another reviewer (optional)"
@@ -320,14 +371,13 @@ export function TeamAssignment() {
                   disabled={!!unassigningId}
                 />
                 <p className="text-xs text-slate-500">
-                  If you pick someone, they become the new partner for this team. Leave empty to only remove this
-                  reviewer (the team may have one reviewer until you assign again).
+                  If you pick someone, they fill the slot you are freeing. Leave empty to only remove this reviewer.
                 </p>
               </>
             ) : (
               <p className="text-xs text-amber-800">
-                This team has no other assignment row yet — you can only remove this reviewer; add a full pair
-                afterward with Manual assign.
+                This team has no other assignment row yet — you can only remove this reviewer; add reviewers afterward
+                with Manual or bulk assign.
               </p>
             )}
             <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
@@ -355,18 +405,339 @@ export function TeamAssignment() {
   );
 }
 
+function BulkAssignSameReviewersForm({ open, onSuccess }: { open: boolean; onSuccess: () => void }) {
+  const [searchFilter, setSearchFilter] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
+  const [schoolFilter, setSchoolFilter] = useState("");
+  const [minDeliverables, setMinDeliverables] = useState(0);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [regionOptions, setRegionOptions] = useState<string[]>([]);
+  const [schoolOptions, setSchoolOptions] = useState<string[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [r1, setR1] = useState<string | null>(null);
+  const [r2, setR2] = useState<string | null>(null);
+  const [r3, setR3] = useState<string | null>(null);
+  const [rejectReviewersFromTeamRegion, setRejectReviewersFromTeamRegion] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setSearchFilter("");
+    setRegionFilter("");
+    setSchoolFilter("");
+    setMinDeliverables(0);
+    setLoadingTeams(true);
+    void (async () => {
+      try {
+        const res = await adminService.getTeams(1, 80, { includeDeliverableStats: true });
+        if (cancelled) return;
+        const list = res.teams ?? [];
+        setAllTeams(list);
+        setSelected({});
+        const [schools, regionStats] = await Promise.all([
+          adminService.getDistinctTeamSchools(),
+          adminService.getUsersByRegionStats(),
+        ]);
+        if (cancelled) return;
+        setSchoolOptions(schools);
+        const fromStats = regionStats.map((x) => x.region?.trim()).filter((x): x is string => Boolean(x));
+        const fromTeams = list.map((t) => t.region?.trim()).filter((x): x is string => Boolean(x));
+        setRegionOptions([...new Set([...fromStats, ...fromTeams])].sort((a, b) => a.localeCompare(b)));
+      } catch {
+        if (!cancelled) {
+          toast.error("Could not load teams");
+          setAllTeams([]);
+        }
+      } finally {
+        if (!cancelled) setLoadingTeams(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const teams = useMemo(() => {
+    let list = allTeams;
+    const term = searchFilter.trim().toLowerCase();
+    if (term) {
+      list = list.filter(
+        (t) =>
+          t.name.toLowerCase().includes(term) ||
+          (t.projectTitle?.toLowerCase().includes(term) ?? false)
+      );
+    }
+    if (regionFilter.trim()) {
+      const r = regionFilter.trim().toLowerCase();
+      list = list.filter((t) => (t.region?.trim().toLowerCase() ?? "") === r);
+    }
+    if (schoolFilter.trim()) {
+      const s = schoolFilter.trim().toLowerCase();
+      list = list.filter((t) => (t.school?.trim().toLowerCase() ?? "") === s);
+    }
+    if (minDeliverables >= 1) {
+      list = list.filter((t) => (t.deliverableSubmitted ?? 0) >= minDeliverables);
+    }
+    return list;
+  }, [allTeams, searchFilter, regionFilter, schoolFilter, minDeliverables]);
+
+  const toggle = (id: string) => setSelected((s) => ({ ...s, [id]: !s[id] }));
+
+  const selectedIds = Object.keys(selected).filter((k) => selected[k]);
+
+  const submit = async () => {
+    if (selectedIds.length === 0 || !r1 || !r2 || !r3) {
+      toast.error("Select at least one team and three reviewers");
+      return;
+    }
+    if (new Set([r1, r2, r3]).size !== 3) {
+      toast.error("Choose three different reviewers");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await gradingService.bulkAssignSameReviewers({
+        teamIds: selectedIds,
+        reviewerIds: [r1, r2, r3],
+        rejectReviewersFromTeamRegion,
+        sendMail: true,
+      });
+      const n = res.assigned ?? 0;
+      const errs = res.errors ?? [];
+      const warns = res.warnings ?? [];
+      if (n > 0) toast.success(`Assigned ${n} team(s)`);
+      if (warns.length > 0) {
+        const preview = warns.slice(0, 5).map((w) => w.message).join(" · ");
+        toast.warning(
+          `Same-region notice: ${warns.length} assignment(s) have a reviewer from the same region — ${preview}${warns.length > 5 ? " …" : ""}`,
+          { duration: 10000 }
+        );
+      }
+      if (errs.length) errs.slice(0, 5).forEach((e) => toast.error(`${e.teamId}: ${e.message}`));
+      if (errs.length > 5) toast.message(`…and ${errs.length - 5} more`);
+      onSuccess();
+    } catch (e: unknown) {
+      const msg = e && typeof e === "object" && "response" in e ? (e as { response?: { data?: { message?: string } } }).response?.data?.message : null;
+      toast.error(msg || "Bulk assign failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 pt-1">
+      <p className="text-xs text-slate-600">
+        All teams load when you open this dialog. Use the dropdowns to narrow by <strong>team lead region</strong> and{" "}
+        <strong>school</strong>, tick the teams to include, then pick the same three reviewers. Use “reject same-region”
+        to block reviewers whose region matches a team’s lead region.
+      </p>
+      <div>
+        <label className="block text-xs font-medium text-slate-700">
+          Search teams
+          <input
+            type="text"
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            disabled={loadingTeams}
+            placeholder="Filter by team name or project title…"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400"
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <label className="block min-w-[180px] flex-1 text-xs font-medium text-slate-700">
+          Team lead region
+          <select
+            value={regionFilter}
+            onChange={(e) => {
+              setRegionFilter(e.target.value);
+              setSelected({});
+            }}
+            disabled={loadingTeams}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+          >
+            <option value="">All regions</option>
+            {regionOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block min-w-[180px] flex-1 text-xs font-medium text-slate-700">
+          School
+          <select
+            value={schoolFilter}
+            onChange={(e) => {
+              setSchoolFilter(e.target.value);
+              setSelected({});
+            }}
+            disabled={loadingTeams}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+          >
+            <option value="">All schools</option>
+            {schoolOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block min-w-[140px] text-xs font-medium text-slate-700">
+          Min deliverables submitted
+          <select
+            value={minDeliverables}
+            onChange={(e) => {
+              setMinDeliverables(Number(e.target.value));
+              setSelected({});
+            }}
+            disabled={loadingTeams}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+          >
+            {Array.from({ length: 8 }, (_, i) => (
+              <option key={i} value={i}>
+                {i === 0 ? "Any" : `≥ ${i}`}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {loadingTeams && <p className="text-xs text-slate-500">Loading teams…</p>}
+
+      {!loadingTeams && allTeams.length === 0 && (
+        <p className="text-sm text-amber-800">No teams returned. Check the API or try again.</p>
+      )}
+      {!loadingTeams && allTeams.length > 0 && teams.length === 0 && (
+        <p className="text-sm text-slate-600">No teams match the selected region and school. Clear filters to see all.</p>
+      )}
+      {!loadingTeams && teams.length > 0 && (
+        <div className="max-h-48 overflow-y-auto rounded border border-slate-200 px-2 py-2 text-sm">
+          <p className="mb-2 text-xs font-medium text-slate-600">
+            Select teams ({selectedIds.length} selected)
+          </p>
+          <ul className="space-y-1">
+            {teams.map((t) => (
+              <li key={t.id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!!selected[t.id]}
+                  onChange={() => toggle(t.id)}
+                  className="rounded border-slate-400"
+                />
+                <span className="text-slate-800">
+                  {t.name}
+                  {t.region ? <span className="text-xs text-slate-500"> · {t.region}</span> : null}
+                  {typeof t.deliverableSubmitted === "number" ? (
+                    <span className="text-xs text-slate-400"> · {t.deliverableSubmitted}/{t.deliverableTotal ?? "?"} submitted</span>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <UserSearchPicker label="Reviewer 1" value={r1} onChange={(id) => setR1(id)} disabled={submitting} />
+      <UserSearchPicker label="Reviewer 2" value={r2} onChange={(id) => setR2(id)} disabled={submitting} />
+      <UserSearchPicker label="Reviewer 3" value={r3} onChange={(id) => setR3(id)} disabled={submitting} />
+
+      <p className="text-xs text-slate-500">
+        If a reviewer is from the same region as a team, the assignment still goes through but you will see a warning.
+        Assignment emails are sent to reviewers when you save (server mail settings apply).
+      </p>
+
+
+      <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={submit}
+          className="rounded-md bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50"
+        >
+          {submitting ? "Assigning…" : "Assign to selected teams"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ManualAssignForm({ onSuccess }: { onSuccess: () => void }) {
   const [teamId, setTeamId] = useState<string | null>(null);
   const [r1, setR1] = useState<string | null>(null);
   const [r2, setR2] = useState<string | null>(null);
+  const [r3, setR3] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [teamPairHint, setTeamPairHint] = useState<string | null>(null);
   const [loadingTeamReviewers, setLoadingTeamReviewers] = useState(false);
+
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [regionOptions, setRegionOptions] = useState<string[]>([]);
+  const [schoolOptions, setSchoolOptions] = useState<string[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
+  const [searchFilter, setSearchFilter] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
+  const [schoolFilter, setSchoolFilter] = useState("");
+  const [minDeliverables, setMinDeliverables] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingTeams(true);
+    void (async () => {
+      try {
+        const res = await adminService.getTeams(1, 80, { includeDeliverableStats: true });
+        if (cancelled) return;
+        const list = res.teams ?? [];
+        setAllTeams(list);
+        const [schools, regionStats] = await Promise.all([
+          adminService.getDistinctTeamSchools(),
+          adminService.getUsersByRegionStats(),
+        ]);
+        if (cancelled) return;
+        setSchoolOptions(schools);
+        const fromStats = regionStats.map((x) => x.region?.trim()).filter((x): x is string => Boolean(x));
+        const fromTeams = list.map((t) => t.region?.trim()).filter((x): x is string => Boolean(x));
+        setRegionOptions([...new Set([...fromStats, ...fromTeams])].sort((a, b) => a.localeCompare(b)));
+      } catch {
+        if (!cancelled) setAllTeams([]);
+      } finally {
+        if (!cancelled) setLoadingTeams(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const filteredTeams = useMemo(() => {
+    let list = allTeams;
+    const term = searchFilter.trim().toLowerCase();
+    if (term) {
+      list = list.filter(
+        (t) =>
+          t.name.toLowerCase().includes(term) ||
+          (t.projectTitle?.toLowerCase().includes(term) ?? false)
+      );
+    }
+    if (regionFilter.trim()) {
+      const r = regionFilter.trim().toLowerCase();
+      list = list.filter((t) => (t.region?.trim().toLowerCase() ?? "") === r);
+    }
+    if (schoolFilter.trim()) {
+      const s = schoolFilter.trim().toLowerCase();
+      list = list.filter((t) => (t.school?.trim().toLowerCase() ?? "") === s);
+    }
+    if (minDeliverables >= 1) {
+      list = list.filter((t) => (t.deliverableSubmitted ?? 0) >= minDeliverables);
+    }
+    return list;
+  }, [allTeams, searchFilter, regionFilter, schoolFilter, minDeliverables]);
 
   useEffect(() => {
     if (!teamId) {
       setR1(null);
       setR2(null);
+      setR3(null);
       setTeamPairHint(null);
       return;
     }
@@ -381,24 +752,32 @@ function ManualAssignForm({ onSuccess }: { onSuccess: () => void }) {
         if (sorted.length === 0) {
           setR1(null);
           setR2(null);
-          setTeamPairHint("No reviewers on this team yet — choose two reviewers below.");
+          setR3(null);
+          setTeamPairHint("No reviewers on this team yet — choose three reviewers below.");
         } else if (sorted.length === 1) {
           setR1(sorted[0].reviewerId);
           setR2(null);
+          setR3(null);
           setTeamPairHint(
-            `One reviewer already assigned (${sorted[0].firstName} ${sorted[0].lastName}). Pick the second reviewer, or change both slots.`
+            `One reviewer already assigned (${sorted[0].firstName} ${sorted[0].lastName}). Add the remaining two.`
           );
-        } else {
+        } else if (sorted.length === 2) {
           setR1(sorted[0].reviewerId);
           setR2(sorted[1].reviewerId);
-          setTeamPairHint(
-            "This team already has two reviewers — saving updates the pair (draft-only reviewers can be swapped)."
-          );
+          setR3(null);
+          setTeamPairHint("Two reviewers assigned — pick the third, or change all three slots.");
+        } else {
+          const top = sorted.slice(0, 3);
+          setR1(top[0].reviewerId);
+          setR2(top[1].reviewerId);
+          setR3(top[2].reviewerId);
+          setTeamPairHint("This team already has three reviewers — saving replaces the panel (draft-only slots can be swapped).");
         }
       } catch {
         if (!cancelled) {
           setR1(null);
           setR2(null);
+          setR3(null);
           setTeamPairHint("Could not load current reviewers for this team.");
         }
       } finally {
@@ -411,35 +790,144 @@ function ManualAssignForm({ onSuccess }: { onSuccess: () => void }) {
   }, [teamId]);
 
   const submit = async () => {
-    if (!teamId || !r1 || !r2) {
-      toast.error("Select a team and two reviewers");
+    if (!teamId || !r1 || !r2 || !r3) {
+      toast.error("Select a team and three reviewers");
       return;
     }
-    if (r1 === r2) {
-      toast.error("Choose two different reviewers");
+    if (new Set([r1, r2, r3]).size !== 3) {
+      toast.error("Choose three different reviewers");
       return;
     }
     setSubmitting(true);
     try {
-      await gradingService.manualAssign([{ teamId, reviewerIds: [r1, r2] }]);
+      const res = await gradingService.manualAssign([{ teamId, reviewerIds: [r1, r2, r3] }]);
       toast.success("Assignments saved");
+      const warns = res.warnings ?? [];
+      if (warns.length > 0) {
+        toast.warning(
+          `Same-region notice: ${warns.map((w) => w.message).join(" · ")}`,
+          { duration: 10000 }
+        );
+      }
       onSuccess();
     } catch (e: unknown) {
-      const msg = e && typeof e === "object" && "response" in e ? (e as any).response?.data?.message : null;
+      const msg = e && typeof e === "object" && "response" in e ? (e as { response?: { data?: { message?: string } } }).response?.data?.message : null;
       toast.error(msg || "Manual assign failed");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const selectedTeam = allTeams.find((t) => t.id === teamId);
+
   return (
     <div className="space-y-5 pt-1">
       <p className="text-xs text-slate-500">
-        Choose the final pair for this team. Teams with only one reviewer are pre-filled so you add the second (or
-        replace both). Reviewers not in your list are removed only if they have not submitted; team members cannot
-        review their own team.
+        Choose the final three reviewers for this team. Partial assignments are pre-filled so you can add the rest.
+        Reviewers not in your list are removed only if they have not submitted; team members cannot review their own
+        team.
       </p>
-      <TeamSearchPicker label="Team" value={teamId} onChange={(id) => setTeamId(id)} disabled={submitting} />
+
+      <div>
+        <label className="block text-xs font-medium text-slate-700">
+          Search teams
+          <input
+            type="text"
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            disabled={loadingTeams || submitting}
+            placeholder="Filter by team name or project title…"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400"
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <label className="block min-w-[160px] flex-1 text-xs font-medium text-slate-700">
+          Team lead region
+          <select
+            value={regionFilter}
+            onChange={(e) => { setRegionFilter(e.target.value); setTeamId(null); }}
+            disabled={loadingTeams || submitting}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+          >
+            <option value="">All regions</option>
+            {regionOptions.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block min-w-[160px] flex-1 text-xs font-medium text-slate-700">
+          School
+          <select
+            value={schoolFilter}
+            onChange={(e) => { setSchoolFilter(e.target.value); setTeamId(null); }}
+            disabled={loadingTeams || submitting}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+          >
+            <option value="">All schools</option>
+            {schoolOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block min-w-[130px] text-xs font-medium text-slate-700">
+          Min deliverables
+          <select
+            value={minDeliverables}
+            onChange={(e) => { setMinDeliverables(Number(e.target.value)); setTeamId(null); }}
+            disabled={loadingTeams || submitting}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+          >
+            {Array.from({ length: 8 }, (_, i) => (
+              <option key={i} value={i}>{i === 0 ? "Any" : `≥ ${i}`}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {loadingTeams && <p className="text-xs text-slate-500">Loading teams…</p>}
+
+      {!loadingTeams && (
+        <div>
+          <label className="text-xs font-medium text-slate-600">
+            Select team{filteredTeams.length > 0 ? ` (${filteredTeams.length})` : ""}
+          </label>
+          <div className="mt-1 max-h-40 overflow-y-auto rounded border border-slate-200 px-2 py-2 text-sm">
+            {filteredTeams.length === 0 ? (
+              <p className="px-1 py-2 text-xs text-slate-500">No teams match the current filters.</p>
+            ) : (
+              <ul className="space-y-0.5">
+                {filteredTeams.map((t) => (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => setTeamId(t.id)}
+                      className={`w-full rounded px-2 py-1.5 text-left text-sm hover:bg-slate-50 ${
+                        teamId === t.id ? "bg-slate-100 font-medium" : ""
+                      }`}
+                    >
+                      <span className="text-slate-900">{t.name}</span>
+                      {t.region ? <span className="text-xs text-slate-500"> · {t.region}</span> : null}
+                      {typeof t.deliverableSubmitted === "number" ? (
+                        <span className="text-xs text-slate-400"> · {t.deliverableSubmitted}/{t.deliverableTotal ?? "?"} submitted</span>
+                      ) : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {teamId && selectedTeam && (
+        <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          Selected: <strong className="text-slate-900">{selectedTeam.name}</strong>
+          {selectedTeam.projectTitle ? ` — ${selectedTeam.projectTitle}` : ""}
+        </p>
+      )}
+
       {teamId && loadingTeamReviewers && (
         <p className="text-xs text-slate-500">Loading current reviewers…</p>
       )}
@@ -448,6 +936,7 @@ function ManualAssignForm({ onSuccess }: { onSuccess: () => void }) {
       )}
       <UserSearchPicker label="Reviewer 1" value={r1} onChange={(id) => setR1(id)} disabled={submitting} />
       <UserSearchPicker label="Reviewer 2" value={r2} onChange={(id) => setR2(id)} disabled={submitting} />
+      <UserSearchPicker label="Reviewer 3" value={r3} onChange={(id) => setR3(id)} disabled={submitting} />
       <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
         <button
           type="button"
@@ -455,7 +944,7 @@ function ManualAssignForm({ onSuccess }: { onSuccess: () => void }) {
           onClick={submit}
           className="rounded-md bg-[#111827] px-4 py-2 text-sm font-medium text-white hover:bg-[#1f2937] disabled:opacity-50"
         >
-          {submitting ? "Saving…" : "Assign pair"}
+          {submitting ? "Saving…" : "Assign panel"}
         </button>
       </div>
     </div>

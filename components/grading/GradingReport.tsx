@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { isAxiosError } from "axios";
-import { Eye, FileDown, FilterX, Search } from "lucide-react";
+import { Eye, FileDown, FilterX, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   gradingService,
@@ -10,6 +10,7 @@ import {
   type GradingReportTeamDetail,
   type GradingReportTeamRow,
 } from "../../src/lib/services/gradingService";
+import { adminService } from "../../src/lib/services/adminService";
 import { exportGradingReportPdf } from "../../src/utils/exportToPdf";
 import { Modal } from "../ui/modal";
 import { JudgingTableSkeleton } from "./grading-skeletons";
@@ -66,12 +67,17 @@ export function GradingReport() {
   const [rawLbMin, setRawLbMin] = useState("");
   const [rawLbMax, setRawLbMax] = useState("");
   const [publishedFilter, setPublishedFilter] = useState<"all" | "yes" | "no">("all");
-  const [bothScoresFilter, setBothScoresFilter] = useState<"all" | "yes" | "no">("all");
+  const [threeScoresFilter, setThreeScoresFilter] = useState<"all" | "yes" | "no">("all");
+  const [reportRegion, setReportRegion] = useState("");
+  const [regionListFromStats, setRegionListFromStats] = useState<string[]>([]);
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedTeamRow, setSelectedTeamRow] = useState<GradingReportTeamRow | null>(null);
   const [detail, setDetail] = useState<GradingReportTeamDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  const [deletingGrade, setDeletingGrade] = useState<{ teamId: string; reviewerId: string; reviewerName: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [exportOpen, setExportOpen] = useState(false);
   const [excludeIds, setExcludeIds] = useState<Record<string, boolean>>({});
@@ -81,7 +87,8 @@ export function GradingReport() {
     setLoading(true);
     setError(null);
     try {
-      const data = await gradingService.gradingReports();
+      const r = reportRegion.trim();
+      const data = await gradingService.gradingReports(r ? { region: r } : undefined);
       setPayload(data ?? null);
     } catch (e: unknown) {
       const msg = isAxiosError(e)
@@ -96,13 +103,42 @@ export function GradingReport() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reportRegion]);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void adminService
+      .getUsersByRegionStats()
+      .then((rows) => {
+        if (!cancelled) {
+          const names = rows.map((x) => x.region?.trim()).filter((x): x is string => Boolean(x));
+          setRegionListFromStats([...new Set(names)].sort((a, b) => a.localeCompare(b)));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRegionListFromStats([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const teams = payload?.teams ?? [];
+
+  const regionDropdownOptions = useMemo(() => {
+    const s = new Set<string>(regionListFromStats);
+    for (const t of teams) {
+      const reg = t.region?.trim();
+      if (reg) s.add(reg);
+    }
+    const sel = reportRegion.trim();
+    if (sel) s.add(sel);
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [regionListFromStats, teams, reportRegion]);
 
   const filtered = useMemo(() => {
     let list = teams;
@@ -139,8 +175,10 @@ export function GradingReport() {
     if (publishedFilter === "yes") list = list.filter((t) => t.publishedAt != null);
     if (publishedFilter === "no") list = list.filter((t) => t.publishedAt == null);
 
-    if (bothScoresFilter === "yes") list = list.filter((t) => t.score1 != null && t.score2 != null);
-    if (bothScoresFilter === "no") list = list.filter((t) => t.score1 == null || t.score2 == null);
+    if (threeScoresFilter === "yes")
+      list = list.filter((t) => t.score1 != null && t.score2 != null && t.score3 != null);
+    if (threeScoresFilter === "no")
+      list = list.filter((t) => t.score1 == null || t.score2 == null || t.score3 == null);
 
     return list;
   }, [
@@ -155,7 +193,7 @@ export function GradingReport() {
     rawLbMin,
     rawLbMax,
     publishedFilter,
-    bothScoresFilter,
+    threeScoresFilter,
   ]);
 
   const clearFilters = useCallback(() => {
@@ -169,7 +207,8 @@ export function GradingReport() {
     setRawLbMin("");
     setRawLbMax("");
     setPublishedFilter("all");
-    setBothScoresFilter("all");
+    setThreeScoresFilter("all");
+    setReportRegion("");
   }, []);
 
   const openTeamDetail = useCallback(async (row: GradingReportTeamRow) => {
@@ -194,6 +233,25 @@ export function GradingReport() {
     setSelectedTeamRow(null);
   }, []);
 
+  const confirmDeleteGrade = useCallback(async () => {
+    if (!deletingGrade) return;
+    setDeleteLoading(true);
+    try {
+      await gradingService.adminDeleteGrade(deletingGrade.teamId, deletingGrade.reviewerId);
+      toast.success(`Deleted ${deletingGrade.reviewerName}'s review`);
+      setDeletingGrade(null);
+      closeDetail();
+      load();
+    } catch (e: unknown) {
+      const msg = isAxiosError(e)
+        ? e.response?.data?.message ?? e.message
+        : "Could not delete grade";
+      toast.error(msg);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [deletingGrade, closeDetail, load]);
+
   const openExport = useCallback(() => {
     setExcludeIds({});
     setTopN("");
@@ -211,7 +269,8 @@ export function GradingReport() {
     rawLbMin.trim() !== "" ||
     rawLbMax.trim() !== "" ||
     publishedFilter !== "all" ||
-    bothScoresFilter !== "all";
+    threeScoresFilter !== "all" ||
+    reportRegion.trim() !== "";
 
   const runExport = useCallback(() => {
     let rows = filtered.filter((t) => !excludeIds[t.teamId]);
@@ -249,7 +308,7 @@ export function GradingReport() {
           <div className="h-8 w-24 rounded bg-slate-200" />
         </div>
         <div className="mb-3 h-10 w-full max-w-md rounded-lg bg-slate-100" />
-        <JudgingTableSkeleton rows={6} cols={13} />
+        <JudgingTableSkeleton rows={6} cols={15} />
       </div>
     );
   }
@@ -263,9 +322,10 @@ export function GradingReport() {
             <p className="text-xs text-slate-500">Updated {new Date(payload.generatedAt).toLocaleString()}</p>
           )}
           <p className="mt-0.5 text-xs text-slate-600">
-            <strong>Rev avg</strong> = unweighted mean of both rubric totals (0–100). <strong>Wtd rev</strong> = that average ×
-            (100−w)% toward the final. <strong>Final</strong> = Wtd rev + LB pts (normalized LB × w%). Weights w come from
-            Settings. When both reviews are in, numbers are computed from live scores so they always match.
+            <strong>Rev avg</strong> = unweighted mean of the three rubric totals (0–100). <strong>Wtd rev</strong> = that
+            average × (100−w)% toward the final. <strong>Final</strong> = Wtd rev + LB pts (normalized LB × w%). Weights w
+            come from Settings. Use <strong className="text-slate-800">Region</strong> in Filters to limit the report to a
+            region (team lead region); ranks and scores reflect that subset.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -322,6 +382,24 @@ export function GradingReport() {
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              <label
+                className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                title="Reloads report data: only teams whose lead region matches (same as admin team list)."
+              >
+                Region
+                <select
+                  value={reportRegion}
+                  onChange={(e) => setReportRegion(e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900"
+                >
+                  <option value="">All regions</option>
+                  {regionDropdownOptions.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                 Rank min
                 <input
@@ -423,15 +501,15 @@ export function GradingReport() {
                 </select>
               </label>
               <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                Both reviewer scores
+                Three reviewer scores
                 <select
-                  value={bothScoresFilter}
-                  onChange={(e) => setBothScoresFilter(e.target.value as "all" | "yes" | "no")}
+                  value={threeScoresFilter}
+                  onChange={(e) => setThreeScoresFilter(e.target.value as "all" | "yes" | "no")}
                   className="mt-1 w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900"
                 >
                   <option value="all">All</option>
-                  <option value="yes">Both present</option>
-                  <option value="no">Missing one or both</option>
+                  <option value="yes">All three present</option>
+                  <option value="no">Any missing</option>
                 </select>
               </label>
             </div>
@@ -442,15 +520,17 @@ export function GradingReport() {
           </div>
 
           <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-            <table className="min-w-[1040px] w-full divide-y divide-slate-200 text-left text-sm text-slate-900">
+            <table className="min-w-[1180px] w-full divide-y divide-slate-200 text-left text-sm text-slate-900">
               <thead className="bg-black text-xs font-semibold uppercase tracking-wide text-white">
                 <tr>
                   <th className="whitespace-nowrap px-2 py-2.5">Rank</th>
                   <th className="min-w-[140px] px-2 py-2.5">Team</th>
                   <th className="hidden px-2 py-2.5 lg:table-cell">School</th>
+                  <th className="hidden px-2 py-2.5 xl:table-cell">Region</th>
                   <th className="whitespace-nowrap px-2 py-2.5">S1</th>
                   <th className="whitespace-nowrap px-2 py-2.5">S2</th>
-                  <th className="whitespace-nowrap px-2 py-2.5" title="Unweighted mean of both rubric totals (0–100)">
+                  <th className="whitespace-nowrap px-2 py-2.5">S3</th>
+                  <th className="whitespace-nowrap px-2 py-2.5" title="Unweighted mean of three rubric totals (0–100)">
                     Rev avg
                   </th>
                   <th
@@ -491,8 +571,12 @@ export function GradingReport() {
                     <td className="hidden max-w-[160px] truncate px-2 py-2 text-slate-600 lg:table-cell">
                       {row.school || "—"}
                     </td>
+                    <td className="hidden max-w-[100px] truncate px-2 py-2 text-slate-600 xl:table-cell">
+                      {row.region?.trim() ? row.region : "—"}
+                    </td>
                     <td className="whitespace-nowrap px-2 py-2 tabular-nums text-slate-700">{scoreText(row.score1)}</td>
                     <td className="whitespace-nowrap px-2 py-2 tabular-nums text-slate-700">{scoreText(row.score2)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 tabular-nums text-slate-700">{scoreText(row.score3)}</td>
                     <td className="whitespace-nowrap px-2 py-2 tabular-nums text-slate-700">
                       {scoreText(row.reviewerAverageScore)}
                     </td>
@@ -585,10 +669,15 @@ export function GradingReport() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-slate-500">Score 1 / 2</dt>
+                  <dt className="text-xs text-slate-500">Scores 1 / 2 / 3</dt>
                   <dd className="font-medium tabular-nums text-slate-900">
-                    {scoreText(selectedTeamRow.score1)} / {scoreText(selectedTeamRow.score2)}
+                    {scoreText(selectedTeamRow.score1)} / {scoreText(selectedTeamRow.score2)} /{" "}
+                    {scoreText(selectedTeamRow.score3)}
                   </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-slate-500">Region</dt>
+                  <dd className="text-slate-700">{selectedTeamRow.region?.trim() || "—"}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-slate-500">LB pts</dt>
@@ -628,9 +717,26 @@ export function GradingReport() {
                       key={r.reviewerId}
                       className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm"
                     >
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-medium text-slate-900">{r.reviewerName}</span>
-                        <span className="text-xs text-slate-500">{r.email}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="font-medium text-slate-900">{r.reviewerName}</span>
+                          <span className="ml-2 text-xs text-slate-500">{r.email}</span>
+                        </div>
+                        <button
+                          type="button"
+                          title="Delete this reviewer's grade"
+                          onClick={() =>
+                            setDeletingGrade({
+                              teamId: selectedTeamRow!.teamId,
+                              reviewerId: r.reviewerId,
+                              reviewerName: r.reviewerName,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-700 transition hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </button>
                       </div>
                       <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-600">
                         <span>
@@ -774,6 +880,37 @@ export function GradingReport() {
           </div>
         </div>
       </Modal>
+
+      {deletingGrade && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-slate-900">Delete review</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Are you sure you want to delete <strong>{deletingGrade.reviewerName}</strong>&apos;s review for this team?
+              The assignment stays — they will be able to re-submit a fresh grade.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeletingGrade(null)}
+                disabled={deleteLoading}
+                className="rounded-md border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteGrade}
+                disabled={deleteLoading}
+                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {deleteLoading ? "Deleting…" : "Delete review"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,6 +16,8 @@ export type ReviewerRow = {
   lastName: string;
   role: string;
   isReviewer: boolean;
+  region?: string | null;
+  school?: string | null;
 };
 
 export type PendingTeam = {
@@ -29,6 +31,7 @@ export type PendingTeam = {
   status: string;
   score1: number | null;
   score2: number | null;
+  score3: number | null;
   canFinalize: boolean;
 };
 
@@ -54,6 +57,7 @@ export type ReviewerDashboardData = {
       feedback?: string | null;
     } | null;
     pairedReviewer: { name: string; submitted: boolean } | null;
+    otherReviewers?: { name: string; submitted: boolean }[];
   }>;
   stats: { totalAssigned: number; completed: number; pending: number };
 };
@@ -71,6 +75,7 @@ export type GradingReportTeamRow = {
   teamId: string;
   teamName: string;
   school: string;
+  region?: string | null;
   projectTitle: string | null;
   assignmentCount: number;
   /** Stored when admin finalizes (optional). */
@@ -81,6 +86,7 @@ export type GradingReportTeamRow = {
   rank: number;
   score1?: number | null;
   score2?: number | null;
+  score3?: number | null;
   /** Computed 0–100 total (weighted rubric avg + LB); use for display as Final. */
   blendFinal?: number | null;
   normalizedLeaderboard?: number;
@@ -129,6 +135,8 @@ export type LeaderboardTeamReportRow = {
   leaderboardWeightPercent: number;
   score1: number | null;
   score2: number | null;
+  score3: number | null;
+  region?: string | null;
   reviewerAverageScore: number | null;
   /** Blended 0–100 (final when set, else live preview). */
   blendFinal: number | null;
@@ -187,7 +195,12 @@ export const gradingService = {
 
   pendingGrades: () => apiClient.get("/admin/teams/pending-grades").then((r) => unwrap<PendingTeam[]>(r)),
 
-  autoAssign: (body?: { excludeReviewerIds?: string[]; teamIds?: string[]; sendMail?: boolean }) =>
+  autoAssign: (body?: {
+    excludeReviewerIds?: string[];
+    teamIds?: string[];
+    sendMail?: boolean;
+    excludeReviewersSameRegionAsTeam?: boolean;
+  }) =>
     apiClient
       .post(
         "/admin/assignments/auto",
@@ -201,11 +214,37 @@ export const gradingService = {
           teams?: { teamId: string; reviewerIds: string[] }[];
           skipped?: { teamId: string; reason: string }[];
           errors?: { teamId: string; teamName: string | null; message: string }[];
+          warnings?: { teamId: string; teamName: string | null; message: string }[];
+        }>(r)
+      ),
+
+  bulkAssignSameReviewers: (body: {
+    teamIds: string[];
+    reviewerIds: string[];
+    sendMail?: boolean;
+    rejectReviewersFromTeamRegion?: boolean;
+  }) =>
+    apiClient
+      .post("/admin/assignments/bulk-same-reviewers", body, { timeout: 300_000 })
+      .then((r) =>
+        unwrap<{
+          assigned: number;
+          teams: { teamId: string; reviewerIds: string[] }[];
+          errors: { teamId: string; message: string }[];
+          warnings?: { teamId: string; message: string }[];
         }>(r)
       ),
 
   manualAssign: (assignments: { teamId: string; reviewerIds: string[] }[], sendMail?: boolean) =>
-    apiClient.post("/admin/assignments/manual", { assignments, sendMail }).then((r) => unwrap<unknown>(r)),
+    apiClient
+      .post("/admin/assignments/manual", { assignments, sendMail })
+      .then((r) =>
+        unwrap<{
+          assigned: number;
+          teams: { teamId: string; reviewerIds: string[] }[];
+          warnings?: { teamId: string; message: string }[];
+        }>(r)
+      ),
 
   unassignReviewer: (
     teamId: string,
@@ -221,7 +260,7 @@ export const gradingService = {
       })
       .then((r) => unwrap<unknown>(r)),
 
-  /** Reviewers currently assigned to a team (0–2 rows). Used to pre-fill manual assign. */
+  /** Reviewers currently assigned to a team (0–3 rows). Used to pre-fill manual assign. */
   assignmentsForTeam: (teamId: string) =>
     apiClient
       .get(`/admin/assignments/team/${encodeURIComponent(teamId)}`)
@@ -273,7 +312,7 @@ export const gradingService = {
     maxTeamsPerReviewer?: number | null;
   }) => apiClient.post("/admin/leaderboard/config", payload).then((r) => unwrap<unknown>(r)),
 
-  leaderboardTeams: (params?: { page?: number; limit?: number }) =>
+  leaderboardTeams: (params?: { page?: number; limit?: number; region?: string }) =>
     apiClient
       .get("/admin/leaderboard/teams", { params })
       .then((r) => unwrap<LeaderboardTeamsPageResponse>(r)),
@@ -290,9 +329,16 @@ export const gradingService = {
     apiClient.get("/reviewer/dashboard").then((r) => unwrap<ReviewerDashboardData>(r)),
 
   /** Reports can exceed the default 120s client cap on large datasets; keep a higher ceiling so a slow 200 still resolves. */
-  gradingReports: () =>
-    apiClient.get("/admin/grading/reports", { timeout: 300_000 }).then((r) => unwrap<GradingReportPayload>(r)),
+  gradingReports: (params?: { region?: string }) =>
+    apiClient
+      .get("/admin/grading/reports", { params, timeout: 300_000 })
+      .then((r) => unwrap<GradingReportPayload>(r)),
 
   gradingReportTeamDetail: (teamId: string) =>
     apiClient.get(`/admin/grading/reports/teams/${encodeURIComponent(teamId)}/detail`).then((r) => unwrap<GradingReportTeamDetail>(r)),
+
+  adminDeleteGrade: (teamId: string, reviewerId: string) =>
+    apiClient
+      .delete(`/admin/grades/${encodeURIComponent(teamId)}/${encodeURIComponent(reviewerId)}`)
+      .then((r) => unwrap<{ deleted: boolean; gradeId: string }>(r)),
 };

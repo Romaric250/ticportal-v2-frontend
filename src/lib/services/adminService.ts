@@ -508,12 +508,24 @@ export const adminService = {
       search?: string;
       school?: string;
       status?: string;
+      region?: string;
+      /** Only teams with at least this many required deliverables submitted (1–7). Omit for any. */
+      minDeliverablesSubmitted?: number;
+      /**
+       * When false, server skips deliverable/template scans (fast). Counts are 0.
+       * Use for assignment UIs; keep true (default) for grading team lists.
+       */
+      includeDeliverableStats?: boolean;
     }
   ): Promise<TeamsResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
     });
+
+    if (filters?.includeDeliverableStats === false) {
+      params.append("includeDeliverableStats", "false");
+    }
 
     if (filters?.search) {
       params.append("search", filters.search);
@@ -524,9 +536,56 @@ export const adminService = {
     if (filters?.status) {
       params.append("status", filters.status);
     }
+    if (filters?.region?.trim()) {
+      params.append("region", filters.region.trim());
+    }
+    if (filters?.minDeliverablesSubmitted != null && filters.minDeliverablesSubmitted >= 1) {
+      params.append("minDeliverablesSubmitted", String(filters.minDeliverablesSubmitted));
+    }
 
-    const { data } = await apiClient.get<TeamsResponse>(`/admin/teams?${params.toString()}`);
-    return data;
+    const { data } = await apiClient.get<TeamsResponse | Team[]>(`/admin/teams?${params.toString()}`, {
+      /** Team list can be heavy; avoid 120s default client cap on slow DB. */
+      timeout: 300_000,
+    });
+    if (Array.isArray(data)) {
+      return {
+        success: true,
+        teams: data,
+        pagination: {
+          page,
+          limit,
+          total: data.length,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      };
+    }
+    if (data && typeof data === "object" && "teams" in data) {
+      return data as TeamsResponse;
+    }
+    return {
+      success: true,
+      teams: [],
+      pagination: {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
+  },
+
+  /**
+   * Distinct team school names (for filter dropdowns).
+   */
+  async getDistinctTeamSchools(): Promise<string[]> {
+    const { data } = await apiClient.get<{ success?: boolean; schools?: string[] }>("/admin/teams/schools");
+    const raw = data as { schools?: string[] } | undefined;
+    if (raw && typeof raw === "object" && Array.isArray(raw.schools)) return raw.schools;
+    return [];
   },
 
   /**
@@ -550,6 +609,21 @@ export const adminService = {
     }
   ): Promise<Team> {
     const { data } = await apiClient.put<{ success: true; data: Team }>(`/admin/teams/${teamId}`, payload);
+    return data.data;
+  },
+
+  /**
+   * Create a new team (admin only)
+   */
+  async createTeam(payload: {
+    name: string;
+    school: string;
+    projectTitle?: string;
+    description?: string;
+    leadUserId: string;
+    memberUserIds?: string[];
+  }): Promise<Team> {
+    const { data } = await apiClient.post<{ success: true; data: Team }>("/admin/teams", payload);
     return data.data;
   },
 
@@ -672,6 +746,8 @@ export type Team = {
   id: string;
   name: string;
   school: string;
+  /** Team lead region (list endpoints), when available. */
+  region?: string | null;
   projectTitle?: string;
   description?: string;
   profileImage?: string;
@@ -680,7 +756,7 @@ export type Team = {
   /** Required-template deliverables submitted / total (list endpoints). */
   deliverableSubmitted?: number;
   deliverableTotal?: number;
-  /** Reviewer slots filled (max 2 per team for judging). */
+  /** Reviewer slots filled (max 3 per team for judging). */
   reviewerAssignmentCount?: number;
   members?: Array<{
     id: string;
