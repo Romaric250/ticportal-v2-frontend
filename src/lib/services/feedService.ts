@@ -126,7 +126,7 @@ export const feedService = {
   /**
    * Get paginated feed posts
    */
-  /** Student daily post cap (2/day UTC). Mentors/admins: applies false. */
+  /** Student daily post cap (1/day UTC). Mentors/admins: applies false. */
   async getDailyPostQuota(): Promise<{
     applies: boolean;
     limit: number;

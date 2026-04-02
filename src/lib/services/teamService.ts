@@ -454,45 +454,8 @@ export const teamService = {
    * Converts file to base64 and sends as JSON
    */
   async uploadFileForDeliverable(file: File): Promise<string> {
-    // Convert file to base64 data URL
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          resolve(reader.result);
-        } else {
-          reject(new Error("Failed to convert file to base64"));
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    const token = tokenStorage.getAccessToken();
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
-    const response = await axios.post<{
-      success: boolean;
-      data: {
-        url: string;
-        key: string;
-        name: string;
-        size: number;
-      };
-    }>(
-      `${apiBaseUrl}/f/upload`,
-      {
-        file: base64Data,
-        fileName: file.name,
-      },
-      {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    return response.data.data.url;
+    const { uploadFile } = await import("../uploadthing");
+    return uploadFile(file);
   },
 
   /**

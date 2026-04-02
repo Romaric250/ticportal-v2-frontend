@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { X, Image as ImageIcon, FileText, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { feedService, type UpdatePostPayload, type FeedCategory, type FeedAttachment, type FeedPost } from "@/src/lib/services/feedService";
-import { apiClient } from "@/src/lib/api-client";
+import { uploadFile } from "@/src/lib/uploadthing";
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -56,32 +56,11 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
 
     try {
       setUploading(true);
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            resolve(reader.result);
-          } else {
-            reject(new Error("Failed to convert file to base64"));
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const response = await apiClient.post<{ url: string }>(
-        "/f/upload",
-        {
-          file: base64Data,
-          fileName: file.name,
-        }
-      );
-
-      const uploadedUrl = response.data.url;
+      const uploadedUrl = await uploadFile(file);
       setImageUrls((prev) => [...prev, uploadedUrl]);
       toast.success("Image uploaded successfully");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to upload image");
+      toast.error(error?.message || "Error uploading image. Please try again.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -92,37 +71,18 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("File size must be less than 50MB");
+    if (file.size > 12 * 1024 * 1024) {
+      toast.error("File size must be less than 12 MB");
       return;
     }
 
     try {
       setUploading(true);
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            resolve(reader.result);
-          } else {
-            reject(new Error("Failed to convert file to base64"));
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const response = await apiClient.post<{ url: string }>(
-        "/f/upload",
-        {
-          file: base64Data,
-          fileName: file.name,
-        }
-      );
+      const fileUrl = await uploadFile(file);
 
       const newAttachment: FeedAttachment = {
         fileName: file.name,
-        fileUrl: response.data.url,
+        fileUrl,
         fileSize: file.size,
         mimeType: file.type,
         fileType: file.type.startsWith("video/") ? "video" : "document",
@@ -131,7 +91,7 @@ export function EditPostModal({ isOpen, onClose, onPostUpdated, post }: EditPost
       setAttachments((prev) => [...prev, newAttachment]);
       toast.success("File uploaded successfully");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to upload file");
+      toast.error(error?.message || "Error uploading file. Please try again.");
     } finally {
       setUploading(false);
       if (attachmentInputRef.current) attachmentInputRef.current.value = "";

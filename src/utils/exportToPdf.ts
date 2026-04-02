@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import type { Team } from "../lib/services/adminService";
+import type { Team, GDriveAccessCheckItem } from "../lib/services/adminService";
 import type { GradingReportTeamRow } from "../lib/services/gradingService";
 
 export async function exportPortfolioToPDF(elementId: string, filename: string = "portfolio.pdf") {
@@ -88,8 +88,8 @@ export function exportGradingReportPdf(
   const headerH = 7;
   const footRoom = 8;
 
-  /** Column widths (mm), sum ≈ innerW */
-  const cols = [9, 32, 28, 11, 7, 7, 7, 10, 10, 10, 10, 10, 12] as const;
+  /** Column widths (mm), sum ≈ innerW — includes Submissions before Final */
+  const cols = [8, 28, 24, 10, 6, 6, 6, 9, 9, 9, 8, 8, 7, 10] as const;
   const sum = cols.reduce((a, b) => a + b, 0);
   const scale = innerW / sum;
   const w = cols.map((c) => c * scale);
@@ -123,7 +123,22 @@ export function exportGradingReportPdf(
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    const labels = ["Rank", "Team", "School", "Reg", "S1", "S2", "S3", "Rev avg", "Wtd rev", "LB pts", "LB /10", "Raw LB", "Final"];
+    const labels = [
+      "Rank",
+      "Team",
+      "School",
+      "Reg",
+      "S1",
+      "S2",
+      "S3",
+      "Rev avg",
+      "Wtd rev",
+      "LB pts",
+      "LB /10",
+      "Raw LB",
+      "Sub",
+      "Final",
+    ];
     for (let i = 0; i < labels.length; i++) {
       doc.text(labels[i], colX[i] + 0.6, yy + 4.8);
     }
@@ -190,14 +205,15 @@ export function exportGradingReportPdf(
       (row.leaderboardContributionPoints ?? 0).toFixed(2),
       lbOutOf10(row),
       String(row.rawLeaderboardPoints ?? 0),
+      String(row.submittedDeliverableCount ?? 0),
       cf != null ? cf.toFixed(2) : "—",
     ];
 
-    for (let c = 0; c < 13; c++) {
+    for (let c = 0; c < 14; c++) {
       const isNum = c >= 4;
       const text = cell[c];
       const x = isNum ? colX[c] + w[c] - 0.8 : colX[c] + 0.6;
-      doc.setFont("helvetica", c === 12 && cf != null ? "bold" : "normal");
+      doc.setFont("helvetica", c === 13 && cf != null ? "bold" : "normal");
       doc.text(text, x, y + 4.2, { align: isNum ? "right" : "left", maxWidth: isNum ? undefined : w[c] - 1.2 });
     }
     doc.setFont("helvetica", "normal");
@@ -460,4 +476,244 @@ export function exportTeamsPdfByRegion(
 
   drawFooter();
   doc.save(options?.filename ?? "teams.pdf");
+}
+
+/**
+ * Export inaccessible Google Drive deliverables to a detailed PDF,
+ * grouped by region with team details, members, schools.
+ */
+export function exportInaccessibleDeliverablesPdf(
+  items: GDriveAccessCheckItem[],
+  options?: { filename?: string },
+) {
+  const inaccessible = items.filter((i) => i.accessResult.accessible === false);
+  if (inaccessible.length === 0) return;
+
+  // Group by region
+  const regionMap = new Map<string, GDriveAccessCheckItem[]>();
+  for (const item of inaccessible) {
+    const r = item.teamRegion?.trim() || "__NONE__";
+    const list = regionMap.get(r) ?? [];
+    list.push(item);
+    regionMap.set(r, list);
+  }
+  const regionKeys = [...regionMap.keys()].sort((a, b) => {
+    if (a === "__NONE__") return 1;
+    if (b === "__NONE__") return -1;
+    return a.localeCompare(b);
+  });
+
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  const margin = 10;
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const innerW = pageW - margin * 2;
+  const footRoom = 10;
+
+  let page = 1;
+  let y = margin;
+
+  const drawFooter = () => {
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      `TiC Portal — Inaccessible Deliverables Report · ${inaccessible.length} item(s)`,
+      margin,
+      pageH - 5,
+    );
+    doc.text(`Page ${page}`, pageW - margin - 15, pageH - 5, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+  };
+
+  const ensureSpace = (needMm: number) => {
+    if (y + needMm <= pageH - margin - footRoom) return;
+    drawFooter();
+    doc.addPage();
+    page += 1;
+    y = margin;
+  };
+
+  // --- Title ---
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("TiC Summit 2026 — Inaccessible Deliverables", margin, y + 5);
+  y += 9;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(220, 38, 38);
+  doc.text(
+    `${inaccessible.length} deliverable(s) with inaccessible Google Drive links`,
+    margin,
+    y + 3,
+  );
+  y += 6;
+  doc.setTextColor(80, 80, 80);
+  doc.setFontSize(8);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y + 3);
+  y += 5;
+  doc.setFontSize(8);
+  doc.text(
+    "Students must change their Google Drive sharing to \"Anyone with the link\" and re-submit.",
+    margin,
+    y + 3,
+  );
+  y += 8;
+  doc.setTextColor(0, 0, 0);
+
+  // --- Table columns ---
+  const cols = [7, 30, 30, 32, 42, 38, 42, 42];
+  const labels = ["#", "Team", "Deliverable", "Link", "Members", "Schools", "Phones", "Emails"];
+  const colCount = cols.length;
+  const sum = cols.reduce((a, b) => a + b, 0);
+  const scale = innerW / sum;
+  const w = cols.map((c) => c * scale);
+  const colX: number[] = [];
+  let acc2 = margin;
+  for (let i = 0; i < w.length; i++) {
+    colX.push(acc2);
+    acc2 += w[i];
+  }
+
+  const headerH = 7;
+
+  const drawTableHeader = (yy: number) => {
+    doc.setFillColor(17, 24, 39);
+    doc.rect(margin, yy, innerW, headerH, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    for (let i = 0; i < labels.length; i++) {
+      doc.text(labels[i], colX[i] + 0.6, yy + 4.8);
+    }
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+  };
+
+  for (const regionKey of regionKeys) {
+    const regionLabel = regionKey === "__NONE__" ? "No Region" : regionKey;
+    const regionItems = regionMap.get(regionKey)!;
+
+    // Unique teams in this region
+    const uniqueTeams = new Set(regionItems.map((i) => i.teamId));
+
+    ensureSpace(30);
+
+    // Region header
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text(`From Region: ${regionLabel}`, margin, y + 5);
+    y += 8;
+
+    // NB summary
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(220, 38, 38);
+    doc.text(
+      `NB: ${regionItems.length} inaccessible link(s) across ${uniqueTeams.size} team(s)`,
+      margin,
+      y + 3,
+    );
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    y += 7;
+
+    drawTableHeader(y);
+    y += headerH;
+
+    for (let i = 0; i < regionItems.length; i++) {
+      const item = regionItems[i];
+      const memberNames = item.members.map((m) => m.name).join(", ");
+      const memberSchools = [...new Set(item.members.map((m) => m.school).filter(Boolean))].join(", ");
+      const memberPhones = item.members.map((m) => m.phone).filter(Boolean).join(", ");
+      const memberEmails = item.members.map((m) => m.email).join(", ");
+
+      // Compute row height (wrap long text)
+      doc.setFontSize(7);
+      const wrappedMembers = doc.splitTextToSize(memberNames, w[4] - 2);
+      const wrappedSchools = doc.splitTextToSize(memberSchools || item.teamSchool || "—", w[5] - 2);
+      const wrappedPhones = doc.splitTextToSize(memberPhones || "—", w[6] - 2);
+      const wrappedEmails = doc.splitTextToSize(memberEmails, w[7] - 2);
+      const maxLines = Math.max(wrappedMembers.length, wrappedSchools.length, wrappedPhones.length, wrappedEmails.length, 1);
+      const rowH = Math.max(6, maxLines * 3.5 + 2);
+
+      ensureSpace(rowH);
+
+      if (y <= margin) {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text(`From Region: ${regionLabel} (continued)`, margin, y + 5);
+        y += 9;
+        doc.setFont("helvetica", "normal");
+        drawTableHeader(y);
+        y += headerH;
+      }
+
+      if (i % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, y, innerW, rowH, "F");
+      }
+
+      doc.setFontSize(7);
+      doc.setTextColor(25, 25, 25);
+
+      // Number badge
+      const numStr = String(i + 1);
+      doc.setFont("helvetica", "bold");
+      const tw = doc.getTextWidth(numStr);
+      const padX = 1.6;
+      const padY2 = 1;
+      const badgeW = tw + padX * 2;
+      const bh = 5;
+      const bx = colX[0] + (w[0] - badgeW) / 2;
+      const by = y + padY2;
+      doc.setFillColor(17, 24, 39);
+      doc.roundedRect(bx, by, badgeW, bh, 1, 1, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.text(numStr, bx + badgeW / 2, y + 4.2, { align: "center" });
+      doc.setTextColor(25, 25, 25);
+      doc.setFont("helvetica", "normal");
+
+      // Team name
+      doc.text(trunc(item.teamName, 36), colX[1] + 0.6, y + 4.2, { maxWidth: w[1] - 1.2 });
+
+      // Deliverable title
+      doc.text(trunc(item.templateTitle, 36), colX[2] + 0.6, y + 4.2, { maxWidth: w[2] - 1.2 });
+
+      // Link (shortened)
+      doc.setTextColor(37, 99, 235);
+      const shortLink = item.content.replace(/^https?:\/\//, "").slice(0, 42);
+      doc.text(trunc(shortLink, 42), colX[3] + 0.6, y + 4.2, { maxWidth: w[3] - 1.2 });
+      doc.setTextColor(25, 25, 25);
+
+      // Members (wrapped)
+      for (let li = 0; li < wrappedMembers.length; li++) {
+        doc.text(wrappedMembers[li], colX[4] + 0.6, y + 4.2 + li * 3.5, { maxWidth: w[4] - 1.2 });
+      }
+
+      // Schools (wrapped)
+      for (let li = 0; li < wrappedSchools.length; li++) {
+        doc.text(wrappedSchools[li], colX[5] + 0.6, y + 4.2 + li * 3.5, { maxWidth: w[5] - 1.2 });
+      }
+
+      // Phones (wrapped)
+      for (let li = 0; li < wrappedPhones.length; li++) {
+        doc.text(wrappedPhones[li], colX[6] + 0.6, y + 4.2 + li * 3.5, { maxWidth: w[6] - 1.2 });
+      }
+
+      // Emails (wrapped)
+      doc.setFontSize(6);
+      for (let li = 0; li < wrappedEmails.length; li++) {
+        doc.text(wrappedEmails[li], colX[7] + 0.6, y + 4.2 + li * 3.5, { maxWidth: w[7] - 1.2 });
+      }
+      doc.setFontSize(7);
+
+      y += rowH;
+    }
+
+    y += 4;
+  }
+
+  drawFooter();
+  doc.save(options?.filename ?? "inaccessible-deliverables.pdf");
 }

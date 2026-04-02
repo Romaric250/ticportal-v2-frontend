@@ -49,7 +49,7 @@ export default function StudentTeamDeliverablesPage() {
         setDeadlineStatuses(statuses);
       }
     } catch (error: any) {
-      toast.error(error?.message || "Failed to load deliverables");
+      toast.error("Could not load deliverables. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -86,10 +86,11 @@ export default function StudentTeamDeliverablesPage() {
       setIsUpdate(false);
       loadData();
     } catch (error: any) {
-      if (error?.response?.status === 400) {
-        toast.error(error?.response?.data?.message || "Deadline has passed. Cannot submit or update.");
+      const msg = error?.message || "";
+      if (msg && !msg.includes("status code") && !msg.includes("Request failed")) {
+        toast.error(msg);
       } else {
-        toast.error(error?.message || "Failed to submit deliverable");
+        toast.error("Something went wrong while submitting. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -131,7 +132,7 @@ export default function StudentTeamDeliverablesPage() {
       setSelectedDeliverable(null);
       loadData();
     } catch (error: any) {
-      toast.error(error?.message || "Failed to delete submission");
+      toast.error("Could not delete submission. Please try again.");
     } finally {
       setDeleting(false);
     }

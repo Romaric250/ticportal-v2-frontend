@@ -51,6 +51,16 @@ export const tokenStorage = {
 
 // Request interceptor: Add Authorization header
 apiClient.interceptors.request.use((config) => {
+  // FormData uploads must NOT use the default application/json Content-Type — multer never sees the file.
+  // Let axios set multipart/form-data with the correct boundary.
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+    const h = config.headers;
+    if (h && typeof h.delete === "function") {
+      h.delete("Content-Type");
+    } else if (h && typeof h === "object") {
+      delete (h as Record<string, unknown>)["Content-Type"];
+    }
+  }
   // Always get the latest token from storage (in case it was refreshed)
   const token = tokenStorage.getAccessToken();
   if (token) {

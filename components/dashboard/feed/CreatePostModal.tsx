@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { X, Image as ImageIcon, FileText, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { feedService, type CreatePostPayload, type FeedCategory, type FeedAttachment } from "@/src/lib/services/feedService";
-import { apiClient } from "@/src/lib/api-client";
+import { uploadFile } from "@/src/lib/uploadthing";
 import { extractPdfPagesAsImages } from "@/src/utils/pdfToImages";
 
 interface CreatePostModalProps {
@@ -58,6 +58,13 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
   const quotaBlocked =
     isStudent && dailyQuota?.applies === true && dailyQuota.remaining === 0;
 
+  const dailyLimitMessage =
+    dailyQuota?.applies && dailyQuota.limit >= 1
+      ? dailyQuota.limit === 1
+        ? "Limit of 1 post per day reached."
+        : `Limit of ${dailyQuota.limit} posts per day reached.`
+      : "Daily post limit reached.";
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -100,30 +107,10 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
         }
 
         const imageUploadPromises = filesToUpload.map(async (file) => {
-          const base64Data = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              if (typeof reader.result === "string") {
-                resolve(reader.result);
-              } else {
-                reject(new Error("Failed to convert file to base64"));
-              }
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-
-          const response = await apiClient.post<{ url: string }>(
-            "/f/upload",
-            {
-              file: base64Data,
-              fileName: file.name,
-            }
-          );
-
+          const fileUrl = await uploadFile(file);
           return {
             fileName: file.name,
-            fileUrl: response.data.url,
+            fileUrl,
             fileSize: file.size,
             mimeType: file.type,
             fileType: "image" as const,
@@ -154,20 +141,14 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
                 toast.info(`Only the first ${pagesToProcess.length} pages of ${pdfFile.name} will be uploaded`);
               }
 
-              // Upload each PDF page as an image
               const pdfPageUploadPromises = pagesToProcess.map(async (pageImageDataUrl, pageIndex) => {
-                const response = await apiClient.post<{ url: string }>(
-                  "/f/upload",
-                  {
-                    file: pageImageDataUrl,
-                    fileName: `${pdfFile.name}_page_${pageIndex + 1}.png`,
-                  }
-                );
-
+                const blob = await (await fetch(pageImageDataUrl)).blob();
+                const pageFile = new File([blob], `${pdfFile.name}_page_${pageIndex + 1}.png`, { type: "image/png" });
+                const fileUrl = await uploadFile(pageFile);
                 return {
                   fileName: `${pdfFile.name} (Page ${pageIndex + 1})`,
-                  fileUrl: response.data.url,
-                  fileSize: 0, // Size not available for extracted pages
+                  fileUrl,
+                  fileSize: 0,
                   mimeType: "image/png",
                   fileType: "image" as const,
                 };
@@ -197,7 +178,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       }
     } catch (error: any) {
       console.error("Upload error:", error);
-      toast.error(error?.response?.data?.message || "Failed to upload images");
+      toast.error(error?.message || "Error uploading images. Please try again.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -215,31 +196,11 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
 
     try {
       setUploading(true);
-      // Convert to base64 as per existing upload pattern
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            resolve(reader.result);
-          } else {
-            reject(new Error("Failed to convert file to base64"));
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const response = await apiClient.post<{ url: string }>(
-        "/f/upload",
-        {
-          file: base64Data,
-          fileName: file.name,
-        }
-      );
+      const fileUrl = await uploadFile(file);
 
       const newAttachment: FeedAttachment = {
         fileName: file.name,
-        fileUrl: response.data.url,
+        fileUrl,
         fileSize: file.size,
         mimeType: file.type,
         fileType: file.type.startsWith("video/") ? "video" : "document",
@@ -248,7 +209,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       setAttachments((prev) => [...prev, newAttachment]);
       toast.success("File uploaded successfully");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to upload file");
+      toast.error(error?.message || "Error uploading file. Please try again.");
     } finally {
       setUploading(false);
       if (attachmentInputRef.current) attachmentInputRef.current.value = "";
@@ -274,7 +235,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       return;
     }
     if (quotaBlocked) {
-      toast.error("Limit of 2 posts per day reached.");
+      toast.error(dailyLimitMessage);
       return;
     }
 
@@ -313,7 +274,9 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
       onClose();
     } catch (error: any) {
       if (error?.response?.status === 429) {
-        toast.error("Limit of 2 posts per day reached.");
+        toast.error(
+          (error?.response?.data as { message?: string } | undefined)?.message || dailyLimitMessage
+        );
         void feedService.getDailyPostQuota().then(setDailyQuota).catch(() => {});
       } else {
         toast.error(error?.response?.data?.message || "Failed to create post");
@@ -361,7 +324,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, defaultCategor
           <div className="space-y-4 sm:space-y-5">
             {isStudent && dailyQuota?.applies && dailyQuota.remaining === 0 && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
-                Limit of 2 posts per day reached.
+                {dailyLimitMessage}
               </div>
             )}
             {/* Category */}

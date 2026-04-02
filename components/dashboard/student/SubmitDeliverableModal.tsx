@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { X, Upload, FileText, Link as LinkIcon, Type } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { X, Upload, FileText, Link as LinkIcon, Type, CheckCircle, XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { type TeamDeliverable } from "@/src/lib/services/teamService";
+import { isGoogleDriveUrl, checkGDriveAccess } from "@/src/lib/gdrive-check";
+import { toast } from "sonner";
 
 interface SubmitDeliverableModalProps {
   deliverable: TeamDeliverable;
@@ -19,7 +21,6 @@ export function SubmitDeliverableModal({
   onSubmit,
   loading,
 }: SubmitDeliverableModalProps) {
-  // Check if this is a resubmission (rejected deliverable)
   const reviewStatus = deliverable.reviewStatus || deliverable.status || "PENDING";
   const isResubmit = reviewStatus === "REJECTED" && isUpdate;
   const [formData, setFormData] = useState({
@@ -29,18 +30,68 @@ export function SubmitDeliverableModal({
   const [file, setFile] = useState<File | null>(null);
   const contentType = deliverable.template.contentType;
 
+  // GDrive access check state
+  const [urlAccessStatus, setUrlAccessStatus] = useState<"idle" | "checking" | "accessible" | "not-accessible" | "error">("idle");
+  const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const runAccessCheck = useCallback(async (url: string) => {
+    if (!url.trim() || !isGoogleDriveUrl(url)) {
+      setUrlAccessStatus("idle");
+      return;
+    }
+    setUrlAccessStatus("checking");
+    const result = await checkGDriveAccess(url);
+    if (result.accessible === true) {
+      setUrlAccessStatus("accessible");
+    } else if (result.accessible === false) {
+      setUrlAccessStatus("not-accessible");
+    } else {
+      setUrlAccessStatus("error");
+    }
+  }, []);
+
+  const handleUrlChange = useCallback((url: string) => {
+    setFormData((prev) => ({ ...prev, content: url }));
+    if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    if (isGoogleDriveUrl(url)) {
+      setUrlAccessStatus("checking");
+      checkTimeoutRef.current = setTimeout(() => runAccessCheck(url), 800);
+    } else {
+      setUrlAccessStatus("idle");
+    }
+  }, [runAccessCheck]);
+
+  useEffect(() => {
+    return () => {
+      if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    };
+  }, []);
+
+  // Run initial check if content already has a GDrive URL
+  useEffect(() => {
+    if (contentType === "URL" && formData.content && isGoogleDriveUrl(formData.content)) {
+      runAccessCheck(formData.content);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSubmit = async () => {
     try {
       if (contentType === "FILE" && !file && !formData.content) {
-        throw new Error("Please select a file to upload");
+        toast.error("Please select a file to upload");
+        return;
       }
-
       if (contentType === "TEXT" && !formData.content.trim()) {
-        throw new Error("Text content is required");
+        toast.error("Text content is required");
+        return;
+      }
+      if (contentType === "URL" && !formData.content.trim()) {
+        toast.error("URL is required");
+        return;
       }
 
-      if (contentType === "URL" && !formData.content.trim()) {
-        throw new Error("URL is required");
+      if (contentType === "URL" && urlAccessStatus === "not-accessible") {
+        toast.error("Your Google Drive link is not publicly accessible. Please update the sharing settings to \"Anyone with the link\" before submitting.");
+        return;
       }
 
       await onSubmit({
@@ -113,11 +164,43 @@ export function SubmitDeliverableModal({
                 <input
                   type="url"
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  onChange={(e) => handleUrlChange(e.target.value)}
                   placeholder="https://example.com"
-                  className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-3 py-2.5 text-sm transition-colors focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+                  className={`w-full rounded-lg border bg-white pl-10 pr-10 py-2.5 text-sm transition-colors focus:ring-2 focus:outline-none ${
+                    urlAccessStatus === "not-accessible"
+                      ? "border-red-400 focus:border-red-500 focus:ring-red-200"
+                      : urlAccessStatus === "accessible"
+                        ? "border-green-400 focus:border-green-500 focus:ring-green-200"
+                        : "border-slate-300 focus:border-slate-900 focus:ring-slate-900/20"
+                  }`}
                 />
+                {urlAccessStatus === "checking" && (
+                  <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 animate-spin" />
+                )}
+                {urlAccessStatus === "accessible" && (
+                  <CheckCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
+                )}
+                {urlAccessStatus === "not-accessible" && (
+                  <XCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500" />
+                )}
+                {urlAccessStatus === "error" && (
+                  <AlertTriangle size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500" />
+                )}
               </div>
+              {urlAccessStatus === "checking" && (
+                <p className="mt-1.5 text-xs text-blue-600">Verifying link access...</p>
+              )}
+              {urlAccessStatus === "accessible" && (
+                <p className="mt-1.5 text-xs text-green-600">Link is publicly accessible</p>
+              )}
+              {urlAccessStatus === "not-accessible" && (
+                <p className="mt-1.5 text-xs text-red-600">
+                  This Google Drive link is not publicly accessible. Please open the file/folder in Google Drive, click &quot;Share&quot;, and set access to &quot;Anyone with the link&quot;.
+                </p>
+              )}
+              {urlAccessStatus === "error" && (
+                <p className="mt-1.5 text-xs text-amber-600">Could not verify link access. You can still submit.</p>
+              )}
             </div>
           )}
 

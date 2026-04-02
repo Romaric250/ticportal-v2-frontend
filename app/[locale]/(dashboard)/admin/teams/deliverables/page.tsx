@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Upload, X, Search, Users } from "lucide-react";
-import { adminService, type TeamDeliverable, type DeliverableTemplate } from "../../../../../../src/lib/services/adminService";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, Upload, X, Search, Users, ShieldCheck, ShieldAlert, Loader2, ExternalLink, CheckCircle, XCircle, AlertTriangle, RefreshCw, FileDown } from "lucide-react";
+import { adminService, type TeamDeliverable, type DeliverableTemplate, type GDriveAccessCheckResult, type GDriveAccessCheckItem } from "../../../../../../src/lib/services/adminService";
 import { toast } from "sonner";
 import { DeliverableTemplatesTab } from "../../../../../../components/dashboard/admin/DeliverableTemplatesTab";
 import { DeliverableSubmissionsTab } from "../../../../../../components/dashboard/admin/DeliverableSubmissionsTab";
 import { DeliverableViewModal } from "../../../../../../components/dashboard/admin/DeliverableViewModal";
+import { exportInaccessibleDeliverablesPdf } from "../../../../../../src/utils/exportToPdf";
 
 export default function AdminTeamDeliverablesPage() {
   const [deliverables, setDeliverables] = useState<TeamDeliverable[]>([]);
@@ -19,7 +20,14 @@ export default function AdminTeamDeliverablesPage() {
   const [selectedDeliverable, setSelectedDeliverable] = useState<TeamDeliverable | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DeliverableTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<"templates" | "submissions">("templates");
+  const [activeTab, setActiveTab] = useState<"templates" | "submissions" | "access-check">("templates");
+
+  // Access check state
+  const [accessCheckResult, setAccessCheckResult] = useState<GDriveAccessCheckResult | null>(null);
+  const [accessCheckLoading, setAccessCheckLoading] = useState(false);
+  const [accessFilter, setAccessFilter] = useState<"all" | "accessible" | "not-accessible" | "failed">("all");
+  const [rejectingIds, setRejectingIds] = useState<Set<string>>(new Set());
+  const [accessTemplateFilter, setAccessTemplateFilter] = useState<string>("");
   
   const [filters, setFilters] = useState<{
     submissionStatus?: "NOT_SUBMITTED" | "SUBMITTED" | string;
@@ -66,7 +74,7 @@ export default function AdminTeamDeliverablesPage() {
       if (activeTab === "templates") {
         const data = await adminService.getDeliverableTemplates();
         setTemplates(data);
-      } else {
+      } else if (activeTab === "submissions") {
         const data = await adminService.getTeamDeliverables({
           ...filters,
           submissionStatus: filters.submissionStatus as "NOT_SUBMITTED" | "SUBMITTED" | undefined,
@@ -75,12 +83,89 @@ export default function AdminTeamDeliverablesPage() {
         });
         setDeliverables(data);
       }
+      // Always load templates for the access-check template filter
+      if (templates.length === 0) {
+        const data = await adminService.getDeliverableTemplates();
+        setTemplates(data);
+      }
     } catch (error: any) {
       toast.error(error?.message || "Failed to load data");
     } finally {
       setLoading(false);
     }
   };
+
+  const runAccessCheck = useCallback(async () => {
+    try {
+      setAccessCheckLoading(true);
+      const result = await adminService.bulkCheckDeliverableAccess(
+        accessTemplateFilter || undefined,
+      );
+      setAccessCheckResult(result);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to run access check");
+    } finally {
+      setAccessCheckLoading(false);
+    }
+  }, [accessTemplateFilter]);
+
+  const handleRejectForAccess = async (deliverableId: string) => {
+    try {
+      setRejectingIds((prev) => new Set(prev).add(deliverableId));
+      await adminService.rejectDeliverableForAccess(deliverableId);
+      toast.success("Deliverable rejected — team notified via email");
+      // Update local state
+      if (accessCheckResult) {
+        setAccessCheckResult({
+          ...accessCheckResult,
+          items: accessCheckResult.items.map((item) =>
+            item.deliverableId === deliverableId
+              ? { ...item, reviewStatus: "REJECTED", submissionStatus: "NOT_SUBMITTED" }
+              : item,
+          ),
+        });
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reject deliverable");
+    } finally {
+      setRejectingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deliverableId);
+        return next;
+      });
+    }
+  };
+
+  const handleBulkRejectInaccessible = async () => {
+    if (!accessCheckResult) return;
+    const inaccessible = accessCheckResult.items.filter(
+      (i) => i.accessResult.accessible === false && i.reviewStatus !== "REJECTED",
+    );
+    if (inaccessible.length === 0) {
+      toast.info("No inaccessible deliverables to reject");
+      return;
+    }
+    const confirmed = window.confirm(
+      `This will reject ${inaccessible.length} deliverable(s) and email the teams. Continue?`,
+    );
+    if (!confirmed) return;
+    let count = 0;
+    for (const item of inaccessible) {
+      try {
+        await adminService.rejectDeliverableForAccess(item.deliverableId);
+        count++;
+      } catch (_) {}
+    }
+    toast.success(`Rejected ${count}/${inaccessible.length} deliverables`);
+    runAccessCheck();
+  };
+
+  const filteredAccessItems = accessCheckResult?.items.filter((item) => {
+    if (accessFilter === "accessible") return item.accessResult.accessible === true;
+    if (accessFilter === "not-accessible") return item.accessResult.accessible === false;
+    if (accessFilter === "failed") return item.accessResult.accessible === null;
+    return true;
+  }) ?? [];
 
   const handleCreateTemplate = async () => {
     try {
@@ -300,6 +385,17 @@ export default function AdminTeamDeliverablesPage() {
           >
             Team Submissions
           </button>
+          <button
+            onClick={() => setActiveTab("access-check")}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "access-check"
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <ShieldCheck size={15} />
+            Access Check
+          </button>
         </div>
       </div>
 
@@ -329,6 +425,261 @@ export default function AdminTeamDeliverablesPage() {
           onReject={handleReject}
           onDelete={handleDelete}
         />
+      )}
+
+      {/* Access Check Tab */}
+      {activeTab === "access-check" && (
+        <div className="space-y-4">
+          {/* Controls */}
+          <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <select
+                value={accessTemplateFilter}
+                onChange={(e) => setAccessTemplateFilter(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+              >
+                <option value="">All deliverables</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+              </select>
+              <button
+                onClick={runAccessCheck}
+                disabled={accessCheckLoading}
+                className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+              >
+                {accessCheckLoading ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={15} />
+                )}
+                {accessCheckLoading ? "Checking..." : "Run Access Check"}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              {accessCheckResult && accessCheckResult.stats.notAccessible > 0 && (
+                <>
+                  <button
+                    onClick={() => {
+                      if (!accessCheckResult) return;
+                      exportInaccessibleDeliverablesPdf(accessCheckResult.items);
+                      toast.success("PDF exported");
+                    }}
+                    className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <FileDown size={15} />
+                    Export PDF
+                  </button>
+                  <button
+                    onClick={handleBulkRejectInaccessible}
+                    className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  >
+                    <XCircle size={15} />
+                    Reject All Inaccessible ({accessCheckResult.stats.notAccessible})
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Stats cards */}
+          {accessCheckResult && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
+                <div className="text-2xl font-bold text-slate-900">{accessCheckResult.stats.total}</div>
+                <div className="text-xs text-slate-500">Total Submitted</div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
+                <div className="text-2xl font-bold text-blue-600">{accessCheckResult.stats.googleDriveLinks}</div>
+                <div className="text-xs text-slate-500">Google Drive Links</div>
+              </div>
+              <button
+                onClick={() => setAccessFilter("accessible")}
+                className={`rounded-lg border p-3 text-center transition-colors ${accessFilter === "accessible" ? "border-green-400 bg-green-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+              >
+                <div className="text-2xl font-bold text-green-600">{accessCheckResult.stats.accessible}</div>
+                <div className="text-xs text-slate-500">Accessible</div>
+              </button>
+              <button
+                onClick={() => setAccessFilter("not-accessible")}
+                className={`rounded-lg border p-3 text-center transition-colors ${accessFilter === "not-accessible" ? "border-red-400 bg-red-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+              >
+                <div className="text-2xl font-bold text-red-600">{accessCheckResult.stats.notAccessible}</div>
+                <div className="text-xs text-slate-500">Not Accessible</div>
+              </button>
+              <button
+                onClick={() => setAccessFilter("failed")}
+                className={`rounded-lg border p-3 text-center transition-colors ${accessFilter === "failed" ? "border-amber-400 bg-amber-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+              >
+                <div className="text-2xl font-bold text-amber-600">{accessCheckResult.stats.checkFailed}</div>
+                <div className="text-xs text-slate-500">Check Failed</div>
+              </button>
+              <button
+                onClick={() => setAccessFilter("all")}
+                className={`rounded-lg border p-3 text-center transition-colors ${accessFilter === "all" ? "border-slate-400 bg-slate-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+              >
+                <div className="text-2xl font-bold text-slate-600">{accessCheckResult.stats.nonGoogleDrive}</div>
+                <div className="text-xs text-slate-500">Non-GDrive</div>
+              </button>
+            </div>
+          )}
+
+          {/* Results table */}
+          {accessCheckLoading && !accessCheckResult && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={24} className="animate-spin text-slate-400" />
+              <span className="ml-2 text-sm text-slate-500">Checking Google Drive access for all submissions...</span>
+            </div>
+          )}
+
+          {!accessCheckResult && !accessCheckLoading && (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-16">
+              <ShieldAlert size={40} className="mb-3 text-slate-300" />
+              <p className="text-sm font-medium text-slate-600">No access check results yet</p>
+              <p className="mt-1 text-xs text-slate-400">Click "Run Access Check" to scan all Google Drive links</p>
+            </div>
+          )}
+
+          {accessCheckResult && filteredAccessItems.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-12">
+              <CheckCircle size={32} className="mb-2 text-green-400" />
+              <p className="text-sm text-slate-500">No items match this filter</p>
+            </div>
+          )}
+
+          {filteredAccessItems.length > 0 && (
+            <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-left">
+                    <th className="px-4 py-3 font-medium text-slate-600">Team</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Region</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Members</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Deliverable</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Link</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Status</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Access</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredAccessItems.map((item) => (
+                    <tr key={item.deliverableId} className="hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-slate-900">{item.teamName}</div>
+                        {item.teamSchool && (
+                          <div className="text-xs text-slate-400">{item.teamSchool}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600">{item.teamRegion || "—"}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {item.members?.map((m, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-block rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700"
+                              title={`${m.email}${m.phone ? ` · ${m.phone}` : ""} · ${m.school}`}
+                            >
+                              {m.name}
+                              {m.role === "LEAD" && (
+                                <span className="ml-0.5 text-amber-500">★</span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{item.templateTitle}</td>
+                      <td className="px-4 py-3">
+                        <a
+                          href={item.content}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                        >
+                          <ExternalLink size={12} />
+                          {item.accessResult.isFolder ? "Folder" : "File"}
+                        </a>
+                      </td>
+                      <td className="px-4 py-3">
+                        {item.reviewStatus === "REJECTED" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                            Rejected
+                          </span>
+                        ) : item.reviewStatus === "APPROVED" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                            Approved
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                            Pending
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {item.accessResult.accessible === true && (
+                          <span className="inline-flex items-center gap-1 text-green-600">
+                            <CheckCircle size={14} /> Public
+                          </span>
+                        )}
+                        {item.accessResult.accessible === false && (
+                          <span className="inline-flex items-center gap-1 text-red-600">
+                            <XCircle size={14} /> No Access
+                          </span>
+                        )}
+                        {item.accessResult.accessible === null && (
+                          <span className="inline-flex items-center gap-1 text-amber-500">
+                            <AlertTriangle size={14} /> Unknown
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {item.accessResult.accessible === false && item.reviewStatus !== "REJECTED" && (
+                            <button
+                              onClick={() => handleRejectForAccess(item.deliverableId)}
+                              disabled={rejectingIds.has(item.deliverableId)}
+                              className="flex items-center gap-1 rounded bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                              {rejectingIds.has(item.deliverableId) ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <XCircle size={12} />
+                              )}
+                              Reject
+                            </button>
+                          )}
+                          {item.reviewStatus === "APPROVED" && (
+                            <button
+                              onClick={() => handleRejectForAccess(item.deliverableId)}
+                              disabled={rejectingIds.has(item.deliverableId)}
+                              className="flex items-center gap-1 rounded border border-red-300 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                            >
+                              {rejectingIds.has(item.deliverableId) ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <XCircle size={12} />
+                              )}
+                              Revoke & Reject
+                            </button>
+                          )}
+                          {item.accessResult.accessible === true && item.reviewStatus === "PENDING" && (
+                            <button
+                              onClick={() => handleApprove(item.deliverableId)}
+                              className="flex items-center gap-1 rounded bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700"
+                            >
+                              <CheckCircle size={12} />
+                              Approve
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Create Template Modal */}

@@ -405,6 +405,33 @@ export const adminService = {
   },
 
   /**
+   * Bulk-check Google Drive access for all submitted URL deliverables
+   */
+  async bulkCheckDeliverableAccess(templateId?: string): Promise<GDriveAccessCheckResult> {
+    const params = new URLSearchParams();
+    if (templateId) params.append("templateId", templateId);
+    const { data } = await apiClient.get<{ success: boolean; data: GDriveAccessCheckResult }>(
+      `/admin/deliverables/access-check?${params.toString()}`
+    );
+    return (data as any).data ?? data;
+  },
+
+  /**
+   * Check Google Drive access for a single deliverable
+   */
+  async checkSingleDeliverableAccess(deliverableId: string): Promise<any> {
+    const { data } = await apiClient.get(`/admin/deliverables/${deliverableId}/access-check`);
+    return (data as any).data ?? data;
+  },
+
+  /**
+   * Reject a deliverable for access issues (un-submits + emails team)
+   */
+  async rejectDeliverableForAccess(deliverableId: string): Promise<void> {
+    await apiClient.post(`/admin/deliverables/${deliverableId}/reject-access`);
+  },
+
+  /**
    * Upload deliverable for a team (admin override)
    */
   async uploadDeliverableForTeam(
@@ -417,85 +444,24 @@ export const adminService = {
       description?: string;
     }
   ): Promise<TeamDeliverable> {
-    const token = tokenStorage.getAccessToken();
+    let content = payload.content || "";
 
-    // If contentType is FILE, convert to base64 and upload first
     if (payload.contentType === "FILE" && payload.file) {
-      // Convert file to base64 data URL
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            resolve(reader.result);
-          } else {
-            reject(new Error("Failed to convert file to base64"));
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(payload.file!);
-      });
-
-      // Upload file to get URL
-      const uploadResponse = await axios.post<{
-        success: boolean;
-        data: {
-          url: string;
-          key: string;
-          name: string;
-          size: number;
-        };
-      }>(
-        `${apiBaseUrl}/f/upload`,
-        {
-          file: base64Data,
-          fileName: payload.file.name,
-        },
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : undefined,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      // Now submit the deliverable with the file URL
-      const response = await axios.post<TeamDeliverable>(
-        `${apiBaseUrl}/admin/teams/${teamId}/deliverables`,
-        {
-          templateId: payload.templateId,
-          contentType: payload.contentType,
-          content: uploadResponse.data.data.url,
-          description: payload.description,
-        },
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : undefined,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      return response.data;
-    } else {
-      // For TEXT or URL, use JSON
-      const response = await axios.post<TeamDeliverable>(
-        `${apiBaseUrl}/admin/teams/${teamId}/deliverables`,
-        {
-          templateId: payload.templateId,
-          content: payload.content || "",
-          contentType: payload.contentType,
-          description: payload.description,
-        },
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : undefined,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      return response.data;
+      const { uploadFile } = await import("../uploadthing");
+      content = await uploadFile(payload.file);
     }
+
+    const { data } = await apiClient.post<TeamDeliverable>(
+      `/admin/teams/${teamId}/deliverables`,
+      {
+        templateId: payload.templateId,
+        contentType: payload.contentType,
+        content,
+        description: payload.description,
+      },
+    );
+
+    return data;
   },
 
   /**
@@ -845,6 +811,49 @@ export type TeamDeliverable = {
     type?: string;
     customType?: string | null;
   };
+};
+
+export type GDriveAccessResult = {
+  isGoogleDrive: boolean;
+  fileId: string | null;
+  isFolder: boolean;
+  accessible: boolean | null;
+  error?: string;
+};
+
+export type GDriveAccessCheckItem = {
+  deliverableId: string;
+  teamId: string;
+  teamName: string;
+  teamSchool: string;
+  teamRegion: string;
+  members: Array<{
+    name: string;
+    email: string;
+    phone: string;
+    school: string;
+    region: string;
+    role: string;
+  }>;
+  templateTitle: string;
+  templateId: string;
+  content: string;
+  contentType: string;
+  submissionStatus: string;
+  reviewStatus: string;
+  accessResult: GDriveAccessResult;
+};
+
+export type GDriveAccessCheckResult = {
+  stats: {
+    total: number;
+    googleDriveLinks: number;
+    accessible: number;
+    notAccessible: number;
+    checkFailed: number;
+    nonGoogleDrive: number;
+  };
+  items: GDriveAccessCheckItem[];
 };
 
 export type DeliverableFilters = {

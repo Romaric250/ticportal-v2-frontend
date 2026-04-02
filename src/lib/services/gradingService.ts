@@ -96,6 +96,8 @@ export type GradingReportTeamRow = {
   reviewerContributionPoints?: number | null;
   /** Points toward final 0–100 from leaderboard (normalized LB × w%). */
   leaderboardContributionPoints?: number;
+  /** Count of deliverables with submissionStatus SUBMITTED */
+  submittedDeliverableCount?: number;
   reviewers: GradingReportReviewer[];
 };
 
@@ -111,6 +113,16 @@ export type GradingReportTeamDetail = {
   projectTitle: string | null;
   description: string | null;
   createdAt: string;
+  deliverables: Array<{
+    id: string;
+    type: string;
+    customType: string | null;
+    contentType: string;
+    content: string;
+    description: string | null;
+    submissionStatus: string;
+    templateTitle: string | null;
+  }>;
   members: Array<{
     role: string;
     joinedAt: string;
@@ -259,6 +271,17 @@ export const gradingService = {
         sendMail: opts?.sendMail,
       })
       .then((r) => unwrap<unknown>(r)),
+
+  /** Unassign every draft-eligible assignment (same rules as per-row Unassign). */
+  unassignAllEligible: () =>
+    apiClient.post("/admin/assignments/unassign-all").then((r) =>
+      unwrap<{
+        removed: number;
+        attempted: number;
+        ineligibleCount: number;
+        failed: { teamId: string; reviewerId: string; message: string }[];
+      }>(r)
+    ),
 
   /** Reviewers currently assigned to a team (0–3 rows). Used to pre-fill manual assign. */
   assignmentsForTeam: (teamId: string) =>
