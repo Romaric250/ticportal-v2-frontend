@@ -717,3 +717,179 @@ export function exportInaccessibleDeliverablesPdf(
   drawFooter();
   doc.save(options?.filename ?? "inaccessible-deliverables.pdf");
 }
+
+/** One team block + reviewer rows for Judging → Assignments PDF export. */
+export type AssignmentPdfGroup = {
+  teamName: string;
+  projectTitle?: string | null;
+  finalized: boolean;
+  rows: {
+    reviewer: string;
+    email: string;
+    assigner: string;
+    assignedAt: string;
+    grade: string;
+    slot: string;
+  }[];
+};
+
+/**
+ * Judging assignments: grouped by team, one table per team (current filtered list).
+ */
+export function exportAssignmentsPdf(
+  groups: AssignmentPdfGroup[],
+  options?: { filename?: string; generatedAt?: string },
+) {
+  if (groups.length === 0) return;
+
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  const margin = 10;
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const innerW = pageW - margin * 2;
+
+  const rowH = 6;
+  const headerH = 7;
+  const sectionTitleH = 8;
+  const sectionGap = 4;
+  const footRoom = 10;
+
+  const labels = ["Reviewer", "Email", "Assigned by", "Assigned", "Grade", "Slot"] as const;
+  const cols = [36, 58, 34, 38, 28, 22];
+  const sum = cols.reduce((a, b) => a + b, 0);
+  const scale = innerW / sum;
+  const w = cols.map((c) => c * scale);
+  const colX: number[] = [];
+  let acc = margin;
+  for (let i = 0; i < w.length; i++) {
+    colX.push(acc);
+    acc += w[i];
+  }
+
+  const totalRows = groups.reduce((n, g) => n + g.rows.length, 0);
+  let page = 1;
+  let y = margin;
+
+  const drawFooter = () => {
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`TiC Portal · Assignments · ${groups.length} team(s) · ${totalRows} row(s)`, margin, pageH - 5);
+    doc.text(`Page ${page}`, pageW - margin - 15, pageH - 5, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+  };
+
+  const drawTableHeader = (yy: number) => {
+    doc.setFillColor(17, 24, 39);
+    doc.rect(margin, yy, innerW, headerH, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    for (let i = 0; i < labels.length; i++) {
+      doc.text(labels[i], colX[i] + 0.6, yy + 4.8);
+    }
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+  };
+
+  const ensureSpace = (needMm: number) => {
+    if (y + needMm <= pageH - margin - footRoom) return;
+    drawFooter();
+    doc.addPage();
+    page += 1;
+    y = margin;
+  };
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Reviewer assignments", margin, y + 5);
+  y += 8;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(55, 55, 55);
+  const gen = options?.generatedAt ?? new Date().toISOString();
+  doc.text(`Generated: ${new Date(gen).toLocaleString()}`, margin, y + 3);
+  y += 10;
+  doc.setTextColor(0, 0, 0);
+
+  for (const g of groups) {
+    const titleBlock =
+      sectionTitleH +
+      (g.projectTitle?.trim() ? 5 : 0) +
+      2 +
+      headerH +
+      g.rows.length * rowH +
+      sectionGap;
+    ensureSpace(titleBlock);
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(trunc(g.teamName, 100), margin, y + 5);
+    y += sectionTitleH - 1;
+
+    if (g.projectTitle?.trim()) {
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const ptLines = doc.splitTextToSize(trunc(g.projectTitle.trim(), 200), innerW);
+      for (let li = 0; li < ptLines.length; li++) {
+        doc.text(ptLines[li], margin, y + 3 + li * 3.8);
+      }
+      y += ptLines.length * 3.8 + 2;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(g.finalized ? 22 : 100, g.finalized ? 163 : 100, g.finalized ? 74 : 100);
+    doc.text(g.finalized ? "Team finalized" : "Not finalized", margin, y + 3);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    y += 6;
+
+    drawTableHeader(y);
+    y += headerH;
+
+    for (let ri = 0; ri < g.rows.length; ri++) {
+      const r = g.rows[ri];
+      if (y + rowH > pageH - margin - footRoom) {
+        drawFooter();
+        doc.addPage();
+        page += 1;
+        y = margin;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${trunc(g.teamName, 80)} (continued)`, margin, y + 5);
+        y += 8;
+        doc.setFont("helvetica", "normal");
+        drawTableHeader(y);
+        y += headerH;
+      }
+
+      if (ri % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, y, innerW, rowH, "F");
+      }
+
+      const cells = [
+        trunc(r.reviewer, 42),
+        trunc(r.email, 48),
+        trunc(r.assigner, 28),
+        trunc(r.assignedAt, 36),
+        trunc(r.grade, 22),
+        trunc(r.slot, 18),
+      ];
+
+      doc.setFontSize(7.5);
+      for (let c = 0; c < cells.length; c++) {
+        doc.text(cells[c], colX[c] + 0.6, y + 4.2, { maxWidth: w[c] - 1.2 });
+      }
+
+      y += rowH;
+    }
+
+    y += sectionGap;
+  }
+
+  drawFooter();
+  doc.save(options?.filename ?? "assignments.pdf");
+}

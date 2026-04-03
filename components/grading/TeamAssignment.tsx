@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { adminService, type Team } from "../../src/lib/services/adminService";
 import { gradingService } from "../../src/lib/services/gradingService";
+import { exportAssignmentsPdf } from "../../src/utils/exportToPdf";
 import { UserSearchPicker } from "./UserSearchPicker";
 import { Modal } from "../ui/modal";
 import { JudgingTableSkeleton } from "./grading-skeletons";
@@ -277,6 +279,39 @@ export function TeamAssignment() {
     teamFinalizedFilter !== "all" ||
     teamGroupSort !== "name_asc";
 
+  const handleExportPdf = useCallback(() => {
+    if (!assignmentsByTeam.length) {
+      toast.error("Nothing to export — adjust filters or load assignments.");
+      return;
+    }
+    const groups = assignmentsByTeam.map((g) => ({
+      teamName: g.team?.name ?? "—",
+      projectTitle: g.team?.projectTitle,
+      finalized: !!g.team?.teamFinalGrade?.id,
+      rows: g.rows.map((a) => {
+        const reviewer = `${a.reviewer?.firstName ?? ""} ${a.reviewer?.lastName ?? ""}`.trim() || "—";
+        const assigner = `${a.assigner?.firstName ?? ""} ${a.assigner?.lastName ?? ""}`.trim() || "—";
+        let grade = "—";
+        if (a.grade) {
+          if (a.grade.status === "SUBMITTED") grade = "Submitted";
+          else if (a.grade.status === "IN_PROGRESS") grade = "In progress";
+          else grade = a.grade.status;
+        }
+        return {
+          reviewer,
+          email: a.reviewer?.email ?? "—",
+          assigner,
+          assignedAt: new Date(a.assignedAt).toLocaleString(),
+          grade,
+          slot: canUnassignAssignment(a) ? "Draft" : "Locked",
+        };
+      }),
+    }));
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    exportAssignmentsPdf(groups, { filename: `assignments-${stamp}.pdf` });
+    toast.success("PDF downloaded");
+  }, [assignmentsByTeam]);
+
   const runUnassignAll = async () => {
     setBusy(true);
     try {
@@ -363,6 +398,16 @@ export function TeamAssignment() {
             className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-800 hover:bg-red-50 disabled:opacity-50"
           >
             Unassign all (drafts)
+          </button>
+          <button
+            type="button"
+            disabled={busy || assignments === null || filteredAssignmentCount === 0}
+            onClick={handleExportPdf}
+            title="Download current table (respects filters) as PDF"
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+          >
+            <FileDown className="h-3.5 w-3.5 shrink-0" />
+            Export PDF
           </button>
         </div>
       </div>
