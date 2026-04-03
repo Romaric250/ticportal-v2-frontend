@@ -5,6 +5,8 @@ import {
   AlertCircle,
   Bell,
   BellOff,
+  ChevronLeft,
+  ChevronRight,
   Hash,
   ImagePlus,
   Loader2,
@@ -116,6 +118,39 @@ export function TicCommunity() {
   const [adminSelectMode, setAdminSelectMode] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [imageViewer, setImageViewer] = useState<{ urls: string[]; index: number } | null>(null);
+
+  const openImageViewer = useCallback((urls: string[], index: number) => {
+    if (!urls?.length) return;
+    const i = Math.max(0, Math.min(index, urls.length - 1));
+    setImageViewer({ urls, index: i });
+  }, []);
+
+  useEffect(() => {
+    if (!imageViewer) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setImageViewer(null);
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setImageViewer((v) =>
+          v && v.urls.length > 1 ? { ...v, index: (v.index - 1 + v.urls.length) % v.urls.length } : v,
+        );
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setImageViewer((v) =>
+          v && v.urls.length > 1 ? { ...v, index: (v.index + 1) % v.urls.length } : v,
+        );
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [imageViewer]);
 
   const scrollBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -638,7 +673,7 @@ export function TicCommunity() {
 
   if (communityAccess === "loading") {
     return (
-      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-slate-50">
+      <div className="flex h-full min-h-0 flex-1 items-center justify-center bg-slate-50">
         <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
       </div>
     );
@@ -706,8 +741,8 @@ export function TicCommunity() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-4rem)] flex-col lg:flex-row lg:min-h-[calc(100vh-5rem)]">
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden border-slate-200 bg-white lg:border-r">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden lg:flex-row lg:min-h-0">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-slate-200 bg-white lg:border-r">
         <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-3 sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
@@ -889,6 +924,7 @@ export function TicCommunity() {
                             ? () => void handleDeleteMessage(m)
                             : undefined
                       }
+                      onImageClick={openImageViewer}
                     />
                   </li>
                 ))}
@@ -962,10 +998,10 @@ export function TicCommunity() {
           <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setThreadRoot(null)} aria-hidden />
           <aside
             className={cn(
-              "fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-2xl border border-slate-200 bg-white shadow-2xl lg:static lg:z-0 lg:max-h-none lg:min-h-0 lg:w-[380px] lg:max-w-[40vw] lg:flex-1 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none",
+              "fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] min-h-0 flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl lg:static lg:z-0 lg:h-full lg:max-h-none lg:min-h-0 lg:w-[380px] lg:max-w-[40vw] lg:flex-1 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none",
             )}
           >
-            <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2.5 sm:px-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5 sm:px-4">
               <div className="flex items-center gap-2 min-w-0">
                 <MessageSquare className="h-4 w-4 shrink-0 text-slate-500" />
                 <span className="truncate text-sm font-semibold text-slate-900">Thread</span>
@@ -1018,11 +1054,16 @@ export function TicCommunity() {
                 </div>
                 {threadRoot.imageUrls?.length ? (
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {threadRoot.imageUrls.map((u) => (
-                      <a key={u} href={u} target="_blank" rel="noreferrer" className="block">
+                    {threadRoot.imageUrls.map((u, idx) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => openImageViewer(threadRoot.imageUrls!, idx)}
+                        className="block overflow-hidden rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={u} alt="" className="max-h-40 rounded-lg border border-slate-200" />
-                      </a>
+                        <img src={u} alt="" className="max-h-40 w-auto object-cover" />
+                      </button>
                     ))}
                   </div>
                 ) : null}
@@ -1048,13 +1089,14 @@ export function TicCommunity() {
                             ? () => void handleDeleteMessage(tm)
                             : undefined
                         }
+                        onImageClick={openImageViewer}
                       />
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            <div className="border-t border-slate-100 p-3 sm:p-4">
+            <div className="shrink-0 border-t border-slate-100 p-3 sm:p-4">
               <div className="space-y-2">
               {threadImages.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -1161,6 +1203,75 @@ export function TicCommunity() {
             >
               Got it
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {imageViewer ? (
+        <div
+          className="fixed inset-0 z-[75] flex items-center justify-center p-4 sm:p-6"
+          role="dialog"
+          aria-modal
+          aria-label="Image preview"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/90"
+            aria-label="Close image"
+            onClick={() => setImageViewer(null)}
+          />
+          <div className="relative z-10 flex w-full max-w-5xl flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setImageViewer(null)}
+              className="absolute -top-1 right-0 z-30 rounded-full bg-white/15 p-2 text-white hover:bg-white/25 sm:-top-2 sm:right-0"
+              aria-label="Close"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            {imageViewer.urls.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="absolute left-0 top-1/2 z-20 -translate-y-1/2 rounded-full bg-white/15 p-2 text-white hover:bg-white/25 sm:left-2"
+                  aria-label="Previous image"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageViewer((v) =>
+                      v && v.urls.length > 1
+                        ? { ...v, index: (v.index - 1 + v.urls.length) % v.urls.length }
+                        : v,
+                    );
+                  }}
+                >
+                  <ChevronLeft className="h-7 w-7 sm:h-8 sm:w-8" />
+                </button>
+                <button
+                  type="button"
+                  className="absolute right-0 top-1/2 z-20 -translate-y-1/2 rounded-full bg-white/15 p-2 text-white hover:bg-white/25 sm:right-2"
+                  aria-label="Next image"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageViewer((v) =>
+                      v && v.urls.length > 1 ? { ...v, index: (v.index + 1) % v.urls.length } : v,
+                    );
+                  }}
+                >
+                  <ChevronRight className="h-7 w-7 sm:h-8 sm:w-8" />
+                </button>
+              </>
+            ) : null}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageViewer.urls[imageViewer.index]}
+              alt=""
+              className="max-h-[min(85vh,90dvh)] max-w-full object-contain"
+            />
+            {imageViewer.urls.length > 1 ? (
+              <p className="mt-3 text-sm font-medium text-white/90">
+                {imageViewer.index + 1} / {imageViewer.urls.length}
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -1407,6 +1518,7 @@ function MessageBubble({
   onPin,
   onEdit,
   onDelete,
+  onImageClick,
   compact,
 }: {
   message: CommunityMessage;
@@ -1418,6 +1530,8 @@ function MessageBubble({
   onPin?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** Opens full-screen image viewer for this message’s attachments */
+  onImageClick?: (urls: string[], index: number) => void;
   compact?: boolean;
 }) {
   const own = m.author.id === selfId;
@@ -1470,11 +1584,28 @@ function MessageBubble({
           ) : null}
           {m.imageUrls?.length ? (
             <div className={cn("mt-2 flex flex-wrap gap-2", compact && "max-w-[280px]")}>
-              {m.imageUrls.map((u) => (
-                <a key={u} href={u} target="_blank" rel="noreferrer">
+              {m.imageUrls.map((u, idx) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => onImageClick?.(m.imageUrls!, idx)}
+                  className={cn(
+                    "block overflow-hidden rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1",
+                    own
+                      ? "focus:ring-sky-300 focus:ring-offset-slate-900"
+                      : "focus:ring-sky-500 focus:ring-offset-slate-50",
+                  )}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={u} alt="" className="max-h-48 rounded-lg border border-white/20" />
-                </a>
+                  <img
+                    src={u}
+                    alt=""
+                    className={cn(
+                      "max-h-48 w-auto rounded-lg object-cover",
+                      own ? "border border-white/25" : "border border-slate-200/90",
+                    )}
+                  />
+                </button>
               ))}
             </div>
           ) : null}
