@@ -71,9 +71,8 @@ export function TopNav() {
       },
       community: {
         title: "TIC Community",
-        subtitle: "Live discussions and updates",
+        subtitle: "",
         icon: <MessageSquare className="text-[#111827] w-full h-full" />,
-        showOnlineCount: true,
       },
       "learning-path": {
         title: "Learning Path",
@@ -156,7 +155,9 @@ export function TopNav() {
           <div className="min-w-0 flex-1">
             <h2 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 truncate">{pageInfo.title}</h2>
             <div className="hidden md:flex items-center gap-2">
-              <p className="text-xs text-slate-500">{pageInfo.subtitle}</p>
+              {pageInfo.subtitle ? (
+                <p className="text-xs text-slate-500">{pageInfo.subtitle}</p>
+              ) : null}
               {pageInfo.showOnlineCount && (
                 <>
                   <Circle size={8} className="fill-emerald-500 text-emerald-500" />

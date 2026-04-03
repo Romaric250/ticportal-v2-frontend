@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     apple: "/tic.ico",
     shortcut: "/tic.ico",
   },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website",
     locale: "en_US",

@@ -75,11 +75,13 @@ export function Sidebar({ role, affiliateProfile, isReviewer }: Props) {
           { href: `${basePath}/referral-toolkit`, label: "Referral Toolkit", icon: <Briefcase size={16} /> },
           { href: `${basePath}/pipeline`, label: "Pipeline", icon: <Filter size={16} /> },
           { href: `${basePath}/earnings`, label: "Earnings", icon: <Banknote size={16} /> },
+          { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
           ...(isReviewer ? [{ href: reviewerGradingHref, label: "Review", icon: <Gavel size={16} /> }] : []),
         ]
       : role === "admin" || role === "super-admin"
       ? [
           { href: `${basePath}/users`, label: "User Management", icon: <UserCog size={16} /> },
+          { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
           { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
           { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
           { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
@@ -92,6 +94,7 @@ export function Sidebar({ role, affiliateProfile, isReviewer }: Props) {
         ]
       : [
           { href: `${basePath}/tic-feed`, label: "TIC Feed", icon: <Activity size={16} /> },
+          { href: `${basePath}/community`, label: "TIC Community", icon: <MessageSquare size={16} /> },
           { href: `${basePath}/leaderboard`, label: "Leaderboard", icon: <Trophy size={16} /> },
           { href: `${basePath}/hackathons`, label: "Hackathons", icon: <Flag size={16} /> },
           ...(role === "judge" || (role === "mentor" && isReviewer)

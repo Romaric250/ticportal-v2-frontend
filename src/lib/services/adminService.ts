@@ -691,6 +691,29 @@ export const adminService = {
     );
     return data.data;
   },
+
+  /** Sends the styled TIC Community welcome email to one user by id. */
+  async sendTicCommunityWelcomeEmail(userId: string): Promise<{ sent: boolean; email: string }> {
+    const { data } = await apiClient.post<{ sent: boolean; email: string }>(
+      "/admin/emails/tic-community-welcome",
+      { userId }
+    );
+    return data;
+  },
+
+  /** Broadcasts the TIC Community welcome email to all active, verified users. */
+  async broadcastTicCommunityWelcomeEmail(): Promise<{
+    sent: number;
+    failed: number;
+    total: number;
+  }> {
+    const { data } = await apiClient.post<{
+      sent: number;
+      failed: number;
+      total: number;
+    }>("/admin/emails/tic-community-welcome/broadcast");
+    return data;
+  },
 };
 
 export type TeamMember = {

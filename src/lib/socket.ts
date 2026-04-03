@@ -1,72 +1,61 @@
 import { io, Socket } from "socket.io-client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { tokenStorage } from "./api-client";
 
 let socket: Socket | null = null;
 
 export type SocketStatus = "disconnected" | "connecting" | "connected";
 
+/**
+ * Socket.io connects to the HTTP(S) origin of the API by default.
+ * Derive from NEXT_PUBLIC_API_BASE_URL when NEXT_PUBLIC_WS_URL is unset so port matches the backend.
+ */
+function resolveSocketUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_WS_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const api = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5005/api";
+  try {
+    const u = new URL(api);
+    return u.origin;
+  } catch {
+    return "http://localhost:5000";
+  }
+}
+
 export function getSocket(token?: string) {
   if (!socket) {
-    // Derive WebSocket URL from API URL if WS_URL is not set
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    let wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-    
-    // if (!wsUrl && apiUrl) {
-    //   // Remove /api suffix and convert http to ws, https to wss
-    //   wsUrl = apiUrl.replace(/\/api$/, "").replace(/^http:/, "ws:").replace(/^https:/, "wss:");
-    // }
-
-    // console.log("apiUrl here", apiUrl);
-    // console.log("wsUrl", wsUrl);
-    
-    wsUrl = wsUrl ?? "http://localhost:5000";
-    // console.log("Socket: Creating new socket connection", { wsUrl, hasToken: !!token });
+    const wsUrl = resolveSocketUrl();
     socket = io(wsUrl, {
       withCredentials: true,
-      autoConnect: false, // We'll connect manually after setting auth
-      transports: ["websocket"],
-      auth: token ? { token } : undefined,
+      autoConnect: false,
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 8000,
+      auth: token ? { token } : {},
     });
-    
-    // Log connection events for debugging
+
     socket.on("connect", () => {
-      console.log("connected");
-      //console.log("Socket: Connected successfully", { socketId: socket?.id });
+      /* connected */
     });
-    
-    socket.on("connect_error", (error) => {
-      // console.error("Socket: Connection error", error);
-      console.log("connection error");
-    });
-    
-    socket.on("disconnect", (reason) => { 
-      // console.log("Socket: Disconnected", { reason });
-      console.log("disconnected");
+    socket.on("connect_error", () => {
+      /* handled via useSocketConnection */
     });
   } else if (token && socket.auth && typeof socket.auth === "object" && !Array.isArray(socket.auth)) {
-    // Update auth if token is provided and socket exists
-    // console.log("Socket: Updating auth token");
-    socket.auth.token = token;
+    (socket.auth as { token?: string }).token = token;
   }
   return socket;
 }
 
 export function connectSocket(token: string) {
   const s = getSocket(token);
-  
-  // Ensure auth is set before connecting
-  if (token && s.auth && typeof s.auth === "object" && !Array.isArray(s.auth)) {
-    s.auth.token = token;
-    // console.log("Socket: Auth token set", { hasToken: !!(s.auth as { token?: string }).token });
+  if (s.auth && typeof s.auth === "object" && !Array.isArray(s.auth)) {
+    (s.auth as { token?: string }).token = token;
   }
-  
   if (!s.connected) {
-    // console.log("Socket: Attempting to connect with token...", { hasToken: !!token });
     s.connect();
-  } else {
-     console.log("connected");
   }
-  
   return s;
 }
 
@@ -81,63 +70,56 @@ export function useSocketConnection() {
   const [status, setStatus] = useState<SocketStatus>("connecting");
 
   useEffect(() => {
-    const s = getSocket();
+    const token = tokenStorage.getAccessToken();
+    if (token) {
+      connectSocket(token);
+    }
+
+    const s = getSocket(token ?? undefined);
+
+    const sync = () => {
+      setStatus(s.connected ? "connected" : "disconnected");
+    };
 
     const onConnect = () => setStatus("connected");
     const onDisconnect = () => setStatus("disconnected");
     const onConnectError = () => setStatus("disconnected");
+    const onReconnect = () => setStatus("connected");
 
+    sync();
     s.on("connect", onConnect);
     s.on("disconnect", onDisconnect);
     s.on("connect_error", onConnectError);
+    s.io.on("reconnect", onReconnect);
 
     return () => {
       s.off("connect", onConnect);
       s.off("disconnect", onDisconnect);
       s.off("connect_error", onConnectError);
+      s.io.off("reconnect", onReconnect);
     };
   }, []);
 
   return { socket: getSocket(), status };
 }
 
-export function useSocketEvent<T = unknown>(
-  event: string,
-  handler: (payload: T) => void
-) {
+export function useSocketEvent<T = unknown>(event: string, handler: (payload: T) => void) {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
   useEffect(() => {
     const s = getSocket();
-    
-    // Wrapper to ensure handler is called with proper context
     const wrappedHandler = (payload: T) => {
       try {
-        handler(payload);
-      } catch (error) {
-        // console.error(`Socket: Error in handler for event "${event}":`, error);
-      }
-    };
-    
-    // Only listen if socket is connected or will connect
-    const setupListener = () => {
-      if (s.connected) {
-        // console.log(`Socket: Listening to event "${event}"`);
-        s.on(event, wrappedHandler);
+        handlerRef.current(payload);
+      } catch {
+        /* ignore */
       }
     };
 
-    // Set up listener if already connected
-    if (s.connected) {
-      setupListener();
-    } else {
-      // Wait for connection
-      s.once("connect", setupListener);
-    }
-
+    s.on(event, wrappedHandler);
     return () => {
       s.off(event, wrappedHandler);
-      s.off("connect", setupListener);
     };
-  }, [event, handler]);
+  }, [event]);
 }
-
-
